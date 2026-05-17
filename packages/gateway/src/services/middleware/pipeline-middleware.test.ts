@@ -193,6 +193,7 @@ function ctxInternals(ctx: PipelineContext) {
 describe('Pipeline Middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearInjectionCache();
   });
 
   // ==========================================================================
