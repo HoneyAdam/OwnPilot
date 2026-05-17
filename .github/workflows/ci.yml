@@ -63,7 +63,7 @@ jobs:
         run: pnpm lint
 
       - name: Test
-        run: pnpm test
+        run: TURBO_FORCE=true pnpm test
 
       - name: Install Playwright Browsers
         if: github.event_name == 'pull_request'
