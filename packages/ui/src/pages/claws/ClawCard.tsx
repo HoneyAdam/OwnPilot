@@ -75,6 +75,11 @@ export function ClawCard({
             {claw.mode}
             {claw.intervalMs && ` · every ${Math.round(claw.intervalMs / 1000)}s`}
             {claw.depth > 0 && ` · depth ${claw.depth}`}
+            {claw.preset && (
+              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-medium">
+                {claw.preset}
+              </span>
+            )}
           </p>
         </div>
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.classes}`}>
@@ -97,9 +102,14 @@ export function ClawCard({
             {claw.health.contractScore < 60 ? ' · contract' : ''}
           </span>
         )}
-        {claw.preset && (
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-            {claw.preset}
+        {claw.skills && claw.skills.length > 0 && (
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-pink-500/10 text-pink-600 dark:text-pink-400">
+            {claw.skills.length} skills
+          </span>
+        )}
+        {claw.codingAgentProvider && (
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            {claw.codingAgentProvider}
           </span>
         )}
       </div>
