@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction, useState, useCallback } from 'react';
 import type { ClawConfig } from '../../../api/endpoints/claws';
 import {
   XCircle,
@@ -11,8 +11,31 @@ import {
   BarChart3,
   FileCode,
   GitBranch,
+  Copy,
+  CheckCircle2,
+  Zap,
+  AlertTriangle,
+  MessageSquare,
+  ExternalLink,
+  Layers,
 } from '../../../components/icons';
 import { formatDuration, formatCost, timeAgo, labelClass as lbl } from '../utils';
+
+const PRIORITY_LABEL: Record<number, string> = {
+  1: 'Highest',
+  2: 'High',
+  3: 'Normal',
+  4: 'Low',
+  5: 'Lowest',
+};
+
+const PRIORITY_COLOR: Record<number, string> = {
+  1: 'bg-red-500/10 text-red-600',
+  2: 'bg-orange-500/10 text-orange-600',
+  3: 'bg-blue-500/10 text-blue-600',
+  4: 'bg-amber-500/10 text-amber-600',
+  5: 'bg-gray-500/10 text-gray-500',
+};
 
 export function OverviewTab({
   claw,
@@ -39,13 +62,26 @@ export function OverviewTab({
   const totalCost = session?.totalCostUsd ?? 0;
   const totalToolCalls = session?.totalToolCalls ?? 0;
   const avgCostPerCycle = cyclesDone > 0 ? totalCost / cyclesDone : 0;
+  const [copiedId, setCopiedId] = useState(false);
+
+  const copyId = useCallback(() => {
+    navigator.clipboard.writeText(claw.id).then(() => {
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    });
+  }, [claw.id]);
+
+  const sessionAgeMs = session?.startedAt ? Date.now() - new Date(session.startedAt).getTime() : 0;
+  const sessionAgeHours = sessionAgeMs / (1000 * 60 * 60);
+  const costPerHour = sessionAgeHours > 0 ? totalCost / sessionAgeHours : 0;
+  const efficiency = cyclesDone > 0 ? totalToolCalls / cyclesDone : 0;
 
   return (
     <div className="space-y-4">
       {/* Active status banner */}
       {isActive && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-          <div className="relative flex h-3 w-3">
+          <div className="relative flex h-3 w-3 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
           </div>
@@ -60,7 +96,7 @@ export function OverviewTab({
             {session?.lastCycleAt && (
               <p className="text-xs text-green-600/70 dark:text-green-500/70">
                 Last cycle {timeAgo(session.lastCycleAt)} ·{' '}
-                {formatDuration(session.lastCycleDurationMs ?? 0)} duration
+                {formatDuration(session.lastCycleDurationMs ?? 0)}
               </p>
             )}
           </div>
@@ -75,7 +111,7 @@ export function OverviewTab({
       {/* Paused banner */}
       {session?.state === 'paused' && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-          <Pause className="w-4 h-4 text-amber-500" />
+          <Pause className="w-4 h-4 text-amber-500 shrink-0" />
           <p className="text-sm text-amber-700 dark:text-amber-400">Claw is paused</p>
         </div>
       )}
@@ -91,7 +127,7 @@ export function OverviewTab({
         </div>
       )}
 
-      {/* Stats grid */}
+      {/* Stats grid — 6 key metrics */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {[
           { label: 'Cycles', value: cyclesDone, icon: Activity },
@@ -114,10 +150,65 @@ export function OverviewTab({
         ))}
       </div>
 
+      {/* Efficiency + cost/hour row */}
+      {session && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg p-3 flex flex-col items-center text-center">
+            <MessageSquare className="w-3.5 h-3.5 text-text-muted mb-1" />
+            <p className="text-lg font-bold text-text-primary dark:text-dark-text-primary">
+              {efficiency.toFixed(1)}
+            </p>
+            <p className="text-[10px] text-text-muted dark:text-dark-text-muted">calls/cycle</p>
+          </div>
+          <div className="bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg p-3 flex flex-col items-center text-center">
+            <Zap className="w-3.5 h-3.5 text-text-muted mb-1" />
+            <p className="text-lg font-bold text-text-primary dark:text-dark-text-primary">
+              {formatCost(costPerHour)}/h
+            </p>
+            <p className="text-[10px] text-text-muted dark:text-dark-text-muted">cost rate</p>
+          </div>
+        </div>
+      )}
+
+      {/* Claw ID + Priority row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-bg-secondary dark:bg-dark-bg-secondary border border-border dark:border-dark-border">
+          <span className="text-[10px] text-text-muted dark:text-dark-text-muted font-medium">
+            ID
+          </span>
+          <code className="text-xs font-mono text-text-secondary dark:text-dark-text-secondary">
+            {claw.id.slice(0, 20)}...
+          </code>
+          <button onClick={copyId} className="p-0.5 hover:bg-bg-tertiary rounded" title="Copy ID">
+            {copiedId ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 text-text-muted" />
+            )}
+          </button>
+        </div>
+        <span
+          className={`px-2 py-0.5 text-xs rounded-full font-medium ${PRIORITY_COLOR[claw.priority ?? 3]}`}
+        >
+          P{claw.priority ?? 3} · {PRIORITY_LABEL[claw.priority ?? 3]}
+        </span>
+        {claw.parentClawId && (
+          <a
+            href={`/claws?focus=${claw.parentClawId}`}
+            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-cyan-500/10 text-cyan-600 hover:bg-cyan-500/20"
+          >
+            <GitBranch className="w-3 h-3" />
+            subclaw
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+
       {/* Mission */}
       <div>
         <div className="flex items-center justify-between">
           <p className={lbl}>Mission</p>
+          <span className="text-[10px] text-text-muted">{claw.mission.length} chars</span>
         </div>
         <p className="text-sm text-text-secondary dark:text-dark-text-secondary mt-1 whitespace-pre-wrap leading-relaxed bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg p-3 border border-border dark:border-dark-border">
           {claw.mission}
@@ -147,13 +238,12 @@ export function OverviewTab({
         <span className="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-xs rounded-full">
           sandbox: {claw.sandbox}
         </span>
-        {claw.provider && (
+        {claw.provider ? (
           <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 text-xs rounded-full font-medium">
             {claw.provider}
             {claw.model ? ` / ${claw.model}` : ''}
           </span>
-        )}
-        {!claw.provider && (
+        ) : (
           <span className="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-xs rounded-full">
             system model
           </span>
@@ -173,12 +263,60 @@ export function OverviewTab({
             {claw.skills!.length} skills
           </span>
         )}
-        {claw.parentClawId && (
-          <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-600 text-xs rounded-full font-medium">
-            subclaw of {claw.parentClawId.slice(0, 16)}...
-          </span>
-        )}
       </div>
+
+      {/* Autonomy policy */}
+      {claw.autonomyPolicy && (
+        <div className="p-3 rounded-lg bg-bg-secondary dark:bg-dark-bg-secondary border border-border dark:border-dark-border">
+          <p className={`${lbl} mb-2`}>Autonomy Policy</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              {claw.autonomyPolicy.allowSelfModify ? (
+                <CheckCircle2 className="w-3 h-3 text-green-500" />
+              ) : (
+                <XCircle className="w-3 h-3 text-red-400" />
+              )}
+              <span className="text-text-muted">Self-modify</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {claw.autonomyPolicy.allowSubclaws ? (
+                <CheckCircle2 className="w-3 h-3 text-green-500" />
+              ) : (
+                <XCircle className="w-3 h-3 text-red-400" />
+              )}
+              <span className="text-text-muted">Subclaws</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {claw.autonomyPolicy.requireEvidence ? (
+                <CheckCircle2 className="w-3 h-3 text-green-500" />
+              ) : (
+                <XCircle className="w-3 h-3 text-red-400" />
+              )}
+              <span className="text-text-muted">Evidence</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs">
+            <AlertTriangle className="w-3 h-3 text-amber-500" />
+            <span className="text-text-muted">Destructive:</span>
+            <span className="font-medium text-text-primary dark:text-dark-text-primary capitalize">
+              {claw.autonomyPolicy.destructiveActionPolicy}
+            </span>
+            {claw.autonomyPolicy.maxCostUsdBeforePause && (
+              <>
+                <span className="text-text-muted mx-1">·</span>
+                <span className="text-text-muted">
+                  Pause at ${claw.autonomyPolicy.maxCostUsdBeforePause}
+                </span>
+              </>
+            )}
+          </div>
+          {claw.autonomyPolicy.filesystemScopes.length > 0 && (
+            <div className="mt-1.5 text-xs text-text-muted">
+              FS scopes: {claw.autonomyPolicy.filesystemScopes.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mission Contract */}
       {claw.missionContract &&
@@ -230,7 +368,7 @@ export function OverviewTab({
                 <p className="font-medium text-text-primary dark:text-dark-text-primary mb-1 text-xs">
                   Escalation Rules
                 </p>
-                <ul className="space-y-0.5 text-text-muted dark:text-dark-text-muted text-xs">
+                <ul className="space-y-0.5 text-muted dark:text-dark-text-muted text-xs">
                   {claw.missionContract.escalationRules.map((r) => (
                     <li key={r}>↑ {r}</li>
                   ))}
@@ -310,8 +448,9 @@ export function OverviewTab({
               <a
                 key={artId}
                 href={`/artifacts?id=${artId}`}
-                className="px-2 py-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded hover:bg-emerald-500/20 font-mono transition-colors"
+                className="px-2 py-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded hover:bg-emerald-500/20 font-mono transition-colors flex items-center gap-1"
               >
+                <Layers className="w-3 h-3" />
                 {artId.slice(0, 16)}...
               </a>
             ))}
@@ -321,20 +460,34 @@ export function OverviewTab({
 
       {/* Message input for active claws */}
       {isActive && (
-        <div className="flex items-center gap-2">
-          <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMsg()}
-            placeholder="Send a message to this claw..."
-            className={`flex-1 ${ic} placeholder:text-text-muted`}
-          />
-          <button
-            onClick={sendMsg}
-            className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-3.5 h-3.5 text-text-muted shrink-0" />
+            <span className="text-xs text-text-muted">Send message to claw</span>
+            <span className="text-[10px] text-text-muted ml-auto">{message.length}/2000</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value.slice(0, 2000))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMsg();
+                }
+              }}
+              placeholder="Message to claw... (Enter to send, Shift+Enter for newline)"
+              rows={2}
+              className={`flex-1 ${ic} placeholder:text-text-muted resize-none`}
+            />
+            <button
+              onClick={sendMsg}
+              disabled={!message.trim()}
+              className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>
