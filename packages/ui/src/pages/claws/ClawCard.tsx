@@ -72,7 +72,9 @@ export function ClawCard({
             {claw.name}
           </h3>
           <p className="text-xs text-text-muted dark:text-dark-text-muted mt-0.5">
-            {claw.mode} {claw.depth > 0 && `· depth ${claw.depth}`}
+            {claw.mode}
+            {claw.intervalMs && ` · every ${Math.round(claw.intervalMs / 1000)}s`}
+            {claw.depth > 0 && ` · depth ${claw.depth}`}
           </p>
         </div>
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.classes}`}>

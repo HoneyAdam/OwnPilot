@@ -149,6 +149,7 @@ export function CreateClawModal({
     'ask'
   );
   const [priority, setPriority] = useState(3);
+  const [intervalSecs, setIntervalSecs] = useState(300);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [availableSkills, setAvailableSkills] = useState<
     Array<{ id: string; name: string; description?: string; toolCount: number }>
@@ -246,6 +247,7 @@ export function CreateClawModal({
                 .map((s) => s.trim())
                 .filter(Boolean)
             : undefined,
+        interval_ms: mode === 'interval' ? intervalSecs * 1000 : undefined,
         priority: priority !== 3 ? priority : undefined,
       });
       toast.success('Claw created');
@@ -296,6 +298,7 @@ export function CreateClawModal({
                     setDeliverables(tpl.deliverables.join('\n'));
                     setConstraints((tpl.constraints ?? []).join('\n'));
                     if (tpl.codingAgent) setCodingAgent(tpl.codingAgent);
+                    if (tpl.mode === 'interval') setIntervalSecs(300);
                   }}
                   className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all text-center ${
                     name === tpl.name
@@ -389,9 +392,48 @@ export function CreateClawModal({
             {mode === 'single-shot' && 'Runs once, completes, and stops.'}
             {mode === 'continuous' &&
               'Fast adaptive loop — speeds up when active, slows when idle.'}
-            {mode === 'interval' && 'Fixed interval between cycles (default 5 min).'}
+            {mode === 'interval' && 'Fixed interval between cycles.'}
             {mode === 'event' && 'Waits for events, then runs a cycle. Requires event filters.'}
           </p>
+
+          {/* Interval (only for interval mode) */}
+          {mode === 'interval' && (
+            <div>
+              <label className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">
+                Interval (seconds)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={10}
+                  max={3600}
+                  step={10}
+                  value={intervalSecs}
+                  onChange={(e) => setIntervalSecs(Number(e.target.value))}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-sm font-mono text-text-primary dark:text-dark-text-primary w-16 text-right">
+                  {intervalSecs}s
+                </span>
+              </div>
+              <div className="flex gap-2 mt-1.5">
+                {[60, 300, 900, 1800].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setIntervalSecs(s)}
+                    className={`text-[10px] px-2 py-0.5 rounded border font-mono ${
+                      intervalSecs === s
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border dark:border-dark-border text-text-muted hover:border-primary/40'
+                    }`}
+                  >
+                    {s < 60 ? `${s}s` : `${s / 60}m`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Event Filters (only for event mode) */}
           {mode === 'event' && (
