@@ -316,12 +316,13 @@ Examples:
 
 const clawUpdateConfigDef: ToolDefinition = {
   name: 'claw_update_config',
-  description: `Update your own configuration while running. You can change your mission, mode, limits, sandbox, and more.
+  description: `Update your own configuration while running. You can change your mission, mode, limits, sandbox, priority, and more.
 Use this to adapt your behavior based on what you learn. For example:
 - Switch from continuous to interval mode when you realize periodic checks are better
 - Increase your budget if you're running out
 - Change your stop condition based on progress
-- Update your mission statement as you learn more about the task`,
+- Update your mission statement as you learn more about the task
+- Adjust priority (1=highest, 3=normal, 5=lowest) based on urgency`,
   parameters: {
     type: 'object',
     properties: {
@@ -339,10 +340,16 @@ Use this to adapt your behavior based on what you learn. For example:
       interval_ms: { type: 'number', description: 'New interval in ms (for interval mode)' },
       stop_condition: { type: 'string', description: 'New stop condition (e.g., max_cycles:200)' },
       auto_start: { type: 'boolean', description: 'Auto-start on server boot' },
+      priority: {
+        type: 'number',
+        enum: [1, 2, 3, 4, 5],
+        description:
+          'Scheduling priority: 1=highest (fastest), 3=normal, 5=lowest. Higher priority claws get shorter cycle delays.',
+      },
     },
   },
   category: 'Claw',
-  tags: ['claw', 'config', 'update', 'self', 'adapt', 'modify'],
+  tags: ['claw', 'config', 'update', 'self', 'adapt', 'modify', 'priority'],
 };
 
 const clawSendAgentMessageDef: ToolDefinition = {

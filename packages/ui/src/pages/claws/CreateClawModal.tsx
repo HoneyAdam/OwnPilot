@@ -148,6 +148,7 @@ export function CreateClawModal({
   const [destructiveActionPolicy, setDestructiveActionPolicy] = useState<'ask' | 'block' | 'allow'>(
     'ask'
   );
+  const [priority, setPriority] = useState(3);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [availableSkills, setAvailableSkills] = useState<
     Array<{ id: string; name: string; description?: string; toolCount: number }>
@@ -245,6 +246,7 @@ export function CreateClawModal({
                 .map((s) => s.trim())
                 .filter(Boolean)
             : undefined,
+        priority: priority !== 3 ? priority : undefined,
       });
       toast.success('Claw created');
       onCreated();
@@ -572,6 +574,26 @@ export function CreateClawModal({
                   <option value="block">Block</option>
                   <option value="allow">Allow</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">
+                  Scheduling Priority
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(Number(e.target.value))}
+                  className={inputClass}
+                >
+                  <option value={1}>1 — Highest (fastest cycles)</option>
+                  <option value={2}>2 — High</option>
+                  <option value={3}>3 — Normal (default)</option>
+                  <option value={4}>4 — Low</option>
+                  <option value={5}>5 — Lowest (slowest cycles)</option>
+                </select>
+                <p className="text-xs text-text-muted dark:text-dark-text-muted mt-1">
+                  Higher priority claws run more frequently when multiple claws compete for CPU.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">

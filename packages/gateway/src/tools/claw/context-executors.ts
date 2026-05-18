@@ -224,6 +224,16 @@ export async function executeUpdateConfig(
   if (args.interval_ms !== undefined) updates.intervalMs = args.interval_ms;
   if (args.stop_condition !== undefined) updates.stopCondition = args.stop_condition;
   if (args.auto_start !== undefined) updates.autoStart = args.auto_start;
+  if (args.priority !== undefined) {
+    const p = Number(args.priority);
+    if (![1, 2, 3, 4, 5].includes(p)) {
+      return {
+        success: false,
+        error: 'priority must be 1 (highest), 2, 3 (normal), 4, or 5 (lowest)',
+      };
+    }
+    updates.priority = p;
+  }
 
   if (Object.keys(updates).length === 0) {
     return { success: false, error: 'No config fields provided to update' };

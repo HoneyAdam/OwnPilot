@@ -43,6 +43,9 @@ export type ClawCreator = 'user' | 'ai' | 'claw';
 /** Maximum subclaw nesting depth */
 export const MAX_CLAW_DEPTH = 3;
 
+/** Default scheduling priority (1=highest, 3=normal, 5=lowest) */
+export const DEFAULT_CLAW_PRIORITY = 3;
+
 // ============================================================================
 // Configuration Types
 // ============================================================================
@@ -141,6 +144,10 @@ export interface ClawConfig {
   missionContract?: ClawMissionContract;
   /** Autonomy guardrails for self-modification, evidence, and risky actions */
   autonomyPolicy?: ClawAutonomyPolicy;
+  /** Scheduling priority — 1=highest, 3=normal (default), 5=lowest. Higher
+   * priority claws get shorter adaptive delays in continuous mode, allowing
+   * more cycles per hour when the scheduler is under load. */
+  priority?: number;
   createdBy: ClawCreator;
   createdAt: Date;
   updatedAt: Date;
@@ -191,6 +198,7 @@ export interface UpdateClawInput {
   preset?: string | null;
   missionContract?: Partial<ClawMissionContract> | null;
   autonomyPolicy?: Partial<ClawAutonomyPolicy> | null;
+  priority?: number | null;
 }
 
 // ============================================================================

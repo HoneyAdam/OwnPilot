@@ -12,7 +12,20 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { clawsApi } from '../api/endpoints/claws';
 import type { ClawConfig, ClawRecommendation } from '../api/endpoints/claws';
-import { Plus, Square, Trash2, RefreshCw, Activity, Home, Zap, Wrench } from '../components/icons';
+import {
+  Plus,
+  Square,
+  Trash2,
+  RefreshCw,
+  Activity,
+  Home,
+  Zap,
+  Wrench,
+  X,
+  Terminal,
+} from '../components/icons';
+import { timeAgo } from './claws/utils';
+import type { ClawOutputEvent } from './claws/tabs/OutputTab';
 
 import { CreateClawModal } from './claws/CreateClawModal';
 import { ClawCard } from './claws/ClawCard';
@@ -45,10 +58,13 @@ export function ClawsPage() {
   const [applyingFixIds, setApplyingFixIds] = useState<Set<string>>(new Set());
   const [isApplyingBatchFixes, setIsApplyingBatchFixes] = useState(false);
   const [bulkOp, setBulkOp] = useState<BulkOp | null>(null);
-  const [bulkResults, setBulkResults] = useState<Array<{ id: string; ok: boolean; name: string }>>([]);
+  const [bulkResults, setBulkResults] = useState<Array<{ id: string; ok: boolean; name: string }>>(
+    []
+  );
   const [escalations, setEscalations] = useState<
     Array<{ clawId: string; name: string; type: string; reason: string; requestedAt: string }>
   >([]);
+  const [outputFeed, setOutputFeed] = useState<ClawOutputEvent[]>([]);
 
   const { subscribe } = useGateway();
   const toast = useToast();
@@ -93,25 +109,28 @@ export function ClawsPage() {
       subscribe<{ clawId: string }>('claw:update', () => fetchClaws()),
       subscribe<{ clawId: string }>('claw:started', () => fetchClaws()),
       subscribe<{ clawId: string }>('claw:stopped', () => fetchClaws()),
-      subscribe<{ clawId: string; type: string; reason: string }>(
-        'claw:escalation',
-        (p) => {
-          const claw = clawsRef.current.find((c) => c.id === p.clawId);
-          setEscalations((prev) => {
-            if (prev.some((e) => e.clawId === p.clawId)) return prev;
-            return [
-              ...prev,
-              {
-                clawId: p.clawId,
-                name: claw?.name ?? p.clawId,
-                type: p.type,
-                reason: p.reason,
-                requestedAt: new Date().toISOString(),
-              },
-            ];
-          });
-        }
-      ),
+      subscribe<{ clawId: string; type: string; reason: string }>('claw:escalation', (p) => {
+        const claw = clawsRef.current.find((c) => c.id === p.clawId);
+        setEscalations((prev) => {
+          if (prev.some((e) => e.clawId === p.clawId)) return prev;
+          return [
+            ...prev,
+            {
+              clawId: p.clawId,
+              name: claw?.name ?? p.clawId,
+              type: p.type,
+              reason: p.reason,
+              requestedAt: new Date().toISOString(),
+            },
+          ];
+        });
+      }),
+      subscribe<ClawOutputEvent>('claw:output', (evt) => {
+        setOutputFeed((prev) => {
+          const next = [...prev, evt];
+          return next.slice(-100); // keep last 100 events
+        });
+      }),
     ];
     return () => unsubs.forEach((u) => u());
   }, [subscribe, fetchClaws]);
@@ -361,6 +380,45 @@ export function ClawsPage() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Escalation Notification Banner */}
+      {escalations.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-800 px-6 py-3 flex items-center gap-3 animate-fade-in">
+          <Activity className="w-4 h-4 text-amber-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              {escalations.length} pending escalation escalations
+              {escalations.length === 1
+                ? '1 pending escalation'
+                : `${escalations.length} pending escalations`}
+            </span>
+            {escalations.slice(0, 2).map((e) => (
+              <span key={e.clawId} className="text-sm text-amber-600 dark:text-amber-400 ml-2">
+                — {e.name}: {e.reason.slice(0, 60)}
+                {e.reason.length > 60 ? '…' : ''}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {escalations.slice(0, 2).map((e) => (
+              <button
+                key={e.clawId}
+                onClick={() => approveEscalation(e.clawId)}
+                className="px-2 py-1 text-xs rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800 transition-colors"
+              >
+                Approve
+              </button>
+            ))}
+            <button
+              onClick={() => setEscalations([])}
+              className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5 text-amber-500" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-dark-border">
         <div>
@@ -393,6 +451,32 @@ export function ClawsPage() {
           </button>
         </div>
       </header>
+
+      {/* Live Output Feed — collapsed strip showing real-time claw output */}
+      {outputFeed.length > 0 && (
+        <div className="border-b border-border dark:border-dark-border bg-[#0d0d0d] max-h-32 overflow-y-auto">
+          <div className="flex items-center gap-2 px-6 py-1.5 border-b border-[#1a1a1a]">
+            <Terminal className="w-3 h-3 text-gray-500 shrink-0" />
+            <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider shrink-0">
+              Live Output
+            </span>
+            <div className="flex-1 min-w-0">
+              {outputFeed.slice(-3).map((evt, i) => (
+                <div key={i} className="text-xs font-mono text-gray-300 truncate">
+                  <span className="text-gray-600 mr-2">{timeAgo(evt.timestamp)}</span>
+                  {evt.message?.slice(0, 120)}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setOutputFeed([])}
+              className="text-xs text-gray-600 hover:text-gray-400 shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tab Bar */}
       <div className="flex border-b border-border dark:border-dark-border px-6">
@@ -436,6 +520,17 @@ export function ClawsPage() {
             />
           ) : (
             <div className="space-y-4">
+              {selectedClaw && (
+                <div className="animate-fade-in">
+                  <ClawManagementPanel
+                    claw={claws.find((c) => c.id === selectedClaw.id) ?? selectedClaw}
+                    initialTab={selectedDetailTab}
+                    onClose={() => setSelectedClaw(null)}
+                    onUpdate={fetchClaws}
+                  />
+                </div>
+              )}
+
               {/* Escalations */}
               {escalations.length > 0 && (
                 <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
@@ -701,16 +796,6 @@ export function ClawsPage() {
                     Next
                   </button>
                 </div>
-              )}
-
-              {/* Detail Panel — inline below cards */}
-              {selectedClaw && (
-                <ClawManagementPanel
-                  claw={claws.find((c) => c.id === selectedClaw.id) ?? selectedClaw}
-                  initialTab={selectedDetailTab}
-                  onClose={() => setSelectedClaw(null)}
-                  onUpdate={fetchClaws}
-                />
               )}
             </div>
           )}

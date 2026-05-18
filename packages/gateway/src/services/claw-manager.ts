@@ -47,6 +47,18 @@ const CONTINUOUS_MIN_DELAY_MS = 500; // Active: fast loop
 const CONTINUOUS_MAX_DELAY_MS = 10_000; // Error: backoff
 const CONTINUOUS_IDLE_DELAY_MS = 5_000; // No tool calls: slow down
 
+// Priority multipliers applied to adaptive delays.
+// Priority 1 (highest): multiply by 0.5  → 250ms / 5000ms / 2500ms
+// Priority 3 (normal):  multiply by 1.0  → 500ms / 10000ms / 5000ms
+// Priority 5 (lowest):  multiply by 2.0  → 1000ms / 20000ms / 10000ms
+const PRIORITY_DELAY_MULTIPLIER: Record<number, number> = {
+  1: 0.5,
+  2: 0.75,
+  3: 1.0,
+  4: 1.5,
+  5: 2.0,
+};
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -76,6 +88,13 @@ interface ManagedClaw {
    * set this true; persistSession clears it on successful write.
    */
   dirty: boolean;
+  /**
+   * Scheduling priority (1=highest, 3=normal, 5=lowest). Higher-priority claws
+   * get shorter adaptive delays, allowing them to complete more cycles per
+   * hour than lower-priority ones when the event loop is under load.
+   * Adjustable at runtime via claw_update_config.
+   */
+  priority: number;
 }
 
 // ============================================================================
@@ -302,6 +321,7 @@ export class ClawManager {
       idleCycles: 0,
       abortController: null,
       dirty: true,
+      priority: config.priority ?? 3,
     };
 
     this.claws.set(clawId, managed);
@@ -534,6 +554,12 @@ export class ClawManager {
     if (!managed) return;
     managed.session.config = config;
     managed.runner.updateConfig(config);
+
+    // Hot-reload scheduling priority so scheduleContinuous picks up the new
+    // multiplier on the next cycle.
+    if (config.priority !== undefined) {
+      managed.priority = config.priority;
+    }
 
     if (['running', 'waiting'].includes(managed.session.state) && !managed.cycleInProgress) {
       managed.session.state = config.mode === 'event' ? 'waiting' : 'running';
@@ -940,11 +966,15 @@ export class ClawManager {
       delay = CONTINUOUS_MIN_DELAY_MS; // Active — fast loop
     }
 
+    // Apply priority multiplier to delay
+    const multiplier = PRIORITY_DELAY_MULTIPLIER[managed.priority] ?? 1.0;
+    const finalDelay = delay * multiplier;
+
     managed.timer = setTimeout(() => {
       this.executeCycle(clawId).catch((err) => {
         log.error(`Continuous cycle error: ${getErrorMessage(err)}`);
       });
-    }, delay);
+    }, finalDelay);
   }
 
   private scheduleInterval(clawId: string, managed: ManagedClaw): void {

@@ -8,7 +8,7 @@
  *  - claw_send_agent_message  — deliver a message to another claw's inbox
  */
 
-import { getErrorMessage, generateId, MAX_CLAW_DEPTH } from '@ownpilot/core';
+import { getErrorMessage, generateId, MAX_CLAW_DEPTH, type ClawSandboxMode } from '@ownpilot/core';
 import { getClawContext } from '../../services/claw-context.js';
 
 type ExecResult = { success: boolean; result?: unknown; error?: string };
@@ -59,9 +59,15 @@ export async function executeSpawnSubclaw(
   const inheritedAllowedTools = parentConfig?.allowedTools?.length ? parentConfig.allowedTools : [];
   const inheritedAutonomyPolicy = parentConfig?.autonomyPolicy ?? undefined;
   const inheritedSkills = parentConfig?.skills?.length ? parentConfig.skills : undefined;
-  const inheritedSandbox = parentConfig?.sandbox ?? 'auto';
   const inheritedCodingAgent = parentConfig?.codingAgentProvider;
   const inheritedMissionContract = parentConfig?.missionContract;
+
+  // Subclaws (depth > 0) get docker isolation automatically to prevent
+  // workspace contamination — a subclaw writing to the parent's workspace
+  // can corrupt mission state. Explicit args.sandbox override is ignored.
+  const effectiveSandbox = (
+    newDepth > 0 ? 'docker' : ((args.sandbox as string) ?? parentConfig?.sandbox ?? 'auto')
+  ) as ClawSandboxMode;
 
   // Auto-start: single-shot awaits, so no need to pre-start; cyclic modes should start immediately
   const shouldAutoStart = mode !== 'single-shot';
@@ -83,7 +89,7 @@ export async function executeSpawnSubclaw(
     },
     autoStart: shouldAutoStart,
     depth: newDepth,
-    sandbox: inheritedSandbox,
+    sandbox: effectiveSandbox,
     parentClawId: ctx.clawId,
     createdBy: 'claw',
     autonomyPolicy: inheritedAutonomyPolicy,

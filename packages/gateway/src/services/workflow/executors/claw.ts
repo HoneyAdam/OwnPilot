@@ -3,14 +3,15 @@
  *
  * Creates an ephemeral Claw agent for a workflow step, optionally waits for
  * completion, and cleans up the claw config + workspace on both success and
- * error paths. Cyclic modes are polled with abortable sleeps until the claw
- * reaches a terminal state or the workflow is cancelled.
+ * error paths. Cyclic modes use EventBus push-based subscription instead of
+ * 2-second polling until the claw reaches a terminal state or is cancelled.
  */
 
 import type { WorkflowNode, NodeResult } from '../../../db/repositories/workflows.js';
 import { getErrorMessage } from '../../../routes/helpers.js';
 import { resolveTemplates } from '../template-resolver.js';
 import { log } from './utils.js';
+import { getEventSystem } from '@ownpilot/core';
 
 export async function executeClawNode(
   node: WorkflowNode,
@@ -99,59 +100,16 @@ export async function executeClawNode(
 
     // For single-shot, ClawManager.startClaw awaits the cycle and stops the
     // claw before returning, so we can read history immediately. For cyclic
-    // modes (continuous/interval/event) we poll until completion or timeout.
+    // modes (continuous/interval/event) we use EventBus push-based subscription
+    // instead of polling every 2s.
     let finalState = session.state;
     if (mode !== 'single-shot') {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        if (signal?.aborted) {
-          finalState = 'stopped';
-          break;
-        }
-        // Abortable sleep: a plain setTimeout would force the loop to wait
-        // a full 2s before noticing a cancellation, even when the user has
-        // already aborted the workflow. Race the timer against the signal so
-        // cancellation lands within microseconds.
-        //
-        // We must remove the abort listener when the timer wins — otherwise,
-        // because this loop polls every 2s for up to `timeoutMs` (often an
-        // hour), the same AbortSignal would collect hundreds of listeners.
-        await new Promise<void>((resolve) => {
-          let onAbort: (() => void) | null = null;
-          const t = setTimeout(() => {
-            if (onAbort && signal) {
-              signal.removeEventListener('abort', onAbort);
-              onAbort = null;
-            }
-            resolve();
-          }, 2000);
-          if (signal) {
-            onAbort = () => {
-              clearTimeout(t);
-              onAbort = null;
-              resolve();
-            };
-            if (signal.aborted) {
-              onAbort();
-            } else {
-              signal.addEventListener('abort', onAbort, { once: true });
-            }
-          }
-        });
-        if (signal?.aborted) {
-          finalState = 'stopped';
-          break;
-        }
-        const current = service.getSession(config.id, userId);
-        if (!current) {
-          finalState = 'completed';
-          break;
-        }
-        finalState = current.state;
-        if (['completed', 'stopped', 'failed'].includes(current.state)) {
-          break;
-        }
-      }
+      finalState = await waitForClawTerminal({
+        clawId: config.id,
+        userId,
+        timeoutMs,
+        signal,
+      });
     }
 
     const { entries } = await service.getHistory(config.id, userId, 1, 0);
@@ -222,4 +180,77 @@ export async function executeClawNode(
       completedAt: new Date().toISOString(),
     };
   }
+}
+
+// ============================================================================
+// waitForClawTerminal — EventBus push-based claw terminal state listener
+// ============================================================================
+
+type ClawState =
+  | 'starting'
+  | 'running'
+  | 'waiting'
+  | 'paused'
+  | 'completed'
+  | 'failed'
+  | 'stopped'
+  | 'escalation_pending';
+
+interface WaitForClawTerminalOptions {
+  clawId: string;
+  userId: string;
+  timeoutMs: number;
+  signal?: AbortSignal;
+}
+
+/**
+ * Listens for claw.update events and resolves when the claw reaches a terminal
+ * state (completed | stopped | failed) or the AbortSignal is aborted or the
+ * timeout is reached. Uses EventBus push instead of 2-second polling.
+ */
+async function waitForClawTerminal({
+  clawId,
+  timeoutMs,
+  signal,
+}: WaitForClawTerminalOptions): Promise<ClawState> {
+  const deadline = Date.now() + timeoutMs;
+  const terminalStates = new Set<ClawState>(['completed', 'stopped', 'failed']);
+
+  return new Promise<ClawState>((_resolve) => {
+    let resolved = false;
+    let state: ClawState = 'running';
+
+    const resolveOnce = (s: ClawState) => {
+      if (resolved) return;
+      resolved = true;
+      state = s;
+    };
+
+    // AbortSignal: race the EventBus listener against cancellation
+    const onAbort = () => resolveOnce('stopped');
+    signal?.addEventListener('abort', onAbort, { once: true });
+
+    // Timeout: hard deadline
+    const onTimeout = setTimeout(() => resolveOnce(state), timeoutMs);
+
+    // EventBus: push-based notification instead of 2-second polling
+    const off = getEventSystem().onAny('claw.update', (event) => {
+      const data = event.data as { clawId: string; state: ClawState } | undefined;
+      if (!data || data.clawId !== clawId) return;
+      if (terminalStates.has(data.state)) {
+        clearTimeout(onTimeout);
+        off();
+        signal?.removeEventListener('abort', onAbort);
+        resolveOnce(data.state);
+      }
+    });
+
+    // If already past deadline, clean up and return current state
+    if (Date.now() >= deadline) {
+      clearTimeout(onTimeout);
+      off();
+      signal?.removeEventListener('abort', onAbort);
+      resolveOnce(state);
+    }
+  });
 }

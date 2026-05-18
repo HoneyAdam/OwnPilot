@@ -104,6 +104,7 @@ export interface ClawConfig {
   missionContract?: ClawMissionContract;
   autonomyPolicy?: ClawAutonomyPolicy;
   health?: ClawHealthStatus;
+  priority?: number;
   createdBy: 'user' | 'ai' | 'claw';
   createdAt: string;
   updatedAt: string;
@@ -152,6 +153,7 @@ export interface CreateClawInput {
   preset?: string;
   mission_contract?: Partial<ClawMissionContract>;
   autonomy_policy?: Partial<ClawAutonomyPolicy>;
+  priority?: number;
 }
 
 export interface UpdateClawInput extends Omit<
@@ -164,6 +166,7 @@ export interface UpdateClawInput extends Omit<
   | 'preset'
   | 'mission_contract'
   | 'autonomy_policy'
+  | 'priority'
 > {
   provider?: string | null;
   model?: string | null;
@@ -173,6 +176,7 @@ export interface UpdateClawInput extends Omit<
   preset?: string | null;
   mission_contract?: Partial<ClawMissionContract> | null;
   autonomy_policy?: Partial<ClawAutonomyPolicy> | null;
+  priority?: number | null;
 }
 
 export interface ClawPreset {
