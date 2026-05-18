@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '../../components/ToastProvider';
 import { clawsApi } from '../../api/endpoints/claws';
+import { chatApi } from '../../api/endpoints/chat';
+import { settingsApi } from '../../api/endpoints/settings';
 import { silentCatch } from '../../utils/ignore-error';
+import { Sparkles } from '../../components/icons';
 import type { ClawPreset } from '../../api/endpoints/claws';
 import { X, ChevronDown, ChevronRight } from '../../components/icons';
 
@@ -161,7 +164,97 @@ export function CreateClawModal({
   const [clawTemplates, setClawTemplates] = useState<ClawTemplate[]>(CLAW_TEMPLATES);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAiSuggesting, setIsAiSuggesting] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState('');
   const toast = useToast();
+  const abortRef = useRef<AbortController | null>(null);
+
+  const suggestMission = async () => {
+    if (!name.trim() && !mission.trim()) {
+      toast.error('Enter a name or brief description first');
+      return;
+    }
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsAiSuggesting(true);
+    setAiSuggestion('');
+
+    let provider = 'openai';
+    let model = 'gpt-4o';
+    try {
+      const settings = await settingsApi.get();
+      provider = settings.defaultProvider || 'openai';
+      model = settings.defaultModel || 'gpt-4o';
+    } catch {
+      // use defaults
+    }
+
+    const userBrief = mission.trim() || name.trim() || 'Help me define the mission';
+    const clawContext = `Name: ${name.trim() || 'Untitled Claw'}
+Template: ${preset || 'custom'}
+Mode: ${mode}
+Sandbox: ${sandbox}
+Skills: ${selectedSkills.join(', ') || 'none selected'}`;
+
+    try {
+      const response = await chatApi.send(
+        {
+          message: `You are a claw mission designer. Generate a concise, actionable claw mission (1-3 sentences) that is specific and outcome-oriented. Keep it under 500 characters. Respond with ONLY the mission text.\n\nContext:\n${clawContext}\n\nUser's brief: ${userBrief}`,
+          provider,
+          model,
+          stream: true,
+        },
+        { signal: controller.signal }
+      );
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            if (data === '[DONE]' || data === '') continue;
+            if (data.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content;
+                if (delta) {
+                  setAiSuggestion((prev) => prev + delta);
+                }
+              } catch {
+                // not JSON, treat as raw content
+                setAiSuggestion((prev) => prev + data);
+              }
+            } else {
+              setAiSuggestion((prev) => prev + data);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        toast.error('AI suggestion failed');
+      }
+    } finally {
+      setIsAiSuggesting(false);
+    }
+  };
+
+  const applyAiSuggestion = () => {
+    if (aiSuggestion.trim()) {
+      setMission(aiSuggestion.trim());
+      setAiSuggestion('');
+    }
+  };
 
   useEffect(() => {
     import('../../api/endpoints/models')
@@ -340,9 +433,20 @@ export function CreateClawModal({
 
           {/* Mission */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">
-              Mission
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-text-secondary dark:text-dark-text-secondary">
+                Mission
+              </label>
+              <button
+                type="button"
+                onClick={suggestMission}
+                disabled={isAiSuggesting}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+              >
+                <Sparkles className="w-3 h-3" />
+                {isAiSuggesting ? 'Generating...' : 'AI assist'}
+              </button>
+            </div>
             <textarea
               value={mission}
               onChange={(e) => setMission(e.target.value)}
@@ -350,6 +454,34 @@ export function CreateClawModal({
               rows={3}
               className={`${inputClass} resize-none`}
             />
+            {/* AI suggestion preview */}
+            {aiSuggestion && (
+              <div className="mt-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-[10px] text-primary font-medium mb-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  AI suggestion
+                </p>
+                <p className="text-xs text-text-secondary dark:text-dark-text-secondary whitespace-pre-wrap">
+                  {aiSuggestion}
+                </p>
+                <div className="flex gap-1.5 mt-2">
+                  <button
+                    type="button"
+                    onClick={applyAiSuggestion}
+                    className="px-2 py-1 text-xs rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+                  >
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiSuggestion('')}
+                    className="px-2 py-1 text-xs rounded border border-border dark:border-dark-border text-text-muted hover:bg-bg-tertiary transition-colors"
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mode + Sandbox */}
