@@ -130,7 +130,8 @@ function HtmlRenderer({
       style={{
         minHeight: fullWidth ? 400 : 200,
         height: iframeHeight ? `${iframeHeight}px` : undefined,
-        ...(iframeHeight ? {} : {}),
+        display: 'block',
+        flexShrink: 0,
       }}
       title="Artifact"
     />

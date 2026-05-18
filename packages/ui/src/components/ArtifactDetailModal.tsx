@@ -264,17 +264,19 @@ export function ArtifactDetailModal({
         {/* Content */}
         <div className="flex-1 overflow-auto p-6 bg-bg-primary dark:bg-dark-bg-primary">
           {showSource ? (
-            <pre className="w-full h-full p-4 bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg overflow-auto text-sm font-mono text-text-primary dark:text-dark-text-primary border border-border dark:border-dark-border">
+            <pre className="w-full p-4 bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg overflow-auto text-sm font-mono text-text-primary dark:text-dark-text-primary border border-border dark:border-dark-border">
               {currentArtifact.content}
             </pre>
           ) : (
-            <ArtifactRenderer
-              type={currentArtifact.type}
-              content={currentArtifact.content}
-              dataBindings={currentArtifact.dataBindings}
-              fullWidth
-              autoHeight
-            />
+            <div className="flex flex-col h-full min-h-0">
+              <ArtifactRenderer
+                type={currentArtifact.type}
+                content={currentArtifact.content}
+                dataBindings={currentArtifact.dataBindings}
+                fullWidth
+                autoHeight
+              />
+            </div>
           )}
         </div>
 
