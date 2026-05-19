@@ -36,6 +36,10 @@ import { getAgentMessagesRepository } from '../db/repositories/agent-messages.js
 import { getCrewsRepository } from '../db/repositories/crews.js';
 import { runInHeartbeatContext } from './heartbeat-context.js';
 import { getLog } from '@ownpilot/core';
+import { HeartbeatCircuitBreaker } from '@ownpilot/core';
+import { HeartbeatMetricsCollector } from '@ownpilot/core';
+import type { BudgetForecaster } from '@ownpilot/core';
+import { HEARTBEAT_CREW_CONTEXT_CACHE_TTL_MS } from '../config/defaults.js';
 
 const log = getLog('SoulHeartbeatService');
 
@@ -130,7 +134,16 @@ async function buildCrewContextForHeartbeat(
 
 import { TTLCache } from '../utils/ttl-cache.js';
 
-const crewContextCache = new TTLCache<string, string | null>({ defaultTtlMs: 30_000 });
+const CREW_CONTEXT_CACHE_TTL_MS =
+  parseInt(process.env.SOUL_CREW_CONTEXT_CACHE_TTL_MS ?? '', 10) ||
+  HEARTBEAT_CREW_CONTEXT_CACHE_TTL_MS;
+
+const crewContextCache = new TTLCache<string, string | null>({
+  defaultTtlMs: CREW_CONTEXT_CACHE_TTL_MS,
+});
+
+// Per-agent budget forecasters (reset with the runner)
+const budgetForecasters = new Map<string, BudgetForecaster>();
 
 async function getCachedCrewContext(agentId: string, crewId: string): Promise<string | null> {
   const cacheKey = `${agentId}:${crewId}`;
@@ -357,6 +370,8 @@ function createEventBusAdapter(): IHeartbeatEventBus {
 
 let runner: HeartbeatRunner | null = null;
 let communicationBusInstance: AgentCommunicationBus | null = null;
+let circuitBreaker: HeartbeatCircuitBreaker | null = null;
+let metricsCollector: HeartbeatMetricsCollector | null = null;
 
 /**
  * M5: Reset the singleton — disposes the AgentCommunicationBus timer.
@@ -366,6 +381,9 @@ export function resetHeartbeatRunner(): void {
   communicationBusInstance?.dispose();
   communicationBusInstance = null;
   runner = null;
+  circuitBreaker = null;
+  metricsCollector = null;
+  budgetForecasters.clear();
 }
 
 export function getHeartbeatRunner(): HeartbeatRunner {
@@ -379,13 +397,23 @@ export function getHeartbeatRunner(): HeartbeatRunner {
     const budgetTracker = new BudgetTracker(db);
     const agentEngine = createHeartbeatAgentEngine();
 
+    circuitBreaker = new HeartbeatCircuitBreaker({
+      failureThreshold: 3,
+      cooldownMs: 60_000,
+    });
+    metricsCollector = new HeartbeatMetricsCollector({
+      rollingWindowSize: 10,
+    });
+
     runner = new HeartbeatRunner(
       agentEngine,
       soulRepo,
       communicationBusInstance,
       hbLogRepo,
       budgetTracker,
-      createEventBusAdapter()
+      createEventBusAdapter(),
+      circuitBreaker,
+      metricsCollector
     );
   }
   return runner;

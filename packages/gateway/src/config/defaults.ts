@@ -317,6 +317,37 @@ export const FLEET_CONTINUOUS_IDLE_DELAY_MS = 5_000;
 export const FLEET_DEFAULT_INTERVAL_MS = 60_000; // 1 minute
 
 // ============================================================================
+// Heartbeat Engine (Pulse)
+// ============================================================================
+
+/** Default TTL for crew context cache per heartbeat cycle (ms) */
+export const HEARTBEAT_CREW_CONTEXT_CACHE_TTL_MS = 30_000;
+
+/** Default circuit breaker failure threshold (consecutive failures before open) */
+export const HEARTBEAT_CIRCUIT_FAILURE_THRESHOLD = 3;
+
+/** Default circuit breaker cooldown (ms) — time before attempting half-open */
+export const HEARTBEAT_CIRCUIT_COOLDOWN_MS = 60_000;
+
+/** Default task retry budget: max retries */
+export const HEARTBEAT_DEFAULT_MAX_RETRIES = 3;
+
+/** Default task retry budget: initial delay (ms) */
+export const HEARTBEAT_DEFAULT_RETRY_DELAY_MS = 5_000;
+
+/** Default task retry backoff multiplier */
+export const HEARTBEAT_DEFAULT_BACKOFF_MULTIPLIER = 2.0;
+
+/** Default max retry delay cap (ms) */
+export const HEARTBEAT_DEFAULT_MAX_RETRY_DELAY_MS = 120_000;
+
+/** Metrics rolling window size (number of cycles for running average) */
+export const HEARTBEAT_METRICS_WINDOW_SIZE = 10;
+
+/** Budget warning threshold as fraction of daily limit (0.8 = 80%) */
+export const HEARTBEAT_BUDGET_WARNING_THRESHOLD = 0.8;
+
+// ============================================================================
 // HTTP / Security
 // ============================================================================
 

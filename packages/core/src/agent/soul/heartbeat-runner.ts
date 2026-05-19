@@ -6,13 +6,23 @@
  * Handles task filtering, execution, output routing, and budget enforcement.
  */
 
-import type { AgentSoul, HeartbeatTask, HeartbeatResult, HeartbeatTaskResult } from './types.js';
+import type {
+  AgentSoul,
+  HeartbeatTask,
+  HeartbeatResult,
+  HeartbeatTaskResult,
+  TaskRetryBudget,
+} from './types.js';
 import type { IAgentCommunicationBus } from './communication.js';
 import { SoulEvolutionEngine } from './evolution.js';
 import type { ISoulRepository, IHeartbeatLogRepository } from './evolution.js';
 import type { BudgetTracker } from './budget-tracker.js';
 import type { Result } from '../../types/result.js';
 import { getLog } from '../../services/get-log.js';
+import { HeartbeatCircuitBreaker } from './heartbeat-circuit-breaker.js';
+import { HeartbeatMetricsCollector } from './heartbeat-metrics.js';
+import { BudgetForecaster } from './budget-forecast.js';
+import { calculateBackoffDelay } from '../../utils/safe-value.js';
 
 const log = getLog('HeartbeatRunner');
 
@@ -45,14 +55,27 @@ export interface IHeartbeatEventBus {
 // ============================================================
 
 export class HeartbeatRunner {
+  private circuitBreaker: HeartbeatCircuitBreaker;
+  private metricsCollector: HeartbeatMetricsCollector;
+  private budgetForecaster: BudgetForecaster | null = null;
+
   constructor(
     private agentEngine: IHeartbeatAgentEngine,
     private soulRepo: ISoulRepository,
     private communicationBus: IAgentCommunicationBus,
     private heartbeatLogRepo: IHeartbeatLogRepository,
     private budgetTracker: BudgetTracker,
-    private eventBus?: IHeartbeatEventBus
-  ) {}
+    private eventBus?: IHeartbeatEventBus,
+    circuitBreaker?: HeartbeatCircuitBreaker,
+    metricsCollector?: HeartbeatMetricsCollector,
+    budgetForecaster?: BudgetForecaster
+  ) {
+    this.circuitBreaker = circuitBreaker ?? new HeartbeatCircuitBreaker();
+    this.metricsCollector = metricsCollector ?? new HeartbeatMetricsCollector();
+    if (budgetForecaster) {
+      this.budgetForecaster = budgetForecaster;
+    }
+  }
 
   /**
    * Run a full heartbeat cycle for the given agent.
@@ -72,6 +95,32 @@ export class HeartbeatRunner {
       version: soul.evolution.version,
       taskCount: soul.heartbeat.checklist.length,
     });
+
+    // Initialize budget forecaster on first use
+    if (!this.budgetForecaster) {
+      this.budgetForecaster = new BudgetForecaster(soul.autonomy);
+    }
+
+    // Circuit breaker — skip entire cycle if open
+    if (this.circuitBreaker.shouldSkipCycle()) {
+      log.info(`[Heartbeat ${agentId}] Skipped: circuit open`);
+      const circuitSnapshot = this.circuitBreaker.getSnapshot();
+      return {
+        ok: true,
+        value: {
+          agentId,
+          soulVersion: soul.evolution.version,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          durationMs: 0,
+          tasks: [],
+          skippedReason: 'circuit_open',
+          totalTokens: { input: 0, output: 0 },
+          totalCost: 0,
+          metrics: this.metricsCollector.buildMetrics(circuitSnapshot, [], 0),
+        },
+      };
+    }
 
     // Quiet hours check (bypassed when force=true for manual test runs)
     if (!force && this.isQuietHours(soul)) {
@@ -141,18 +190,21 @@ export class HeartbeatRunner {
           tokenUsage: { input: 0, output: 0 },
           cost: 0,
           durationMs: 0,
+          attemptNumber: 0,
         });
         continue;
       }
 
       log.info(`[Heartbeat ${agentId}] Running task "${task.name}" (${task.id})`);
-      const taskResult = await this.executeTask(agentId, soul, task);
+      const taskResult = await this.executeTaskWithRetry(agentId, soul, task);
       result.tasks.push(taskResult);
       result.totalTokens.input += taskResult.tokenUsage.input;
       result.totalTokens.output += taskResult.tokenUsage.output;
       result.totalCost += taskResult.cost;
 
+      // Record circuit breaker success/failure
       if (taskResult.status === 'success') {
+        this.circuitBreaker.recordSuccess();
         log.info(
           `[Heartbeat ${agentId}] Task "${task.name}" succeeded in ${taskResult.durationMs}ms`,
           {
@@ -161,10 +213,14 @@ export class HeartbeatRunner {
           }
         );
       } else {
+        this.circuitBreaker.recordFailure();
         log.warn(
           `[Heartbeat ${agentId}] Task "${task.name}" ${taskResult.status}: ${taskResult.error}`
         );
       }
+
+      // Record metrics
+      this.metricsCollector.recordTask(taskResult);
 
       // Route output
       if (taskResult.status === 'success' && task.outputTo) {
@@ -254,6 +310,34 @@ export class HeartbeatRunner {
       await this.runClawReflection(agentId, soul);
     }
 
+    // Build and emit heartbeat metrics
+    const circuitSnapshot = this.circuitBreaker.getSnapshot();
+    const metrics = this.metricsCollector.buildMetrics(
+      circuitSnapshot,
+      result.tasks,
+      result.totalCost
+    );
+    result.metrics = metrics;
+    this.eventBus?.emit('heartbeat.metrics', {
+      agentId,
+      metrics,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Budget forecast + warning event
+    if (this.budgetForecaster) {
+      const dailySpend = await this.budgetTracker.getDailySpend(agentId);
+      const forecast = this.budgetForecaster.buildForecast(dailySpend, result.totalCost);
+      result.budgetForecast = forecast;
+      if (forecast.warningIssued) {
+        this.eventBus?.emit('heartbeat.budget.warning', {
+          agentId,
+          forecast,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
     // Emit event
     this.eventBus?.emit('soul.heartbeat.completed', {
       agentId,
@@ -267,12 +351,71 @@ export class HeartbeatRunner {
   }
 
   /**
-   * Execute a single heartbeat task.
+   * Execute a single heartbeat task with per-task retry support.
+   * Uses exponential backoff with jitter between retries.
    */
-  private async executeTask(
+  private async executeTaskWithRetry(
     agentId: string,
     soul: AgentSoul,
     task: HeartbeatTask
+  ): Promise<HeartbeatTaskResult> {
+    const retryBudget: TaskRetryBudget = {
+      maxRetries: task.retryBudget?.maxRetries ?? 3,
+      retryDelayMs: task.retryBudget?.retryDelayMs ?? 5_000,
+      backoffMultiplier: task.retryBudget?.backoffMultiplier ?? 2.0,
+      maxRetryDelayMs: task.retryBudget?.maxRetryDelayMs ?? 120_000,
+    };
+
+    let attemptNumber = 0;
+    let lastError: string | undefined;
+
+    while (attemptNumber <= retryBudget.maxRetries) {
+      const taskResult = await this.executeTaskAttempt(agentId, soul, task, attemptNumber);
+      taskResult.attemptNumber = attemptNumber;
+
+      if (taskResult.status === 'success' || attemptNumber >= retryBudget.maxRetries) {
+        return taskResult;
+      }
+
+      // Failure with retries remaining — compute backoff delay
+      const delay = calculateBackoffDelay(attemptNumber, {
+        baseDelayMs: retryBudget.retryDelayMs,
+        multiplier: retryBudget.backoffMultiplier,
+        maxDelayMs: retryBudget.maxRetryDelayMs,
+      });
+
+      lastError = taskResult.error;
+      taskResult.nextRetryDelayMs = delay;
+
+      log.info(
+        `[Heartbeat ${agentId}] Task "${task.name}" failed (attempt ${attemptNumber + 1}/${retryBudget.maxRetries + 1}), retrying in ${delay}ms: ${taskResult.error}`
+      );
+
+      await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      attemptNumber++;
+    }
+
+    // Should not reach here, but typed for safety
+    return {
+      taskId: task.id,
+      taskName: task.name,
+      status: 'failure',
+      error: lastError ?? 'Max retries exceeded',
+      tokenUsage: { input: 0, output: 0 },
+      cost: 0,
+      durationMs: 0,
+      attemptNumber,
+    };
+  }
+
+  /**
+   * Execute a single heartbeat task attempt (no retry logic — handled by executeTaskWithRetry).
+   */
+  private async executeTaskAttempt(
+    agentId: string,
+    soul: AgentSoul,
+    task: HeartbeatTask,
+    _attemptNumber: number
   ): Promise<HeartbeatTaskResult> {
     const startTime = Date.now();
     const timeoutMs = soul.heartbeat.maxDurationMs ?? 120_000;
@@ -347,6 +490,7 @@ Be concise and focused. Report your findings clearly.`.trim();
         tokenUsage: response.tokenUsage || { input: 0, output: 0 },
         cost: response.cost || 0,
         durationMs: Date.now() - startTime,
+        attemptNumber: 0,
       };
     } catch (error) {
       return {
@@ -357,45 +501,76 @@ Be concise and focused. Report your findings clearly.`.trim();
         tokenUsage: { input: 0, output: 0 },
         cost: 0,
         durationMs: Date.now() - startTime,
+        attemptNumber: 0,
       };
     }
   }
 
   /**
-   * Filter tasks that should run this heartbeat cycle.
+   * Filter and sort tasks that should run this heartbeat cycle.
    * When force=true, all tasks run regardless of schedule (used for manual test runs).
+   *
+   * Sort order:
+   * 1. 'every' tasks always first (within their schedule group)
+   * 2. Then by numeric priority (1=highest)
+   * 3. Then by staleness (most stale first)
+   * 4. Then by last run time (oldest first)
    */
   private filterTasksToRun(checklist: HeartbeatTask[], force = false): HeartbeatTask[] {
     if (force) return checklist;
     const now = new Date();
-    return checklist.filter((task) => {
-      if (task.schedule === 'every') return true;
 
-      if (task.schedule === 'daily' && task.dailyAt) {
-        const [h, m] = task.dailyAt.split(':').map(Number);
-        const todayTarget = new Date(now);
-        todayTarget.setHours(h!, m ?? 0, 0, 0);
-        if ((!task.lastRunAt || task.lastRunAt < todayTarget) && now >= todayTarget) {
-          return true;
+    type ScoredTask = { task: HeartbeatTask; sortKey: number; isEvery: boolean };
+
+    const scored: ScoredTask[] = checklist
+      .filter((task) => {
+        if (task.schedule === 'every') return true;
+
+        if (task.schedule === 'daily' && task.dailyAt) {
+          const [h, m] = task.dailyAt.split(':').map(Number);
+          const todayTarget = new Date(now);
+          todayTarget.setHours(h!, m ?? 0, 0, 0);
+          if ((!task.lastRunAt || task.lastRunAt < todayTarget) && now >= todayTarget) {
+            return true;
+          }
+          return false;
         }
-        return false;
-      }
 
-      if (task.schedule === 'weekly' && task.weeklyOn !== undefined) {
-        if (now.getDay() === task.weeklyOn) {
-          if (!task.lastRunAt || this.daysSince(task.lastRunAt) >= 6) return true;
+        if (task.schedule === 'weekly' && task.weeklyOn !== undefined) {
+          if (now.getDay() === task.weeklyOn) {
+            if (!task.lastRunAt || this.daysSince(task.lastRunAt) >= 6) return true;
+          }
+          return false;
         }
+
+        // Staleness — force re-run if stale
+        if (task.lastRunAt && task.stalenessHours > 0) {
+          const hoursSince = (now.getTime() - task.lastRunAt.getTime()) / (1000 * 60 * 60);
+          if (hoursSince > task.stalenessHours) return true;
+        }
+
         return false;
-      }
+      })
+      .map((task) => {
+        const isEvery = task.schedule === 'every';
+        const priority = (task.numericPriority ?? 3) as number;
+        const stalenessMs = task.lastRunAt ? now.getTime() - task.lastRunAt.getTime() : Infinity;
+        const lastRun = task.lastRunAt?.getTime() ?? 0;
+        // Combine: isEvery flag + priority + staleness + lastRun
+        // isEvery=0 sorts before isEvery=1; lower sortKey = higher priority/more stale
+        const sortKey =
+          priority * 1_000_000_000 +
+          Math.min(99999, Math.floor(stalenessMs / 1000)) * 1_000 +
+          lastRun;
+        return { task, sortKey, isEvery };
+      });
 
-      // Staleness — force re-run if stale
-      if (task.lastRunAt && task.stalenessHours > 0) {
-        const hoursSince = (now.getTime() - task.lastRunAt.getTime()) / (1000 * 60 * 60);
-        if (hoursSince > task.stalenessHours) return true;
-      }
-
-      return false;
-    });
+    return scored
+      .sort((a, b) => {
+        if (a.isEvery !== b.isEvery) return a.isEvery ? -1 : 1;
+        return a.sortKey - b.sortKey;
+      })
+      .map((s) => s.task);
   }
 
   /**

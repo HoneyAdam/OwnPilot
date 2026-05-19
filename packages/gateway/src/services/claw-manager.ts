@@ -26,6 +26,7 @@ import {
   runRetentionCleanup,
   ensureConversationRow,
 } from './claw/manager-helpers.js';
+import { safeCost, safeDuration } from '../utils/safe-value.js';
 
 const log = getLog('ClawManager');
 
@@ -709,16 +710,9 @@ export class ClawManager {
       // provider or cost-calculation bug. NaN is especially nasty because
       // it propagates: NaN >= totalBudgetUsd is false, so the budget
       // guardrail would silently never fire again.
-      const safeCost =
-        typeof result.costUsd === 'number' && Number.isFinite(result.costUsd) && result.costUsd >= 0
-          ? result.costUsd
-          : 0;
-      managed.session.totalCostUsd += safeCost;
+      managed.session.totalCostUsd += safeCost(result.costUsd);
       managed.session.lastCycleAt = new Date();
-      managed.session.lastCycleDurationMs =
-        typeof result.durationMs === 'number' && Number.isFinite(result.durationMs)
-          ? result.durationMs
-          : 0;
+      managed.session.lastCycleDurationMs = safeDuration(result.durationMs);
       managed.session.lastCycleError = result.error ?? null;
       managed.lastCycleToolCalls = result.toolCalls.length;
       managed.cyclesThisHour++;

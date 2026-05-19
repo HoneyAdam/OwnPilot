@@ -135,6 +135,55 @@ export interface ClawModeConfig {
 
 // ── Heartbeat ───────────────────────────────────────
 
+// ── Heartbeat ───────────────────────────────────────
+
+/** Numeric priority range (1 = highest, 5 = lowest). Default: 3 */
+export type TaskPriorityLevel = 1 | 2 | 3 | 4 | 5;
+
+/** Retry budget for a single heartbeat task */
+export interface TaskRetryBudget {
+  /** Maximum retry attempts after failure (default: 3) */
+  maxRetries: number;
+  /** Initial delay before first retry in ms (default: 5000) */
+  retryDelayMs: number;
+  /** Multiplier applied each retry attempt (default: 2.0) */
+  backoffMultiplier?: number;
+  /** Maximum delay cap in ms (default: 120000) */
+  maxRetryDelayMs?: number;
+}
+
+/** Heartbeat-level circuit breaker snapshot */
+export interface HeartbeatCircuitBreaker {
+  state: 'closed' | 'open' | 'half-open';
+  failureCount: number;
+  lastFailureAt: number;
+  nextAttemptAt: number;
+  consecutiveSuccesses: number;
+}
+
+/** Running metrics for a heartbeat cycle */
+export interface HeartbeatMetrics {
+  avgTaskDurationMs: number;
+  circuitState: HeartbeatCircuitBreaker;
+  consecutiveFailures: number;
+  tasksAttempted: number;
+  tasksSucceeded: number;
+  tasksSkipped: number;
+  cycleCost: number;
+  avgCycleCost: number;
+}
+
+/** Budget state and exhaustion forecast */
+export interface BudgetForecast {
+  dailyLimit: number;
+  spentToday: number;
+  remainingToday: number;
+  avgCostPerCycle: number;
+  estimatedCyclesRemaining: number | null;
+  lastWarningAt: number | null;
+  warningIssued: boolean;
+}
+
 export interface SoulHeartbeat {
   /** Whether heartbeat is active */
   enabled: boolean;
@@ -183,7 +232,11 @@ export interface HeartbeatTask {
   outputTo?: HeartbeatOutput;
 
   /** Task priority */
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: 'low' | 'medium' | 'high' | 'critical' | TaskPriorityLevel;
+  /** Numeric priority 1-5 (1 = highest). Defaults to 3 if omitted. */
+  numericPriority?: TaskPriorityLevel;
+  /** Retry budget for this task. When omitted, task uses autonomy defaults. */
+  retryBudget?: TaskRetryBudget;
   /** Force re-run if last run is older than X hours */
   stalenessHours: number;
 
@@ -281,6 +334,10 @@ export interface HeartbeatResult {
   totalCost: number;
   /** Populated when the entire cycle was skipped (quiet hours, etc.) */
   skippedReason?: string;
+  /** Observable metrics snapshot (emitted on heartbeat.metrics event) */
+  metrics?: HeartbeatMetrics;
+  /** Budget forecast (emitted on heartbeat.budget.warning if threshold crossed) */
+  budgetForecast?: BudgetForecast;
 }
 
 export interface HeartbeatTaskResult {
@@ -292,6 +349,10 @@ export interface HeartbeatTaskResult {
   tokenUsage: { input: number; output: number };
   cost: number;
   durationMs: number;
+  /** Current retry attempt (0 = first attempt, 1 = first retry, ...) */
+  attemptNumber: number;
+  /** Delay ms before next retry (only populated when status === 'failure' and retries remain) */
+  nextRetryDelayMs?: number;
 }
 
 // ============================================================

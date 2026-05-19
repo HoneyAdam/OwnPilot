@@ -100,6 +100,7 @@ function makeBudget(ok = true) {
   return {
     checkBudget: vi.fn().mockResolvedValue(ok),
     recordSpend: vi.fn().mockResolvedValue(undefined),
+    getDailySpend: vi.fn().mockResolvedValue(0),
   };
 }
 
@@ -530,6 +531,9 @@ describe('HeartbeatRunner.runHeartbeat() — task timeout', () => {
     (engine.processMessage as ReturnType<typeof vi.fn>).mockImplementation(
       () => new Promise(() => {})
     );
+    // Disable retry so the timeout test doesn't wait for backoff delays
+    const task = makeTask({ retryBudget: { maxRetries: 0, retryDelayMs: 1 } });
+    soul.heartbeat.checklist = [task];
 
     const runner = new HeartbeatRunner(
       engine,
@@ -560,7 +564,11 @@ describe('HeartbeatRunner.runHeartbeat() — pauseOnConsecutiveErrors', () => {
     const soul = makeSoul();
     soul.autonomy.pauseOnConsecutiveErrors = 2;
     soul.heartbeat.checklist = [
-      makeTask({ id: 'task-1', consecutiveFailures: 1 }), // 1 existing → +1 this run = 2
+      makeTask({
+        id: 'task-1',
+        consecutiveFailures: 1,
+        retryBudget: { maxRetries: 0, retryDelayMs: 1 },
+      }), // 1 existing → +1 this run = 2
     ];
     const engine = makeEngine();
     (engine.processMessage as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('LLM error'));
@@ -589,7 +597,11 @@ describe('HeartbeatRunner.runHeartbeat() — pauseOnConsecutiveErrors', () => {
     const soul = makeSoul();
     soul.autonomy.pauseOnConsecutiveErrors = 5;
     soul.heartbeat.checklist = [
-      makeTask({ id: 'task-1', consecutiveFailures: 0 }), // 0 existing → +1 this run = 1
+      makeTask({
+        id: 'task-1',
+        consecutiveFailures: 0,
+        retryBudget: { maxRetries: 0, retryDelayMs: 1 },
+      }), // 0 existing → +1 this run = 1
     ];
     const engine = makeEngine();
     (engine.processMessage as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('LLM error'));
@@ -746,7 +758,9 @@ describe('HeartbeatRunner routeOutput()', () => {
   });
 
   it('does not route output when task fails', async () => {
-    const soul = soulWithTask(makeTask({ outputTo: { type: 'memory' } }));
+    const soul = soulWithTask(
+      makeTask({ outputTo: { type: 'memory' }, retryBudget: { maxRetries: 0, retryDelayMs: 1 } })
+    );
     const engine = makeEngine();
     (engine.processMessage as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('LLM fail'));
     const runner = new HeartbeatRunner(

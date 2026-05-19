@@ -32,6 +32,7 @@ import {
   FLEET_CONTINUOUS_IDLE_DELAY_MS as CONTINUOUS_IDLE_DELAY_MS,
   FLEET_DEFAULT_INTERVAL_MS as DEFAULT_INTERVAL_MS,
 } from '../config/defaults.js';
+import { safeCost } from '../utils/safe-value.js';
 
 const log = getLog('FleetManager');
 
@@ -636,13 +637,8 @@ export class FleetManager {
           // Guard against NaN / Infinity / negative cost. NaN is poisonous —
           // it propagates through totalCostUsd and silently disables the
           // budget guardrail (NaN >= maxCost is always false).
-          const safeCost =
-            typeof result.costUsd === 'number' &&
-            Number.isFinite(result.costUsd) &&
-            result.costUsd >= 0
-              ? result.costUsd
-              : 0;
-          cycleCost += safeCost;
+          const sc = safeCost(result.costUsd);
+          cycleCost += sc;
           if (result.success) {
             tasksCompleted++;
           } else {
