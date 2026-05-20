@@ -18,7 +18,7 @@ export {
   channelConnect,
   channelDisconnect,
 } from './channel.js';
-export { tunnelStartNgrok, tunnelStartCloudflare, tunnelStop, tunnelStatus } from './tunnel.js';
+export { tunnelWizard, tunnelStop, tunnelStatus } from './tunnel-wizard.js';
 export {
   soulList,
   soulGet,

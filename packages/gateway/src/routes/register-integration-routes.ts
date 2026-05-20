@@ -25,6 +25,7 @@ import {
   skillsRoutes,
   webhookRoutes,
   notificationRoutes,
+  tunnelRoutes,
 } from './index.js';
 
 export function registerIntegrationRoutes(app: Hono): void {
@@ -77,4 +78,7 @@ export function registerIntegrationRoutes(app: Hono): void {
 
   // Notifications (cross-channel notification routing)
   app.route('/api/v1/notifications', notificationRoutes);
+
+  // Tunnel (Cloudflare tunnel for internet exposure)
+  app.route('/api/v1/tunnel', tunnelRoutes);
 }

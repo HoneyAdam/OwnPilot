@@ -47,12 +47,7 @@ import {
   channelConnect,
   channelDisconnect,
 } from './commands/channel.js';
-import {
-  tunnelStartNgrok,
-  tunnelStartCloudflare,
-  tunnelStop,
-  tunnelStatus,
-} from './commands/tunnel.js';
+import { tunnelWizard, tunnelStop, tunnelStatus } from './commands/tunnel-wizard.js';
 import {
   skillList,
   skillSearch,
@@ -197,27 +192,12 @@ const tunnelCmd = program
   .command('tunnel')
   .description('Manage tunnels for external access (webhook mode)');
 
-const tunnelStartCmd = tunnelCmd
-  .command('start')
-  .description('Start a tunnel to expose the gateway');
-
-tunnelStartCmd
-  .command('ngrok')
-  .description('Start an ngrok tunnel')
-  .option('-t, --token <token>', 'ngrok auth token (or set NGROK_AUTHTOKEN env)')
-  .option('-p, --port <port>', 'Local port to tunnel', '8080')
-  .action(tunnelStartNgrok);
-
-tunnelStartCmd
-  .command('cloudflare')
-  .description('Start a Cloudflare quick tunnel (requires cloudflared)')
-  .option('-d, --domain <domain>', 'Custom hostname (requires Cloudflare setup)')
-  .option('-p, --port <port>', 'Local port to tunnel', '8080')
-  .action(tunnelStartCloudflare);
-
 tunnelCmd.command('stop').description('Stop the active tunnel').action(tunnelStop);
 
 tunnelCmd.command('status').description('Show tunnel status').action(tunnelStatus);
+
+// Default: no subcommand → interactive wizard
+tunnelCmd.action(tunnelWizard);
 
 // Skill commands for npm-based skill management
 const skillCmd = program

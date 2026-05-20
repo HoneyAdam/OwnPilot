@@ -289,6 +289,59 @@ export const KNOWN_CONFIG_SERVICES: CreateConfigServiceInput[] = [
 
   // NOTE: Telegram config is handled by the Telegram channel plugin (service: telegram_bot)
   // No seed entry needed — plugin registers its own requiredServices with full schema.
+
+  // ---------------------------------------------------------------------------
+  // Network / Tunneling
+  // ---------------------------------------------------------------------------
+  {
+    name: 'cloudflare_tunnel',
+    displayName: 'Cloudflare Tunnel',
+    category: 'network',
+    description:
+      'Expose your OwnPilot gateway to the internet without port forwarding using cloudflared. Supports password-protected tunnels via Basic Auth.',
+    docsUrl: 'https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/',
+    multiEntry: false,
+    configSchema: [
+      {
+        name: 'port',
+        label: 'Local Port',
+        type: 'number',
+        defaultValue: '8080',
+        description: 'The port your OwnPilot gateway is running on',
+        required: false,
+        order: 0,
+      },
+      {
+        name: 'password',
+        label: 'Basic Auth Password',
+        type: 'secret',
+        defaultValue: '',
+        description:
+          'Optional password to protect the tunnel. If set, visitors will be prompted for credentials (username: op)',
+        required: false,
+        order: 1,
+      },
+      {
+        name: 'hostname',
+        label: 'Custom Hostname',
+        type: 'string',
+        defaultValue: '',
+        description:
+          'Optional custom hostname for persistent tunnel URLs. Requires a Cloudflare account with a configured DNS zone.',
+        required: false,
+        order: 2,
+      },
+      {
+        name: 'auto_start',
+        label: 'Auto Start',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Start the tunnel automatically when the gateway boots',
+        required: false,
+        order: 3,
+      },
+    ],
+  },
 ];
 
 // =============================================================================

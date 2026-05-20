@@ -547,6 +547,15 @@ export interface ServerEvents {
   'claw:update': { clawId: string; state: string };
   'claw:output': { clawId: string; message: string; urgency: string; timestamp: string };
 
+  // Tunnel events
+  'tunnel:status': {
+    status: 'stopped' | 'starting' | 'running' | 'error';
+    url?: string | null;
+    error?: string | null;
+    startedAt?: string | null;
+  };
+  'tunnel:url': { url: string };
+
   // Crew task lifecycle events (from crew-tools)
   'crew:task:created': {
     crewId: string;

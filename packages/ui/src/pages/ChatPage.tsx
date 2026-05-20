@@ -16,6 +16,7 @@ import { ExecutionSecurityPanel } from '../components/ExecutionSecurityPanel';
 import { ToolCallLimitPanel } from '../components/ToolCallLimitPanel';
 import { ThinkingToggle } from '../components/ThinkingToggle';
 import { useGateway } from '../hooks/useWebSocket';
+import { ChatTimeline } from '../components/ChatTimeline';
 import type { Conversation, ChannelInfo } from '../api';
 
 // Lazy-load rarely-used components
@@ -207,6 +208,7 @@ export function ChatPage() {
   const [currentAgent, setCurrentAgent] = useState<AgentDetail | null>(null);
   const [showContextDetail, setShowContextDetail] = useState(false);
   const [thinkingExpanded, setThinkingExpanded] = useState(false);
+  const [timelineMode, setTimelineMode] = useState(false);
   const [starterTab, setStarterTab] = useState<'personal' | 'examples'>('personal');
   const [personalStarters, setPersonalStarters] = useState<StarterPrompt[]>(() => {
     const cached = readStarterMenuCache();
@@ -1015,6 +1017,12 @@ export function ChatPage() {
           >
             New Chat
           </button>
+          <button
+            onClick={() => setTimelineMode(!timelineMode)}
+            className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${timelineMode ? 'bg-primary text-white border-primary' : 'text-text-secondary dark:text-dark-text-secondary border-border dark:border-dark-border hover:bg-bg-tertiary dark:hover:bg-dark-bg-tertiary'}`}
+          >
+            Timeline
+          </button>
         </header>
 
         {/* Session tabs — visible when multiple sessions are open */}
@@ -1422,7 +1430,7 @@ export function ChatPage() {
                 />
 
                 {/* Streaming content and progress */}
-                {isLoading && (
+                {!timelineMode && isLoading && (
                   <div className="mt-4 p-4 bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg border border-border dark:border-dark-border">
                     {/* Security block banner */}
                     {progressEvents.some(
@@ -1608,6 +1616,19 @@ export function ChatPage() {
                         <span>Thinking...</span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Timeline mode — full chronological event stream */}
+                {timelineMode && isLoading && (
+                  <div className="mt-4 p-4 bg-bg-secondary dark:bg-dark-bg-secondary rounded-lg border border-border dark:border-dark-border">
+                    <ChatTimeline
+                      events={progressEvents}
+                      isLoading={isLoading}
+                      streamingContent={streamingContent}
+                      isThinking={isThinking}
+                      thinkingContent={thinkingContent}
+                    />
                   </div>
                 )}
 

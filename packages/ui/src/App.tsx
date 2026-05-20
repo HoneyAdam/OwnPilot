@@ -181,8 +181,15 @@ const EdgeDevicesPage = lazy(() =>
 );
 const FleetPage = lazy(() => import('./pages/FleetPage').then((m) => ({ default: m.FleetPage })));
 const ClawsPage = lazy(() => import('./pages/ClawsPage').then((m) => ({ default: m.ClawsPage })));
-const SubagentsPage = lazy(() => import('./pages/SubagentsPage').then((m) => ({ default: m.SubagentsPage })));
-const AgentsObservabilityPage = lazy(() => import('./pages/AgentsObservabilityPage').then((m) => ({ default: m.AgentsObservabilityPage })));
+const SubagentsPage = lazy(() =>
+  import('./pages/SubagentsPage').then((m) => ({ default: m.SubagentsPage }))
+);
+const AgentsObservabilityPage = lazy(() =>
+  import('./pages/AgentsObservabilityPage').then((m) => ({ default: m.AgentsObservabilityPage }))
+);
+const TunnelPage = lazy(() =>
+  import('./pages/TunnelPage').then((m) => ({ default: m.TunnelPage }))
+);
 
 function PageLoader() {
   return (
@@ -304,6 +311,7 @@ export function App() {
         <Route path="settings/system" element={page(<SystemPage />)} />
         <Route path="settings/layout" element={page(<LayoutConfigPage />)} />
         <Route path="about" element={page(<AboutPage />)} />
+        <Route path="tunnel" element={page(<TunnelPage />)} />
         <Route path="profile" element={page(<ProfilePage />)} />
         {/* Catch-all route - redirect unknown paths to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

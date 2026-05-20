@@ -124,6 +124,8 @@ export type {
   CreateBrowserWorkflowInput,
 } from './browser';
 export { skillsApi } from './skills';
+export { tunnelApi } from './tunnel';
+export type { TunnelStatus, TunnelConfig } from './tunnel';
 export type {
   NpmSearchPackage,
   NpmSearchResult,

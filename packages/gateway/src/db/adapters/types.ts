@@ -166,12 +166,12 @@ export function getDatabaseConfig(): DatabaseConfig {
   // Build PostgreSQL URL if not provided directly
   const postgresUrl =
     process.env.DATABASE_URL ||
-    `postgresql://${process.env.POSTGRES_USER || 'ownpilot'}:${effectivePassword}@${process.env.POSTGRES_HOST || 'localhost'}:${process.env.POSTGRES_PORT || '25432'}/${process.env.POSTGRES_DB || 'ownpilot'}`;
+    `postgresql://${process.env.POSTGRES_USER || 'ownpilot'}:${effectivePassword}@${process.env.POSTGRES_HOST || '127.0.0.1'}:${process.env.POSTGRES_PORT || '25432'}/${process.env.POSTGRES_DB || 'ownpilot'}`;
 
   return {
     type: 'postgres',
     postgresUrl,
-    postgresHost: process.env.POSTGRES_HOST || 'localhost',
+    postgresHost: process.env.POSTGRES_HOST || '127.0.0.1',
     postgresPort: process.env.POSTGRES_PORT ? parseInt(process.env.POSTGRES_PORT, 10) : 25432,
     postgresUser: process.env.POSTGRES_USER || 'ownpilot',
     postgresPassword: effectivePassword,

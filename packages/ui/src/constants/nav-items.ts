@@ -135,6 +135,7 @@ export const navGroups: NavGroup[] = [
       { to: '/logs', icon: Activity, label: 'Logs' },
       { to: '/event-monitor', icon: MonitorCheck, label: 'Event Monitor' },
       { to: '/agent-observability', icon: Activity, label: 'Agent Observability' },
+      { to: '/tunnel', icon: Wifi, label: 'Tunnel' },
     ],
   },
   {

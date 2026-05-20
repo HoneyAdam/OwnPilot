@@ -811,6 +811,14 @@ async function main() {
       /* webhook module not loaded */
     }
 
+    // 6.1. Stop tunnel (cloudflared process)
+    try {
+      const { getTunnelService } = await import('./services/tunnel-service.js');
+      await getTunnelService().stop();
+    } catch {
+      /* tunnel service not loaded */
+    }
+
     // 7. Dispose session service (cleanup intervals)
     try {
       const sessionSvc = registry.tryGet(Services.Session);
@@ -846,11 +854,19 @@ async function main() {
 
   // ── Global Error Handlers ─────────────────────────────────────────────────
   process.on('unhandledRejection', (reason) => {
-    log.error('Unhandled Promise Rejection', { reason: String(reason) });
+    log.error('Unhandled Promise Rejection', {
+      reason: String(reason),
+      name: reason instanceof Error ? reason.name : undefined,
+      stack: reason instanceof Error ? reason.stack : undefined,
+    });
   });
 
   process.on('uncaughtException', (error) => {
-    log.error('Uncaught Exception — shutting down', { error: error.message, stack: error.stack });
+    log.error('Uncaught Exception — shutting down', {
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+    });
     gracefulShutdown('uncaughtException').finally(() => process.exit(1));
   });
 }
