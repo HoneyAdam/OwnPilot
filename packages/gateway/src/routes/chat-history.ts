@@ -26,7 +26,7 @@ import {
   getContextBreakdown,
   compactContext,
 } from './agents.js';
-import { promptInitializedConversations, lastExecPermHash } from './chat-state.js';
+import { promptInitializedConversations } from './chat-state.js';
 import { clearInjectionCache } from '../services/middleware/context-injection.js';
 import { getDefaultProvider } from './settings.js';
 import { ChatRepository, LogsRepository } from '../db/repositories/index.js';
@@ -170,10 +170,10 @@ chatHistoryRoutes.post('/history/bulk-delete', async (c) => {
       );
     }
 
-    // Clean up conversation state caches for deleted conversations (BUG-11 fix)
+    // Clean up the per-conversation prompt-init cache. `lastExecPermHash` is
+    // keyed by userId, not conversationId — see chat.ts DELETE handler.
     for (const conversationId of idsToDelete) {
       promptInitializedConversations.delete(conversationId);
-      lastExecPermHash.delete(conversationId);
     }
 
     return apiResponse(c, { deleted });
@@ -703,9 +703,9 @@ chatHistoryRoutes.delete('/history/:id', async (c) => {
       return notFoundError(c, 'Conversation', id);
     }
 
-    // Clean up conversation state caches (BUG-11 fix)
+    // Clean up the per-conversation prompt-init cache. `lastExecPermHash` is
+    // keyed by userId, not conversationId — see chat.ts DELETE handler.
     promptInitializedConversations.delete(id);
-    lastExecPermHash.delete(id);
 
     return apiResponse(c, { deleted: true });
   } catch (error) {

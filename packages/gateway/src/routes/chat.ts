@@ -967,9 +967,10 @@ chatRoutes.delete('/conversations/:id', async (c) => {
   const chatRepo = new ChatRepository(getUserId(c));
   await chatRepo.deleteConversation(id);
 
-  // Clean up conversation state caches (BUG-11 fix)
+  // Clean up the per-conversation prompt-init cache. `lastExecPermHash` is
+  // keyed by userId, not conversationId, so deleting it here was a no-op that
+  // also masked the keying mismatch — left out intentionally.
   promptInitializedConversations.delete(id);
-  lastExecPermHash.delete(id);
 
   return apiResponse(c, {});
 });

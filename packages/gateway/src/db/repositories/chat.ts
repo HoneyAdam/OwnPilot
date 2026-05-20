@@ -188,9 +188,15 @@ export class ChatRepository extends BaseRepository {
     const id = input.id ?? crypto.randomUUID();
     const now = new Date().toISOString();
 
+    // ON CONFLICT DO NOTHING makes the insert race-safe: two concurrent
+    // getOrCreateConversation calls with the same id (the documented
+    // client-generated UUID pattern) won't blow up with a unique-violation —
+    // the second insert is a no-op and the subsequent SELECT returns the
+    // already-existing row.
     await this.execute(
       `INSERT INTO conversations (id, user_id, title, agent_id, agent_name, provider, model, system_prompt, metadata, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT (id) DO NOTHING`,
       [
         id,
         this.userId,
