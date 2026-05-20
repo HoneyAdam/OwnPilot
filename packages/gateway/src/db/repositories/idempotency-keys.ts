@@ -17,12 +17,22 @@ export interface IdempotencyRecord {
   expiresAt: Date;
 }
 
+/**
+ * Namespace the storage key with userId so two users sending the same
+ * `Idempotency-Key: foo` header cannot read each other's cached response.
+ * The DB column is still `key`; the namespacing is purely at the application
+ * level (no schema migration needed).
+ */
+function nsKey(userId: string, key: string): string {
+  return `${userId}:${key}`;
+}
+
 export class IdempotencyKeysRepository extends BaseRepository {
   /**
    * Get the cached result for an idempotency key if it exists and is not expired.
    * Returns null if the key does not exist or has expired.
    */
-  async getRecord(key: string): Promise<IdempotencyRecord | null> {
+  async getRecord(userId: string, key: string): Promise<IdempotencyRecord | null> {
     const sql = `
       SELECT key, result, created_at, expires_at
       FROM ${TABLE}
@@ -33,7 +43,7 @@ export class IdempotencyKeysRepository extends BaseRepository {
       result: unknown;
       created_at: Date;
       expires_at: Date;
-    }>(sql, [key]);
+    }>(sql, [nsKey(userId, key)]);
 
     if (rows.length === 0) return null;
 
@@ -49,20 +59,25 @@ export class IdempotencyKeysRepository extends BaseRepository {
   /**
    * Store a result for an idempotency key with a TTL.
    */
-  async setRecord(key: string, result: unknown, ttlMs = DEFAULT_TTL_MS): Promise<void> {
+  async setRecord(
+    userId: string,
+    key: string,
+    result: unknown,
+    ttlMs = DEFAULT_TTL_MS
+  ): Promise<void> {
     const sql = `
       INSERT INTO ${TABLE} (key, result, expires_at)
       VALUES ($1, $2, NOW() + INTERVAL '${Math.round(ttlMs)} milliseconds')
       ON CONFLICT (key) DO UPDATE SET result = EXCLUDED.result, expires_at = EXCLUDED.expires_at
     `;
-    await this.execute(sql, [key, JSON.stringify(result)]);
+    await this.execute(sql, [nsKey(userId, key), JSON.stringify(result)]);
   }
 
   /**
    * Delete an idempotency key.
    */
-  async deleteKey(key: string): Promise<void> {
-    await this.execute(`DELETE FROM ${TABLE} WHERE key = $1`, [key]);
+  async deleteKey(userId: string, key: string): Promise<void> {
+    await this.execute(`DELETE FROM ${TABLE} WHERE key = $1`, [nsKey(userId, key)]);
   }
 
   /**

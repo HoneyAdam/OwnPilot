@@ -190,14 +190,17 @@ chatRoutes.post('/', async (c) => {
     workspaceId?: string;
   };
 
-  // Idempotency: deduplicate retried requests via Idempotency-Key header
+  // Idempotency: deduplicate retried requests via Idempotency-Key header.
+  // Namespaced by userId in the repo so two users sending the same key value
+  // cannot read each other's cached response.
+  const idempotencyUserId = getUserId(c);
   const idempotencyKey = c.req.header('Idempotency-Key');
   if (idempotencyKey) {
     try {
       const idempotencyRepo = (
         await import('../db/repositories/idempotency-keys.js')
       ).getIdempotencyKeysRepository();
-      const cached = await idempotencyRepo.getRecord(idempotencyKey);
+      const cached = await idempotencyRepo.getRecord(idempotencyUserId, idempotencyKey);
       if (cached) {
         const result = cached.result as {
           id: string;
@@ -517,6 +520,15 @@ chatRoutes.post('/', async (c) => {
         const streamAgentId = body.agentId ?? `chat-${provider}`;
         const streamUserId = getUserId(c);
 
+        // Propagate client disconnect to the provider so a closed browser tab
+        // stops the LLM stream instead of letting it run to natural completion
+        // and burn tokens. Mirrors the legacy path below.
+        const reqSignal = c.req.raw.signal;
+        const onAbort = () => {
+          agent.cancel();
+        };
+        reqSignal.addEventListener('abort', onAbort);
+
         wireStreamApproval(agent, stream);
         log.info(`[ExecSecurity] SSE requestApproval callback wired on agent (MessageBus path)`);
 
@@ -560,6 +572,7 @@ chatRoutes.post('/', async (c) => {
             },
           });
         } finally {
+          reqSignal.removeEventListener('abort', onAbort);
           unsubMcp?.();
           agent.setRequestApproval(undefined);
           agent.setExecutionPermissions(undefined);
@@ -848,10 +861,12 @@ chatRoutes.post('/', async (c) => {
       const idempotencyRepo = (
         await import('../db/repositories/idempotency-keys.js')
       ).getIdempotencyKeysRepository();
-      idempotencyRepo.setRecord(idempotencyKey, responseObj).catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        log.warn(`[chat] idempotency record failed: ${msg}`);
-      });
+      idempotencyRepo
+        .setRecord(idempotencyUserId, idempotencyKey, responseObj)
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          log.warn(`[chat] idempotency record failed: ${msg}`);
+        });
     }
 
     return c.json({

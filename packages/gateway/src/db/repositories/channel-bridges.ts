@@ -53,6 +53,26 @@ export class ChannelBridgesRepository extends BaseRepository implements BridgeSt
     return rows.map(rowToBridge);
   }
 
+  /**
+   * List bridges for a single user. Joins channel_users → channel_sessions to
+   * restrict bridges to those whose source or target channel the user owns.
+   * Use this from REST routes instead of getAll() — the latter is unscoped
+   * and would leak every user's bridges in a multi-tenant deployment.
+   */
+  async listForUser(userId: string): Promise<UCPBridgeConfig[]> {
+    const rows = await this.query<BridgeRow>(
+      `SELECT DISTINCT b.*
+       FROM channel_bridges b
+       JOIN channel_sessions cs
+         ON cs.channel_plugin_id IN (b.source_channel_id, b.target_channel_id)
+       JOIN channel_users cu ON cu.id = cs.channel_user_id
+       WHERE cu.ownpilot_user_id = $1
+       ORDER BY b.created_at DESC`,
+      [userId]
+    );
+    return rows.map(rowToBridge);
+  }
+
   async getById(id: string): Promise<UCPBridgeConfig | null> {
     const row = await this.queryOne<BridgeRow>('SELECT * FROM channel_bridges WHERE id = $1', [id]);
     return row ? rowToBridge(row) : null;

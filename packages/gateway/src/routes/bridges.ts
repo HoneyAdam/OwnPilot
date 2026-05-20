@@ -22,9 +22,17 @@ function getRepo(): ChannelBridgesRepository {
 bridgeRoutes.get('/', async (c) => {
   try {
     const repo = getRepo();
+    const userId = getUserId(c);
     const channelId = c.req.query('channelId');
 
-    const bridges = channelId ? await repo.getByChannel(channelId) : await repo.getAll();
+    // Scope to the requesting user — getAll() would leak every user's bridges.
+    let bridges = channelId ? await repo.getByChannel(channelId) : await repo.listForUser(userId);
+
+    // If filtering by channel, intersect with the user's owned set.
+    if (channelId) {
+      const owned = new Set((await repo.listForUser(userId)).map((b) => b.id));
+      bridges = bridges.filter((b) => owned.has(b.id));
+    }
 
     return apiResponse(c, bridges);
   } catch (e) {

@@ -591,7 +591,7 @@ export async function executeTool(
     .digest('hex')}`;
   try {
     const idempotencyRepo = getIdempotencyKeysRepository();
-    const cached = await idempotencyRepo.getRecord(idempotencyKey);
+    const cached = await idempotencyRepo.getRecord(userId, idempotencyKey);
     if (cached) {
       log.debug(`Idempotency hit for ${toolName}`);
       return cached.result as ToolExecutionResult;
@@ -606,7 +606,7 @@ export async function executeTool(
   // Store result
   try {
     const idempotencyRepo = getIdempotencyKeysRepository();
-    idempotencyRepo.setRecord(idempotencyKey, result).catch((err: unknown) => {
+    idempotencyRepo.setRecord(userId, idempotencyKey, result).catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
       log.warn(`[executor] idempotency record failed: ${msg}`);
     });
