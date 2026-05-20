@@ -269,8 +269,11 @@ export class ClawsRepository extends BaseRepository {
   }
 
   async getAll(userId: string): Promise<ClawConfig[]> {
+    // Defensive cap to prevent unbounded scans. MAX_CONCURRENT_CLAWS is 50,
+    // and historical claws stay in this table — 1000 is generous headroom.
+    // Use getAllPaginated() when explicit pagination is needed.
     const rows = await this.query<ClawRow>(
-      `SELECT * FROM claws WHERE user_id = $1 ORDER BY created_at DESC`,
+      `SELECT * FROM claws WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1000`,
       [userId]
     );
     return rows.map(rowToConfig);
@@ -299,8 +302,10 @@ export class ClawsRepository extends BaseRepository {
   }
 
   async getChildClaws(parentId: string): Promise<ClawConfig[]> {
+    // Defensive cap. Spawn depth is capped by MAX_CLAW_DEPTH (3) and per-claw
+    // spawn limits, so this should never approach the cap in practice.
     const rows = await this.query<ClawRow>(
-      `SELECT * FROM claws WHERE parent_claw_id = $1 ORDER BY created_at ASC`,
+      `SELECT * FROM claws WHERE parent_claw_id = $1 ORDER BY created_at ASC LIMIT 1000`,
       [parentId]
     );
     return rows.map(rowToConfig);
@@ -563,9 +568,9 @@ export class ClawsRepository extends BaseRepository {
   /**
    * Get sessions that appear orphaned — running/waiting but with no recent heartbeat.
    */
-  async getOrphanedSessions(thresholdMs: number): Promise<
-    Array<{ id: string; name: string; user_id: string }>
-  > {
+  async getOrphanedSessions(
+    thresholdMs: number
+  ): Promise<Array<{ id: string; name: string; user_id: string }>> {
     const rows = await this.query<{ id: string; name: string; user_id: string }>(
       `SELECT c.id, c.name, c.user_id
        FROM claw_sessions cs
@@ -611,7 +616,10 @@ export class ClawsRepository extends BaseRepository {
    * indefinitely. Per-tool detail lives in claw_audit_log; history just
    * needs enough context for the UI cycle list and basic debugging.
    */
-  private static truncateHistoryField(value: string | null | undefined, maxBytes: number): string | null {
+  private static truncateHistoryField(
+    value: string | null | undefined,
+    maxBytes: number
+  ): string | null {
     if (value === null || value === undefined) return null;
     if (Buffer.byteLength(value, 'utf-8') <= maxBytes) return value;
     return value.slice(0, maxBytes - 64) + `\n... [truncated to ${maxBytes} bytes]`;

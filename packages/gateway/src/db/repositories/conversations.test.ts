@@ -209,27 +209,36 @@ describe('ConversationsRepository', () => {
   // ---- getAll ----
 
   describe('getAll', () => {
-    it('returns paginated conversations with defaults', async () => {
+    it('returns paginated conversations for user with defaults', async () => {
       mockAdapter.query.mockResolvedValueOnce([makeConversationRow()]);
 
-      const result = await repo.getAll();
+      const result = await repo.getAll('alice');
 
       expect(result).toHaveLength(1);
       expect(mockAdapter.query).toHaveBeenCalledWith(
-        expect.stringContaining('LIMIT $1 OFFSET $2'),
-        [100, 0]
+        expect.stringContaining('LIMIT $2 OFFSET $3'),
+        ['alice', 100, 0]
+      );
+      const sql = mockAdapter.query.mock.calls[0]![0] as string;
+      expect(sql).toContain('WHERE user_id = $1');
+    });
+
+    it('passes custom limit and offset and scopes to user', async () => {
+      mockAdapter.query.mockResolvedValueOnce([]);
+
+      await repo.getAll('bob', 25, 50);
+
+      expect(mockAdapter.query).toHaveBeenCalledWith(
+        expect.stringContaining('LIMIT $2 OFFSET $3'),
+        ['bob', 25, 50]
       );
     });
 
-    it('passes custom limit and offset', async () => {
+    it('does not leak conversations across users', async () => {
       mockAdapter.query.mockResolvedValueOnce([]);
-
-      await repo.getAll(25, 50);
-
-      expect(mockAdapter.query).toHaveBeenCalledWith(
-        expect.stringContaining('LIMIT $1 OFFSET $2'),
-        [25, 50]
-      );
+      await repo.getAll('alice');
+      const params = mockAdapter.query.mock.calls[0]![1] as unknown[];
+      expect(params[0]).toBe('alice');
     });
   });
 

@@ -69,12 +69,13 @@ export class ConversationsRepository extends BaseRepository {
     return rows.map(rowToConversation);
   }
 
-  async getAll(limit = 100, offset = 0): Promise<Conversation[]> {
+  async getAll(userId: string, limit = 100, offset = 0): Promise<Conversation[]> {
     const rows = await this.query<ConversationRow>(
       `SELECT * FROM conversations
+       WHERE user_id = $1
        ORDER BY updated_at DESC
-       LIMIT $1 OFFSET $2`,
-      [limit, offset]
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
     );
     return rows.map(rowToConversation);
   }
