@@ -47,6 +47,7 @@ const {
 
   const mockHbLogRepo = {
     getLatest: vi.fn(),
+    getLatestByAgentIds: vi.fn().mockResolvedValue(new Map()),
     getRecent: vi.fn(),
     getStats: vi.fn(),
   };
@@ -691,7 +692,7 @@ describe('Agent Command Center Routes', () => {
       const soul = makeSoul('agent-1');
       const hbEntry = makeHbEntry('agent-1');
       mockSoulsRepo.list.mockResolvedValue([soul]);
-      mockHbLogRepo.getLatest.mockResolvedValue(hbEntry);
+      mockHbLogRepo.getLatestByAgentIds.mockResolvedValueOnce(new Map([['agent-1', hbEntry]]));
       mockCrewsRepo.list.mockResolvedValue([]);
 
       const res = await app.request('/acc/status');

@@ -331,19 +331,17 @@ agentCommandCenterRoutes.get('/overview', async (c) => {
       clawStats,
       clawHealth,
     ] = await Promise.all([
-      subagentRepo
-        .getStats(userId)
-        .catch(() => ({
-          total: 0,
-          successRate: 0,
-          avgCost: 0,
-          avgDuration: 0,
-          totalCost: 0,
-          errorRate: 0,
-          byState: {},
-          totalTokens: { input: 0, output: 0 },
-          active: 0,
-        })),
+      subagentRepo.getStats(userId).catch(() => ({
+        total: 0,
+        successRate: 0,
+        avgCost: 0,
+        avgDuration: 0,
+        totalCost: 0,
+        errorRate: 0,
+        byState: {},
+        totalTokens: { input: 0, output: 0 },
+        active: 0,
+      })),
       (async () => {
         const repo = new SubagentsRepository();
         const orphaned = await repo.getOrphanedSessions(30 * 60 * 1000).catch(() => []);
@@ -354,22 +352,20 @@ agentCommandCenterRoutes.get('/overview', async (c) => {
           orphaned.length > 0 ? ['Run orphan reconciliation to recover stuck sessions'] : [];
         return { status, score, signals, recommendations };
       })(),
-      fleetRepo
-        .getStats(userId)
-        .catch(() => ({
-          totalFleets: 0,
-          totalSessions: 0,
-          totalWorkers: 0,
-          successRate: 0,
-          avgCost: 0,
-          avgDuration: 0,
-          totalCost: 0,
-          errorRate: 0,
-          byState: {},
-          totalTokens: { input: 0, output: 0 },
-          tasksCompleted: 0,
-          tasksFailed: 0,
-        })),
+      fleetRepo.getStats(userId).catch(() => ({
+        totalFleets: 0,
+        totalSessions: 0,
+        totalWorkers: 0,
+        successRate: 0,
+        avgCost: 0,
+        avgDuration: 0,
+        totalCost: 0,
+        errorRate: 0,
+        byState: {},
+        totalTokens: { input: 0, output: 0 },
+        tasksCompleted: 0,
+        tasksFailed: 0,
+      })),
       (async () => {
         try {
           const service = getFleetService();
@@ -418,20 +414,18 @@ agentCommandCenterRoutes.get('/overview', async (c) => {
           };
         }
       })(),
-      orchestraRepo
-        .getStats(userId)
-        .catch(() => ({
-          total: 0,
-          active: 0,
-          successRate: 0,
-          avgCost: 0,
-          avgDuration: 0,
-          totalCost: 0,
-          errorRate: 0,
-          byState: {},
-          tasksSucceeded: 0,
-          tasksFailed: 0,
-        })),
+      orchestraRepo.getStats(userId).catch(() => ({
+        total: 0,
+        active: 0,
+        successRate: 0,
+        avgCost: 0,
+        avgDuration: 0,
+        totalCost: 0,
+        errorRate: 0,
+        byState: {},
+        tasksSucceeded: 0,
+        tasksFailed: 0,
+      })),
       (async () => {
         try {
           const engine = getOrchestraEngine();
@@ -732,24 +726,24 @@ agentCommandCenterRoutes.get('/status', async (c) => {
     // Get all crews for this user
     const crews = await crewRepo.list(userId, 100, 0);
 
-    // Aggregate status
-    const soulStatuses = await Promise.all(
-      souls.map(async (soul) => {
-        const hbRepo = (
-          await import('../db/repositories/heartbeat-log.js')
-        ).getHeartbeatLogRepository();
-        const lastLog = await hbRepo.getLatest(soul.agentId);
-        return {
-          type: 'soul' as const,
-          id: soul.agentId,
-          name: soul.identity.name,
-          status: soul.heartbeat.enabled ? 'running' : 'paused',
-          lastActivity: lastLog?.createdAt ?? null,
-          emoji: soul.identity.emoji,
-          role: soul.identity.role,
-        };
-      })
-    );
+    // Aggregate status — batch-fetch latest heartbeat per soul in a single
+    // query instead of N round-trips (souls.length can reach 1000).
+    const hbRepo = (
+      await import('../db/repositories/heartbeat-log.js')
+    ).getHeartbeatLogRepository();
+    const latestByAgent = await hbRepo.getLatestByAgentIds(souls.map((s) => s.agentId));
+    const soulStatuses = souls.map((soul) => {
+      const lastLog = latestByAgent.get(soul.agentId);
+      return {
+        type: 'soul' as const,
+        id: soul.agentId,
+        name: soul.identity.name,
+        status: soul.heartbeat.enabled ? 'running' : 'paused',
+        lastActivity: lastLog?.createdAt ?? null,
+        emoji: soul.identity.emoji,
+        role: soul.identity.role,
+      };
+    });
 
     const crewStatuses = crews.map((crew) => ({
       type: 'crew' as const,
