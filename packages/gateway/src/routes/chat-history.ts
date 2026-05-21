@@ -988,8 +988,24 @@ chatHistoryRoutes.post('/compact', async (c) => {
   const model = body?.model ?? (await getDefaultModel(provider)) ?? 'gpt-4o';
   const keepRecent = body?.keepRecentMessages ?? 6;
 
+  // Honor the user's configured context window so the returned SessionInfo
+  // matches what the rest of the chat surface reports.
+  let userContextWindow: number | undefined;
   try {
-    const result = await compactContext(provider, model, keepRecent);
+    const userConfig = await modelConfigsRepo.getModel(getUserId(c), provider, model);
+    userContextWindow = userConfig?.contextWindow ?? undefined;
+  } catch {
+    /* fall back to pricing defaults */
+  }
+
+  try {
+    const result = await compactContext(
+      provider,
+      model,
+      keepRecent,
+      userContextWindow,
+      getUserId(c)
+    );
     return apiResponse(c, result);
   } catch (err) {
     return apiError(c, { code: ERROR_CODES.INTERNAL_ERROR, message: getErrorMessage(err) }, 500);

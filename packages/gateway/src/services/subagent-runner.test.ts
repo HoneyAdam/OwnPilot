@@ -102,6 +102,9 @@ vi.mock('../routes/agent-cache.js', () => ({
   getProviderApiKey: mockGetProviderApiKey,
   loadProviderConfig: mockLoadProviderConfig,
   NATIVE_PROVIDERS: mockNativeProviders,
+  resolveContextWindow: vi.fn().mockReturnValue(128000),
+  resolveMaxOutput: vi.fn().mockReturnValue(8192),
+  computeMemoryMaxTokens: vi.fn().mockReturnValue(96000),
 }));
 
 vi.mock('../routes/agent-tools.js', () => ({

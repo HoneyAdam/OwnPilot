@@ -940,7 +940,9 @@ describe('createStreamCallbacks', () => {
       });
       const { callbacks } = createStreamCallbacks(config as never);
       callbacks.onChunk!(makeDoneChunk());
-      expect(mockGetSessionInfo).toHaveBeenCalledWith(agent, 'anthropic', 'claude-3', 64000);
+      // 5th arg is the real prompt token count from `chunk.usage.promptTokens`
+      // (used as ground truth when the provider reports it).
+      expect(mockGetSessionInfo).toHaveBeenCalledWith(agent, 'anthropic', 'claude-3', 64000, 100);
     });
 
     it('includes session info in SSE data', () => {

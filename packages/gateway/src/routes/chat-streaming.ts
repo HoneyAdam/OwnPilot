@@ -401,12 +401,18 @@ export function createStreamCallbacks(config: StreamingConfig): {
             finishReason: chunk.finishReason,
           },
         };
+        // Prefer the provider's reported prompt-token count over the char/4
+        // estimate so the UI's context chip reflects reality. Fall back to the
+        // accumulator (`state.lastUsage`) if this final chunk omits usage.
+        const promptTokensTruth =
+          chunk.usage?.promptTokens ?? state.lastUsage?.promptTokens ?? undefined;
         data.session = {
           ...getSessionInfo(
             config.agent,
             config.provider,
             config.model,
-            config.contextWindowOverride
+            config.contextWindowOverride,
+            promptTokensTruth
           ),
           ...(chunk.usage?.cachedTokens != null && { cachedTokens: chunk.usage.cachedTokens }),
         };

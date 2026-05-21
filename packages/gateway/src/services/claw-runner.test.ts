@@ -92,6 +92,9 @@ vi.mock('../routes/agent-cache.js', () => ({
   getProviderApiKey: vi.fn().mockResolvedValue('sk-test-key'),
   loadProviderConfig: vi.fn().mockReturnValue(null),
   NATIVE_PROVIDERS: new Set(['openai', 'anthropic']),
+  resolveContextWindow: vi.fn().mockReturnValue(128000),
+  resolveMaxOutput: vi.fn().mockReturnValue(8192),
+  computeMemoryMaxTokens: vi.fn().mockReturnValue(96000),
 }));
 
 vi.mock('./model-routing.js', () => ({

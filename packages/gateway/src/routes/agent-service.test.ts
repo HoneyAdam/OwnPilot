@@ -61,6 +61,25 @@ vi.mock('../db/repositories/index.js', () => ({
   agentsRepo: mockAgentsRepo,
 }));
 
+// ChatRepository — only used by compactContext's DB mirror. Default to an
+// empty conversation so the mirror is a silent no-op; individual tests can
+// override `mockChatRepoGetMessages` / `mockChatRepoDeleteMessage` /
+// `mockChatRepoAddMessage` to assert against the mirror logic.
+const mockChatRepoGetMessages = vi.fn(async () => []);
+const mockChatRepoDeleteMessage = vi.fn(async () => true);
+const mockChatRepoAddMessage = vi.fn(async () => ({ id: 'm-1' }));
+vi.mock('../db/repositories/chat.js', () => ({
+  // Use `function` (not an arrow) — this constructor is invoked with `new`,
+  // which arrow functions don't support. See vitest_mock_queue_gotcha note.
+  ChatRepository: vi.fn().mockImplementation(function () {
+    return {
+      getMessages: mockChatRepoGetMessages,
+      deleteMessage: mockChatRepoDeleteMessage,
+      addMessage: mockChatRepoAddMessage,
+    };
+  }),
+}));
+
 vi.mock('../db/repositories/local-providers.js', () => ({
   localProvidersRepo: mockLocalProvidersRepo,
 }));
@@ -150,6 +169,7 @@ const mockLruGet = vi.fn((cache: Map<string, unknown>, key: string) => cache.get
 const mockGetProviderApiKey = vi.fn(async () => 'test-api-key');
 const mockLoadProviderConfig = vi.fn(() => ({ baseUrl: undefined }));
 const mockResolveContextWindow = vi.fn(() => 128000);
+const mockResolveMaxOutput = vi.fn(() => 8192);
 const mockResolveRecordTools = vi.fn(() => ({ tools: [], configuredToolGroups: [] }));
 const mockResolveToolGroups = vi.fn(() => []);
 const mockEvictAgentFromCache = vi.fn();
@@ -180,6 +200,25 @@ vi.mock('./agent-cache.js', () => ({
   loadProviderConfig: (...args: unknown[]) => mockLoadProviderConfig(...(args as [string])),
   resolveContextWindow: (...args: unknown[]) =>
     mockResolveContextWindow(...(args as [string, string, number?])),
+  resolveMaxOutput: (...args: unknown[]) => mockResolveMaxOutput(...(args as [string, string])),
+  // Shared memory cap helper — use production-equivalent math in tests so the
+  // existing per-window assertions still match.
+  computeMemoryMaxTokens: (opts: {
+    ctxWindow: number;
+    systemPromptTokens: number;
+    outputBuffer: number;
+    dynamicInjectionReserve?: number;
+  }) => {
+    const reserve =
+      opts.dynamicInjectionReserve ?? Math.min(8192, Math.floor(opts.ctxWindow * 0.25));
+    return Math.max(
+      1024,
+      Math.min(
+        Math.floor(opts.ctxWindow * 0.75),
+        opts.ctxWindow - opts.systemPromptTokens - reserve - opts.outputBuffer - 1024
+      )
+    );
+  },
   resolveRecordTools: (...args: unknown[]) => mockResolveRecordTools(...args),
   resolveToolGroups: (...args: unknown[]) => mockResolveToolGroups(...args),
   evictAgentFromCache: (...args: unknown[]) => mockEvictAgentFromCache(...args),
@@ -309,6 +348,7 @@ beforeEach(() => {
   mockGetProviderApiKey.mockResolvedValue('test-api-key');
   mockLoadProviderConfig.mockReturnValue({ baseUrl: undefined });
   mockResolveContextWindow.mockReturnValue(128000);
+  mockResolveMaxOutput.mockReturnValue(8192);
   mockResolveRecordTools.mockReturnValue({ tools: [], configuredToolGroups: [] });
   mockResolveToolGroups.mockReturnValue([]);
   mockResolveProviderAndModel.mockImplementation(async (p: string, m: string) => ({
@@ -323,6 +363,13 @@ beforeEach(() => {
   mockGetByAgentId.mockResolvedValue(null);
   mockCountUnread.mockResolvedValue(0);
   mockBuildSoulPrompt.mockReturnValue('');
+
+  // Restore default ChatRepository mirror mocks — vi.clearAllMocks() wipes
+  // call history but also resets the once-queue, so default behavior must be
+  // re-asserted here.
+  mockChatRepoGetMessages.mockImplementation(async () => []);
+  mockChatRepoDeleteMessage.mockResolvedValue(true);
+  mockChatRepoAddMessage.mockResolvedValue({ id: 'm-1' });
 });
 
 // =============================================================================
@@ -346,10 +393,28 @@ describe('getSessionInfo', () => {
 
   it('returns correct estimatedTokens', () => {
     const { agent } = makeMockAgent({
+      systemPrompt: '',
       stats: { messageCount: 3, estimatedTokens: 7500, lastActivity: new Date() },
     });
     const result = mod.getSessionInfo(agent as never, 'openai', 'gpt-4o');
     expect(result.estimatedTokens).toBe(7500);
+  });
+
+  it('includes system prompt tokens in estimatedTokens', () => {
+    // Default Test prompt 'Test prompt' is 11 chars => ceil(11/4) = 3 tokens
+    const { agent } = makeMockAgent({
+      stats: { messageCount: 3, estimatedTokens: 7500, lastActivity: new Date() },
+    });
+    const result = mod.getSessionInfo(agent as never, 'openai', 'gpt-4o');
+    expect(result.estimatedTokens).toBe(7503);
+  });
+
+  it('uses actualPromptTokens override over the char/4 estimate', () => {
+    const { agent } = makeMockAgent({
+      stats: { messageCount: 3, estimatedTokens: 7500, lastActivity: new Date() },
+    });
+    const result = mod.getSessionInfo(agent as never, 'openai', 'gpt-4o', undefined, 9123);
+    expect(result.estimatedTokens).toBe(9123);
   });
 
   it('returns maxContextTokens from resolveContextWindow', () => {
@@ -379,6 +444,7 @@ describe('getSessionInfo', () => {
 
   it('handles zero estimatedTokens', () => {
     const { agent } = makeMockAgent({
+      systemPrompt: '',
       stats: { messageCount: 0, estimatedTokens: 0, lastActivity: new Date() },
     });
     const result = mod.getSessionInfo(agent as never, 'openai', 'gpt-4o');
@@ -393,7 +459,7 @@ describe('getSessionInfo', () => {
   });
 
   it('handles missing stats (null)', () => {
-    const { agent } = makeMockAgent({ stats: null });
+    const { agent } = makeMockAgent({ systemPrompt: '', stats: null });
     const result = mod.getSessionInfo(agent as never, 'openai', 'gpt-4o');
     expect(result.messageCount).toBe(0);
     expect(result.estimatedTokens).toBe(0);
@@ -425,6 +491,7 @@ describe('getSessionInfo', () => {
   it('handles large estimatedTokens exceeding maxContextTokens', () => {
     mockResolveContextWindow.mockReturnValue(4096);
     const { agent } = makeMockAgent({
+      systemPrompt: '',
       stats: { messageCount: 100, estimatedTokens: 50000, lastActivity: new Date() },
     });
     const result = mod.getSessionInfo(agent as never, 'openai', 'gpt-4o');
@@ -1324,6 +1391,67 @@ describe('getOrCreateChatAgent', () => {
       expect.anything()
     );
   });
+
+  it('shrinks memory maxTokens below 75% when system prompt + output buffer would overflow', async () => {
+    // 16K context window: a naive 75% cap (12288) PLUS the default
+    // 8192-token output buffer would overflow before any system prompt or
+    // safety margin. The new formula must clamp the cap so total stays
+    // within ctxWindow even after dynamic-injection middleware adds ~8K.
+    const { agent } = makeMockAgent();
+    mockLruGet.mockReturnValue(undefined);
+    mockCreateAgent.mockReturnValue(agent);
+    mockResolveContextWindow.mockReturnValue(16384);
+
+    await mod.getOrCreateChatAgent('openai', 'gpt-4o-mini');
+    const call = mockCreateAgent.mock.calls[0];
+    const config = call?.[0] as { memory: { maxTokens: number } } | undefined;
+    const cap = config?.memory.maxTokens ?? 0;
+    // Naive 75% would have been 12288; the new clamp must drop us below.
+    expect(cap).toBeLessThan(12288);
+    // Total budget at REQUEST time (system + dynamic + cap + output + safety)
+    // must fit the window. Dynamic reserve scales: min(8192, ctxWindow * 0.25).
+    const systemTokens = Math.ceil('Test system prompt'.length / 4); // 5
+    const dynamicReserve = Math.min(8192, Math.floor(16384 * 0.25)); // 4096
+    expect(systemTokens + dynamicReserve + cap + 8192 + 1024).toBeLessThanOrEqual(16384);
+  });
+
+  it('reserves the model-specific maxOutput from models.dev (not the global default)', async () => {
+    // Model with a small output cap (e.g. some reasoning models cap at 4K).
+    // The cap should reserve only 4K for output, freeing more room for messages.
+    const { agent } = makeMockAgent();
+    mockLruGet.mockReturnValue(undefined);
+    mockCreateAgent.mockReturnValue(agent);
+    mockResolveContextWindow.mockReturnValue(16384);
+    mockResolveMaxOutput.mockReturnValue(4096);
+
+    await mod.getOrCreateChatAgent('openai', 'small-output-model');
+    const call = mockCreateAgent.mock.calls[0];
+    const config = call?.[0] as
+      | {
+          memory: { maxTokens: number };
+          model: { maxTokens: number };
+        }
+      | undefined;
+    // Output buffer = min(8192, 4096) = 4096 → memory cap rises vs the 8K case.
+    expect(config?.model.maxTokens).toBe(4096);
+    // The model.maxTokens passed to the agent matches the resolved cap.
+    const systemTokens = Math.ceil('Test system prompt'.length / 4);
+    expect(systemTokens + (config?.memory.maxTokens ?? 0) + 4096 + 1024).toBeLessThanOrEqual(16384);
+  });
+
+  it('respects the 1024-token floor for memory cap on tiny windows', async () => {
+    // 4K window — system prompt + output buffer alone exceed everything,
+    // so the cap should hit the safety floor rather than going negative.
+    const { agent } = makeMockAgent();
+    mockLruGet.mockReturnValue(undefined);
+    mockCreateAgent.mockReturnValue(agent);
+    mockResolveContextWindow.mockReturnValue(4096);
+
+    await mod.getOrCreateChatAgent('openai', 'tiny-model');
+    const call = mockCreateAgent.mock.calls[0];
+    const config = call?.[0] as { memory: { maxTokens: number } } | undefined;
+    expect(config?.memory.maxTokens).toBe(1024);
+  });
 });
 
 // =============================================================================
@@ -1502,7 +1630,10 @@ describe('getOrCreateAgentInstance', () => {
 describe('compactContext', () => {
   it('returns { compacted: false } when no agent in cache', async () => {
     const result = await mod.compactContext('openai', 'gpt-4o');
-    expect(result).toEqual({ compacted: false, removedMessages: 0, newTokenEstimate: 0 });
+    expect(result.compacted).toBe(false);
+    expect(result.reason).toBe('no_agent');
+    expect(result.removedMessages).toBe(0);
+    expect(result.newTokenEstimate).toBe(0);
   });
 
   it('returns { compacted: false } when too few messages', async () => {
@@ -1691,20 +1822,20 @@ describe('compactContext', () => {
     await mod.compactContext('openai', 'gpt-4o');
 
     expect(memory.clearMessages).toHaveBeenCalled();
-    // Should add summary message
+    // Summary uses a user/assistant pair — the Anthropic provider strips
+    // role:'system' messages, so a system-role anchor would vanish on Claude.
     expect(memory.addMessage).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
         role: 'user',
-        content: expect.stringContaining('Previous conversation summary'),
+        content: expect.stringContaining('Conversation summary from compaction'),
       })
     );
-    // Should add acknowledgment message
     expect(memory.addMessage).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
         role: 'assistant',
-        content: expect.stringContaining('Understood'),
+        content: expect.stringContaining('Got it'),
       })
     );
     // Total addMessage calls: 2 (summary + ack) + 6 (recent) = 8
@@ -1738,6 +1869,153 @@ describe('compactContext', () => {
     // Should not throw — complex content gets replaced with '[complex content]'
     const result = await mod.compactContext('openai', 'gpt-4o', 4);
     expect(result.compacted).toBe(true);
+  });
+
+  it('mirrors compaction to the database when userId is provided', async () => {
+    // Without DB mirroring, an agent eviction or gateway restart would
+    // replay the FULL pre-compaction history from the database, silently
+    // undoing the compaction. The mirror keeps the persisted history aligned
+    // with what the agent has in memory.
+    const messages = Array.from({ length: 12 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `msg-${i}`,
+    }));
+    const { agent, memory } = makeMockAgent();
+    memory.getContextMessages.mockReturnValue(messages);
+    memory.getStats.mockReturnValue({
+      messageCount: 8,
+      estimatedTokens: 500,
+      lastActivity: new Date(),
+    });
+    chatAgentCache.set('chat|openai|gpt-4o', agent);
+
+    // 12 DB messages — keepRecent=6 → 6 to delete + 2 summary inserts.
+    mockChatRepoGetMessages.mockResolvedValueOnce(
+      Array.from({ length: 12 }, (_, i) => ({
+        id: `db-msg-${i}`,
+        role: i % 2 === 0 ? 'user' : 'assistant',
+        content: `db msg ${i}`,
+        createdAt: new Date(2026, 0, 1, 12, i).toISOString(),
+      }))
+    );
+
+    const mockProvider = {
+      complete: vi.fn().mockResolvedValue({ ok: true, value: { content: 'Summary' } }),
+    };
+    mockCreateProvider.mockReturnValue(mockProvider);
+
+    const result = await mod.compactContext('openai', 'gpt-4o', 6, undefined, 'user-123');
+    expect(result.compacted).toBe(true);
+
+    // 6 older DB messages should have been deleted (index 0..5).
+    expect(mockChatRepoDeleteMessage).toHaveBeenCalledTimes(6);
+    // Summary user + summary assistant inserted.
+    expect(mockChatRepoAddMessage).toHaveBeenCalledTimes(2);
+    expect(mockChatRepoAddMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'user',
+        content: expect.stringContaining('Conversation summary from compaction'),
+        createdAt: expect.any(String),
+      })
+    );
+    expect(mockChatRepoAddMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'assistant',
+        content: expect.stringContaining('Got it'),
+        createdAt: expect.any(String),
+      })
+    );
+  });
+
+  it('skips DB mirror when conversation is not yet persisted (empty DB)', async () => {
+    // Fresh in-memory chat that hasn't been written to the DB yet — the
+    // mirror should silently no-op without throwing or deleting anything.
+    const messages = Array.from({ length: 12 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `msg-${i}`,
+    }));
+    const { agent, memory } = makeMockAgent();
+    memory.getContextMessages.mockReturnValue(messages);
+    memory.getStats.mockReturnValue({
+      messageCount: 8,
+      estimatedTokens: 500,
+      lastActivity: new Date(),
+    });
+    chatAgentCache.set('chat|openai|gpt-4o', agent);
+    mockChatRepoGetMessages.mockResolvedValueOnce([]);
+
+    const mockProvider = {
+      complete: vi.fn().mockResolvedValue({ ok: true, value: { content: 'Summary' } }),
+    };
+    mockCreateProvider.mockReturnValue(mockProvider);
+
+    const result = await mod.compactContext('openai', 'gpt-4o', 6, undefined, 'user-123');
+    expect(result.compacted).toBe(true);
+    expect(mockChatRepoDeleteMessage).not.toHaveBeenCalled();
+    expect(mockChatRepoAddMessage).not.toHaveBeenCalled();
+  });
+
+  it('does NOT attempt DB mirror when userId is omitted', async () => {
+    const messages = Array.from({ length: 12 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `msg-${i}`,
+    }));
+    const { agent, memory } = makeMockAgent();
+    memory.getContextMessages.mockReturnValue(messages);
+    memory.getStats.mockReturnValue({
+      messageCount: 8,
+      estimatedTokens: 500,
+      lastActivity: new Date(),
+    });
+    chatAgentCache.set('chat|openai|gpt-4o', agent);
+
+    const mockProvider = {
+      complete: vi.fn().mockResolvedValue({ ok: true, value: { content: 'Summary' } }),
+    };
+    mockCreateProvider.mockReturnValue(mockProvider);
+
+    const result = await mod.compactContext('openai', 'gpt-4o', 6, undefined);
+    expect(result.compacted).toBe(true);
+    expect(mockChatRepoGetMessages).not.toHaveBeenCalled();
+  });
+
+  it('refuses to compact when conversation grows during summarization (race guard)', async () => {
+    // Simulate a chat stream landing while we were awaiting the summary call:
+    // the second call to memory.getContextMessages (after the await) returns
+    // MORE messages than the first call. The guard must abort rather than
+    // wipe the concurrent message with clearMessages.
+    const initialMessages = Array.from({ length: 12 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `msg-${i}`,
+    }));
+    const grownMessages = [
+      ...initialMessages,
+      { role: 'user', content: 'concurrent message during compact' },
+    ];
+    const { agent, memory } = makeMockAgent();
+    memory.getContextMessages
+      .mockReturnValueOnce(initialMessages) // first read (snapshot)
+      .mockReturnValueOnce(grownMessages); // second read (after await)
+    memory.getStats.mockReturnValue({
+      messageCount: 13,
+      estimatedTokens: 600,
+      lastActivity: new Date(),
+    });
+    chatAgentCache.set('chat|openai|gpt-4o', agent);
+
+    const mockProvider = {
+      complete: vi.fn().mockResolvedValue({
+        ok: true,
+        value: { content: 'Summary that should not be applied' },
+      }),
+    };
+    mockCreateProvider.mockReturnValue(mockProvider);
+
+    const result = await mod.compactContext('openai', 'gpt-4o');
+    expect(result.compacted).toBe(false);
+    expect(result.reason).toBe('concurrent_modification');
+    expect(memory.clearMessages).not.toHaveBeenCalled();
+    expect(memory.addMessage).not.toHaveBeenCalled();
   });
 
   it('uses correct cache key with pipe escaping', async () => {
@@ -1825,8 +2103,11 @@ describe('compactContext', () => {
     await mod.compactContext('openai', 'gpt-4o');
 
     expect(mockProvider.complete).toHaveBeenCalledWith({
-      messages: [{ role: 'user', content: expect.stringContaining('Summarize the following') }],
-      model: { model: 'gpt-4o', maxTokens: 500, temperature: 0.3 },
+      messages: [
+        { role: 'system', content: expect.stringContaining('compacting a conversation') },
+        { role: 'user', content: expect.any(String) },
+      ],
+      model: { model: 'gpt-4o', maxTokens: 700, temperature: 0.2 },
     });
   });
 

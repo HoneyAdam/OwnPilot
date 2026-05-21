@@ -850,7 +850,9 @@ chatRoutes.post('/', async (c) => {
           }
         : undefined,
       finishReason: 'stop',
-      session: getSessionInfo(agent, provider, model, userContextWindow),
+      // Use real prompt token count from the provider when available so the
+      // UI context bar shows ground truth, not a char/4 estimate.
+      session: getSessionInfo(agent, provider, model, userContextWindow, busUsage?.input),
       suggestions: busSuggestions.length > 0 ? busSuggestions : undefined,
       memories: busMemories.length > 0 ? busMemories : undefined,
       trace: busTrace,

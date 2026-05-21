@@ -26,7 +26,14 @@ import {
 import type { AIProvider, ToolCall, ToolId } from '@ownpilot/core';
 import { getLog } from './log.js';
 import { resolveForProcess } from './model-routing.js';
-import { getProviderApiKey, loadProviderConfig, NATIVE_PROVIDERS } from '../routes/agent-cache.js';
+import {
+  getProviderApiKey,
+  loadProviderConfig,
+  NATIVE_PROVIDERS,
+  resolveContextWindow,
+  resolveMaxOutput,
+  computeMemoryMaxTokens,
+} from '../routes/agent-cache.js';
 import {
   registerGatewayTools,
   registerDynamicTools,
@@ -180,6 +187,22 @@ export async function createConfiguredAgent(opts: CreateAgentOptions): Promise<A
   };
   const providerInstance = createProvider(agentProviderConfig);
 
+  // Compute a model-aware memory cap and output buffer so autonomous runners
+  // (claws, subagents, fleet workers) stay inside the model's context window
+  // on small models too. Pass `dynamicInjectionReserve: 0` because autonomous
+  // runners don't go through the chat context-injection middleware.
+  const ctxWindow = resolveContextWindow(opts.provider, opts.model);
+  const modelMaxOutput = resolveMaxOutput(opts.provider, opts.model);
+  const desiredOutput = opts.maxTokens ?? AGENT_DEFAULT_MAX_TOKENS;
+  const outputBuffer = Math.min(desiredOutput, modelMaxOutput);
+  const systemPromptTokens = Math.ceil(opts.systemPrompt.length / 4);
+  const memoryMaxTokens = computeMemoryMaxTokens({
+    ctxWindow,
+    systemPromptTokens,
+    outputBuffer,
+    dynamicInjectionReserve: 0,
+  });
+
   const agent = new Agent(
     {
       name: opts.name,
@@ -187,12 +210,15 @@ export async function createConfiguredAgent(opts: CreateAgentOptions): Promise<A
       provider: agentProviderConfig,
       model: {
         model: opts.model,
-        maxTokens: opts.maxTokens ?? AGENT_DEFAULT_MAX_TOKENS,
+        // Honor the model's real output ceiling — asking for more is
+        // silently truncated by some providers but rejected by others.
+        maxTokens: outputBuffer,
         temperature: opts.temperature ?? AGENT_DEFAULT_TEMPERATURE,
       },
       maxTurns: opts.maxTurns,
       maxToolCalls: opts.maxToolCalls,
       tools: opts.toolFilter,
+      memory: { maxTokens: memoryMaxTokens },
     },
     { tools, provider: providerInstance }
   );

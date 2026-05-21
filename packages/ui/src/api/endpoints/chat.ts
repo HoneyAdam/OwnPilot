@@ -5,7 +5,7 @@
 import { apiClient } from '../client';
 import type { StreamOptions } from '../client';
 import type { Conversation, HistoryMessage, UnifiedMessage, ChannelInfo } from '../types';
-import type { ContextBreakdown } from '../../types';
+import type { ContextBreakdown, SessionInfo } from '../../types';
 
 export interface ChatRequestBody {
   message: string;
@@ -125,9 +125,12 @@ export const chatApi = {
   compactContext: (provider: string, model: string, keepRecentMessages?: number) =>
     apiClient.post<{
       compacted: boolean;
+      reason?: string;
       summary?: string;
       removedMessages: number;
       newTokenEstimate: number;
+      previousTokenEstimate?: number;
+      session?: SessionInfo;
     }>('/chat/compact', { provider, model, keepRecentMessages }),
 
   /** Fetch and extract text from a URL (for ToolPicker URL tab) */

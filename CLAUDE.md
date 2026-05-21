@@ -32,6 +32,9 @@ packages/
 - **Workflow system**: 24 node types (including `clawNode`), copilot prompt in `routes/workflow-copilot-prompt.ts`, executors in `services/workflow/node-executors.ts`, service in `services/workflow/workflow-service.ts`. Centralized `dispatchNode()` method handles all node types. Copilot uses short type names (e.g. `"llm"`, `"claw"`) — UI's `convertDefinitionToReactFlow()` converts to `*Node` suffix
 - **Fleet Command**: FleetManager + FleetWorker with 5 worker types (ai-chat, coding-cli, api-call, mcp-bridge, claw). 68 tests in `fleet-manager.test.ts`. Task dependencies cascade failures via `failDependentTasks()`
 - **Claw Runtime**: Unified autonomous agent composing LLM + workspace + soul + coding agents + 250+ tools. Types in `core/src/services/claw-types.ts`. Runner/Manager/Service in `gateway/src/services/claw-{runner,manager,service}.ts`. 16 claw tools + 7 management tools in `tools/claw-tools.ts` + `tools/claw-management-tools.ts`. DB: `claws`, `claw_sessions`, `claw_history`, `claw_audit_log` (migrations 022, 023). REST: `/api/v1/claws` (16 endpoints including `/stats`, `/audit`, `/deny-escalation`). UI: ClawsPage (8-tab management panel + search/filter + bulk actions) + ClawsWidget (live WS updates). 117+ tests. Modes: `continuous` / `interval` / `event` / `single-shot`. Limits: MAX_CONCURRENT_CLAWS=50, MAX_CLAW_DEPTH=3, mission 10K chars. `.claw/` directive system: INSTRUCTIONS.md, TASKS.md, MEMORY.md, LOG.md (auto-scaffolded, injected into prompt). Working Memory: `claw_set_context`/`claw_get_context` for persistent cross-cycle state. Stop conditions: `max_cycles:N`, `on_report`, `on_error`, `idle:N`. Auto-fail after 5 consecutive errors. Daily cleanup: 90d history, 30d audit retention. Workflow: `clawNode` type in workflow system. Triggers can call `start_claw` tool action
+- **Context Window Management**: `resolveContextWindow` / `resolveMaxOutput` / `computeMemoryMaxTokens` in `gateway/src/routes/agent-cache.ts` — never hardcode per-model limits; resolve via these helpers (data syncs from models.dev). Memory cap formula budgets system prompt + dynamic-injection reserve + per-model output ceiling + 1024 safety margin, bounded by `ctxWindow * 0.75`. Shared by chat (`agent-service.ts`) and autonomous runners (`agent-runner-utils.ts`). Chat bar (`ContextBar.tsx` + `ContextDetailModal.tsx`) shows system + messages + cache rate; sessionInfo prefers provider's real `usage.promptTokens` over char/4 estimate
+- **Auto-Compact**: `compactContext` in `agent-service.ts` rewrites older messages as a structured `GOAL / DECISIONS / ARTIFACTS / OPEN QUESTIONS` summary (user+assistant pair — NOT `role:'system'`, see below). UI banner at 85% fill (`AUTO_COMPACT_THRESHOLD` in `useChatStore.tsx`) with hysteresis, per-session decline, persistent "Don't ask again" via `STORAGE_KEYS.AUTO_COMPACT_DISABLED`. Compaction mirrors to DB via `mirrorCompactionToDatabase` so the change survives gateway restart / agent eviction. Concurrency guard rechecks message count after the summarization await to refuse if a chat stream landed mid-flight (`reason: 'concurrent_modification'`)
+- **Provider message-format gotcha**: Anthropic provider in `core/src/agent/providers/anthropic-provider.ts:173-174` does `find(role:'system')` then `filter(role !== 'system')` — ALL system-role messages are stripped from the messages array (top-level `system` field is used instead). NEVER inject mid-conversation system anchors; use a `role:'user'` + `role:'assistant'` pair with an in-content tag (`[Conversation summary from compaction — ...]`)
 
 ## UI Preview (Claude Code Preview MCP)
 
@@ -110,9 +113,8 @@ docker run -d --name test-db -p 35432:5432 \
 - Tests colocated with source (`*.test.ts`)
 - Unused variables prefixed with `_` (ESLint convention)
 
-
-
 <!-- dfmt:v1 begin -->
+
 ## Context Discipline
 
 This project uses DFMT to keep tool output from flooding the context
@@ -124,7 +126,7 @@ in this project, follow these rules.
 Prefer DFMT's MCP tools over native ones:
 
 | Native     | DFMT replacement | `intent` required? |
-|------------|------------------|--------------------|
+| ---------- | ---------------- | ------------------ |
 | `Bash`     | `dfmt_exec`      | yes                |
 | `Read`     | `dfmt_read`      | yes                |
 | `WebFetch` | `dfmt_fetch`     | yes                |
@@ -140,7 +142,7 @@ bytes and the token savings are lost.
 
 On DFMT failure, report it to the user (one short line — which call,
 what error) and then fall back to the native tool so the session is
-not blocked. The ban is on *silent* fallback — every switch must be
+not blocked. The ban is on _silent_ fallback — every switch must be
 announced. After a fallback, drop a brief `dfmt_remember` note tagged
 `gap` when practical, so the journal records that a call was bypassed.
 If the native tool is also denied (permission rule, sandbox refusal),
@@ -158,5 +160,5 @@ compaction.
 Native `Bash` and `Read` are acceptable for outputs you know are small
 (< 2 KB) and will not be referenced again. For everything else, DFMT
 tools are preferred.
-<!-- dfmt:v1 end -->
 
+<!-- dfmt:v1 end -->

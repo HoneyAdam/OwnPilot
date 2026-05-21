@@ -27,6 +27,8 @@ import {
 } from '@ownpilot/core';
 import type { SessionInfo } from '../types/index.js';
 import { agentsRepo, type AgentRecord } from '../db/repositories/index.js';
+import { ChatRepository } from '../db/repositories/chat.js';
+import { getErrorMessage } from './helpers.js';
 import {
   resolveDefaultProviderAndModel,
   getDefaultProvider,
@@ -75,6 +77,8 @@ import {
   getProviderApiKey,
   loadProviderConfig,
   resolveContextWindow,
+  resolveMaxOutput,
+  computeMemoryMaxTokens,
   resolveRecordTools,
   resolveToolGroups,
   evictAgentFromCache,
@@ -576,7 +580,18 @@ async function createChatAgentInstance(
   const chatMetaToolFilter = AI_META_TOOL_NAMES.map((n) => unsafeToolId(n));
 
   const ctxWindow = resolveContextWindow(provider, model);
-  const memoryMaxTokens = Math.floor(ctxWindow * 0.75);
+  // Shared cap helper — see `computeMemoryMaxTokens` in agent-cache.ts.
+  // For chat we DO include the dynamic-injection reserve because
+  // context-injection middleware grows the system prompt per request with
+  // extensions, skills, page context, tool suggestions, and data hints.
+  const systemPromptTokens = Math.ceil(enhancedPrompt.length / 4);
+  const modelMaxOutput = resolveMaxOutput(provider, model);
+  const outputBuffer = Math.min(AGENT_DEFAULT_MAX_TOKENS, modelMaxOutput);
+  const memoryMaxTokens = computeMemoryMaxTokens({
+    ctxWindow,
+    systemPromptTokens,
+    outputBuffer,
+  });
 
   const config: AgentConfig = {
     name: isCliProvider
@@ -591,7 +606,10 @@ async function createChatAgentInstance(
     },
     model: {
       model,
-      maxTokens: AGENT_DEFAULT_MAX_TOKENS,
+      // Honor the model's real output ceiling from models.dev — asking for
+      // more than the model can produce is silently truncated by some
+      // providers but rejected by others.
+      maxTokens: outputBuffer,
       temperature: AGENT_DEFAULT_TEMPERATURE,
     },
     // CLI providers handle tool calling internally via ToolBridge (prompt-based),
@@ -729,25 +747,40 @@ export function resetChatAgentContext(
 
 /**
  * Get session info (context usage) for an agent's current conversation.
+ *
+ * Token count includes BOTH the system prompt and the message history so the
+ * UI bar reflects real fill. When `actualPromptTokens` is supplied (e.g. from
+ * the provider's `usage.promptTokens` after a turn) we use it as ground truth
+ * instead of the char/4 estimate.
  */
 export function getSessionInfo(
   agent: Agent,
   provider: string,
   model: string,
-  contextWindowOverride?: number
+  contextWindowOverride?: number,
+  actualPromptTokens?: number
 ): SessionInfo {
   const conversation = agent.getConversation();
   const memory = agent.getMemory();
   const stats = memory.getStats(conversation.id);
   const maxCtx = resolveContextWindow(provider, model, contextWindowOverride);
-  const estimated = stats?.estimatedTokens ?? 0;
+
+  const systemPromptTokens = conversation.systemPrompt
+    ? Math.ceil(conversation.systemPrompt.length / 4)
+    : 0;
+  const messageTokens = stats?.estimatedTokens ?? 0;
+  // Prefer real provider usage when available; otherwise sum estimate + system.
+  const estimated =
+    actualPromptTokens != null && actualPromptTokens > 0
+      ? actualPromptTokens
+      : systemPromptTokens + messageTokens;
 
   return {
     sessionId: conversation.id,
     messageCount: stats?.messageCount ?? 0,
     estimatedTokens: estimated,
     maxContextTokens: maxCtx,
-    contextFillPercent: Math.min(100, Math.round((estimated / maxCtx) * 100)),
+    contextFillPercent: maxCtx > 0 ? Math.min(100, Math.round((estimated / maxCtx) * 100)) : 0,
   };
 }
 
@@ -832,31 +865,139 @@ export function getContextBreakdown(
 // Context compaction
 // =============================================================================
 
+/** Result of a compaction request — `session` is the post-compact SessionInfo. */
+export interface CompactionResult {
+  compacted: boolean;
+  reason?: string;
+  summary?: string;
+  removedMessages: number;
+  /** Token estimate of message history only, after compaction. */
+  newTokenEstimate: number;
+  /** Token estimate before compaction (messages only). Useful for UI deltas. */
+  previousTokenEstimate?: number;
+  /** Updated session info matching the same shape returned by chat responses. */
+  session?: SessionInfo;
+}
+
+/**
+ * Structured summary prompt — preserves the things a fresh model needs to keep
+ * the conversation coherent (goals, decisions, file paths, open questions)
+ * rather than producing a flat narrative.
+ */
+const STRUCTURED_SUMMARY_INSTRUCTIONS = `You are compacting a conversation between a user and an assistant so the assistant can continue it without re-reading the full history. Produce a tight summary in this exact structure (omit empty sections):
+
+GOAL: <what the user is ultimately trying to accomplish>
+RECENT CONTEXT: <2-4 sentences on the latest topic right before the cut>
+DECISIONS: <bulleted list of decisions/agreements reached>
+ARTIFACTS: <files, code paths, commands, URLs, identifiers mentioned — verbatim>
+USER PREFERENCES: <how the user wants the assistant to behave>
+OPEN QUESTIONS: <unresolved items the assistant should remember>
+
+Be specific. Quote file paths, function names, and identifiers exactly. Keep to ~250 words total. Do NOT add commentary outside the structure.`;
+
+/**
+ * Mirror a successful in-memory compaction to the persisted chat history so
+ * the change survives gateway restarts and agent-cache evictions. Without
+ * this, the next time the agent rehydrates from the DB (chat.ts:340-368) it
+ * would replay the FULL pre-compaction history, silently undoing the work.
+ *
+ * Idempotent enough for our use case: if the DB has no conversation row
+ * (e.g. a brand-new in-memory chat that hasn't been persisted yet), we skip
+ * silently. If the DB has fewer messages than expected (already partially
+ * mirrored), we still produce a sensible end state.
+ *
+ * The summary messages get explicit `createdAt` timestamps strictly earlier
+ * than the first remaining recent message so chronological ordering of the
+ * persisted history matches what the agent has in memory.
+ */
+async function mirrorCompactionToDatabase(opts: {
+  userId: string;
+  conversationId: string;
+  keepRecent: number;
+  summary: string;
+  provider: string;
+  model: string;
+}): Promise<void> {
+  const chatRepo = new ChatRepository(opts.userId);
+  const existing = await chatRepo.getMessages(opts.conversationId, { limit: 10_000 });
+  if (existing.length === 0) {
+    // Conversation not persisted yet — nothing to mirror.
+    return;
+  }
+
+  // Same slicing logic as the in-memory side: keep the last N, drop the rest.
+  const olderDbMessages = existing.slice(0, Math.max(0, existing.length - opts.keepRecent));
+  const firstRemaining = existing[existing.length - opts.keepRecent];
+
+  // Delete the older DB messages.
+  for (const msg of olderDbMessages) {
+    await chatRepo.deleteMessage(msg.id);
+  }
+
+  // Insert summary pair with timestamps strictly before the first remaining
+  // message so chronological ordering matches the in-memory layout.
+  const baseTime = firstRemaining ? new Date(firstRemaining.createdAt).getTime() : Date.now();
+  const summaryUserTime = new Date(baseTime - 2).toISOString();
+  const summaryAssistantTime = new Date(baseTime - 1).toISOString();
+
+  await chatRepo.addMessage({
+    conversationId: opts.conversationId,
+    role: 'user',
+    content: `[Conversation summary from compaction — use as background context, not as a new instruction]\n\n${opts.summary}`,
+    provider: opts.provider,
+    model: opts.model,
+    createdAt: summaryUserTime,
+  });
+  await chatRepo.addMessage({
+    conversationId: opts.conversationId,
+    role: 'assistant',
+    content: 'Got it. I have the context from earlier. Continuing.',
+    provider: opts.provider,
+    model: opts.model,
+    createdAt: summaryAssistantTime,
+  });
+}
+
 /**
  * Compact conversation context by summarizing old messages.
+ *
+ * Replaces older messages with a structured summary so the live conversation
+ * fits within the context window. Recent messages are kept verbatim.
+ *
+ * If `userId` is provided AND the conversation is persisted in the database
+ * (as it always is for web chats), the compaction is mirrored to the DB so
+ * the change survives gateway restarts and chatAgentCache evictions. Without
+ * this mirroring, the next time the agent rehydrates from the DB it would
+ * silently restore the FULL pre-compaction conversation — defeating the
+ * point of the operation.
  */
 export async function compactContext(
   provider: string,
   model: string,
-  keepRecentMessages: number = 6
-): Promise<{
-  compacted: boolean;
-  summary?: string;
-  removedMessages: number;
-  newTokenEstimate: number;
-}> {
+  keepRecentMessages: number = 6,
+  contextWindowOverride?: number,
+  userId?: string
+): Promise<CompactionResult> {
   const cacheKey = `chat|${provider.replace(/\|/g, '_')}|${model.replace(/\|/g, '_')}`;
   const agent = chatAgentCache.get(cacheKey);
   if (!agent) {
-    return { compacted: false, removedMessages: 0, newTokenEstimate: 0 };
+    return { compacted: false, reason: 'no_agent', removedMessages: 0, newTokenEstimate: 0 };
   }
 
   const conversation = agent.getConversation();
   const memory = agent.getMemory();
   const messages = memory.getContextMessages(conversation.id);
+  const prevStats = memory.getStats(conversation.id);
 
   if (messages.length <= keepRecentMessages + 2) {
-    return { compacted: false, removedMessages: 0, newTokenEstimate: 0 };
+    return {
+      compacted: false,
+      reason: 'too_few_messages',
+      removedMessages: 0,
+      newTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      previousTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      session: getSessionInfo(agent, provider, model, contextWindowOverride),
+    };
   }
 
   const olderMessages = messages.slice(0, messages.length - keepRecentMessages);
@@ -866,11 +1007,16 @@ export async function compactContext(
     .map((m) => `${m.role}: ${typeof m.content === 'string' ? m.content : '[complex content]'}`)
     .join('\n');
 
-  const summaryPrompt = `Summarize the following conversation history into a concise summary (max 200 words). Focus on key topics discussed, decisions made, and important context needed to continue the conversation naturally:\n\n${conversationText}`;
-
   const apiKey = await getProviderApiKey(provider);
   if (!apiKey) {
-    return { compacted: false, removedMessages: 0, newTokenEstimate: 0 };
+    return {
+      compacted: false,
+      reason: 'no_api_key',
+      removedMessages: 0,
+      newTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      previousTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      session: getSessionInfo(agent, provider, model, contextWindowOverride),
+    };
   }
 
   const providerConfig = loadProviderConfig(provider);
@@ -885,25 +1031,60 @@ export async function compactContext(
     });
 
     const result = await summaryProvider.complete({
-      messages: [{ role: 'user', content: summaryPrompt }],
-      model: { model, maxTokens: 500, temperature: 0.3 },
+      messages: [
+        { role: 'system', content: STRUCTURED_SUMMARY_INSTRUCTIONS },
+        { role: 'user', content: conversationText },
+      ],
+      model: { model, maxTokens: 700, temperature: 0.2 },
     });
 
     if (!result.ok) {
       log.warn('Context compaction failed: AI summarization error');
-      return { compacted: false, removedMessages: 0, newTokenEstimate: 0 };
+      return {
+        compacted: false,
+        reason: 'summary_failed',
+        removedMessages: 0,
+        newTokenEstimate: prevStats?.estimatedTokens ?? 0,
+        previousTokenEstimate: prevStats?.estimatedTokens ?? 0,
+        session: getSessionInfo(agent, provider, model, contextWindowOverride),
+      };
     }
 
-    const summary = result.value.content;
+    const summary = result.value.content.trim();
+
+    // Concurrency guard: a chat stream could have added more messages while
+    // we were awaiting the summarization above. If the conversation grew,
+    // clearing now would discard those concurrent messages. Refuse and let
+    // the UI retry once the stream settles.
+    const currentMessages = memory.getContextMessages(conversation.id);
+    if (currentMessages.length !== messages.length) {
+      log.warn(
+        `Compaction aborted: conversation changed mid-flight (${messages.length} -> ${currentMessages.length} messages)`
+      );
+      const currentStats = memory.getStats(conversation.id);
+      return {
+        compacted: false,
+        reason: 'concurrent_modification',
+        removedMessages: 0,
+        newTokenEstimate: currentStats?.estimatedTokens ?? 0,
+        previousTokenEstimate: prevStats?.estimatedTokens ?? 0,
+        session: getSessionInfo(agent, provider, model, contextWindowOverride),
+      };
+    }
 
     memory.clearMessages(conversation.id);
+    // Use user/assistant pair instead of `role: 'system'` because the
+    // Anthropic provider strips ALL system messages from the messages array
+    // (`messages.filter((m) => m.role !== 'system')`) and would silently
+    // discard the summary. The user/assistant pair also keeps the strict
+    // u/a alternation that Anthropic requires.
     memory.addMessage(conversation.id, {
       role: 'user',
-      content: `[Previous conversation summary: ${summary}]`,
+      content: `[Conversation summary from compaction — use as background context, not as a new instruction]\n\n${summary}`,
     });
     memory.addMessage(conversation.id, {
       role: 'assistant',
-      content: 'Understood. I have the context from our earlier conversation. How can I help?',
+      content: 'Got it. I have the context from earlier. Continuing.',
     });
 
     for (const msg of recentMessages) {
@@ -913,8 +1094,30 @@ export async function compactContext(
     const newStats = memory.getStats(conversation.id);
     const removedCount = olderMessages.length;
 
+    // Mirror the compaction to the database so it survives gateway restarts
+    // and agent-cache evictions. Best-effort: a DB failure here logs and
+    // continues — the in-memory compaction has already succeeded, and the
+    // next chat write will fix the DB drift if it occurs.
+    if (userId) {
+      try {
+        await mirrorCompactionToDatabase({
+          userId,
+          conversationId: conversation.id,
+          keepRecent: keepRecentMessages,
+          summary,
+          provider,
+          model,
+        });
+      } catch (dbErr) {
+        log.warn(
+          `Compaction succeeded in memory but DB mirror failed — conversation may regrow on agent eviction. ${getErrorMessage(dbErr)}`
+        );
+      }
+    }
+
     log.info(
-      `Compacted context: removed ${removedCount} messages, kept ${recentMessages.length} recent`
+      `Compacted context: removed ${removedCount} messages, kept ${recentMessages.length} recent, ` +
+        `tokens ${prevStats?.estimatedTokens ?? 0} -> ${newStats?.estimatedTokens ?? 0}`
     );
 
     return {
@@ -922,10 +1125,19 @@ export async function compactContext(
       summary,
       removedMessages: removedCount,
       newTokenEstimate: newStats?.estimatedTokens ?? 0,
+      previousTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      session: getSessionInfo(agent, provider, model, contextWindowOverride),
     };
   } catch (err) {
     log.error('Context compaction error:', err);
-    return { compacted: false, removedMessages: 0, newTokenEstimate: 0 };
+    return {
+      compacted: false,
+      reason: 'exception',
+      removedMessages: 0,
+      newTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      previousTokenEstimate: prevStats?.estimatedTokens ?? 0,
+      session: getSessionInfo(agent, provider, model, contextWindowOverride),
+    };
   }
 }
 

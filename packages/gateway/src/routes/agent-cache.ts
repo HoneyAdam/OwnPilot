@@ -319,6 +319,66 @@ export function resolveContextWindow(
 }
 
 /**
+ * Resolve the model's max output token cap using the same fallback chain
+ * as `resolveContextWindow`. Returned value is the absolute output ceiling
+ * for the model, sourced from models.dev when synced, falling back to the
+ * pricing database, then a conservative 4K default.
+ *
+ * Used to size the output buffer reserved inside the in-memory cap so we
+ * never request more output tokens than the model can actually produce.
+ */
+export function resolveMaxOutput(provider: string, model: string): number {
+  const providerConfig = coreGetProviderConfig(provider);
+  const modelConfig = providerConfig?.models?.find((m) => m.id === model);
+  if (modelConfig?.maxOutput) return modelConfig.maxOutput;
+
+  const pricing = getModelPricing(provider as AIProvider, model);
+  // The pricing record uses `maxOutput` in some variants; fall back to 4K.
+  type PricingMaybeMaxOutput = { maxOutput?: number };
+  const maybe = pricing as unknown as PricingMaybeMaxOutput;
+  return maybe?.maxOutput ?? 4096;
+}
+
+/**
+ * Compute a safe in-memory message-history cap that leaves room for the
+ * system prompt, dynamic per-request injection (extensions/skills/context),
+ * the model's output, and a safety margin.
+ *
+ * Used by both the chat path (`agent-service.ts`) and the autonomous runner
+ * path (`agent-runner-utils.ts`) so all agents stay safely inside the
+ * model's context window regardless of window size.
+ *
+ * Inputs:
+ * - `ctxWindow`: total context window for the model (tokens).
+ * - `systemPromptTokens`: estimated tokens in the static system prompt.
+ * - `outputBuffer`: tokens to reserve for the model's response. Should be
+ *   `min(AGENT_DEFAULT_MAX_TOKENS, resolveMaxOutput(provider, model))`.
+ * - `dynamicInjectionReserve` (optional): defaults to `min(8192, 25% of
+ *   window)` — empirical headroom for middleware that grows the prompt at
+ *   request time. Pass 0 for runners that don't use injection middleware.
+ *
+ * The cap is bounded below by 1024 (so tiny windows still have a usable
+ * message budget) and above by 75% of the window (legacy baseline so we're
+ * never more permissive than the original heuristic).
+ */
+export function computeMemoryMaxTokens(opts: {
+  ctxWindow: number;
+  systemPromptTokens: number;
+  outputBuffer: number;
+  dynamicInjectionReserve?: number;
+}): number {
+  const SAFETY_MARGIN_TOKENS = 1024;
+  const reserve = opts.dynamicInjectionReserve ?? Math.min(8192, Math.floor(opts.ctxWindow * 0.25));
+  return Math.max(
+    1024,
+    Math.min(
+      Math.floor(opts.ctxWindow * 0.75),
+      opts.ctxWindow - opts.systemPromptTokens - reserve - opts.outputBuffer - SAFETY_MARGIN_TOKENS
+    )
+  );
+}
+
+/**
  * Resolve toolGroups to individual tool names
  */
 export function resolveToolGroups(

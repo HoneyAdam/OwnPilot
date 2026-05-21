@@ -78,6 +78,12 @@ export interface CreateMessageInput {
   inputTokens?: number;
   outputTokens?: number;
   attachments?: MessageAttachment[];
+  /**
+   * Optional explicit creation timestamp (ISO 8601). Used by compaction to
+   * insert summary messages BEFORE remaining recent messages chronologically.
+   * Defaults to `now()` when omitted.
+   */
+  createdAt?: string;
 }
 
 export interface ConversationQuery {
@@ -438,7 +444,7 @@ export class ChatRepository extends BaseRepository {
 
   async addMessage(input: CreateMessageInput): Promise<Message> {
     const id = crypto.randomUUID();
-    const now = new Date().toISOString();
+    const createdAt = input.createdAt ?? new Date().toISOString();
 
     await this.execute(
       `INSERT INTO messages (id, conversation_id, role, content, provider, model, tool_calls, tool_call_id, trace, is_error, input_tokens, output_tokens, attachments, created_at)
@@ -457,7 +463,7 @@ export class ChatRepository extends BaseRepository {
         input.inputTokens || null,
         input.outputTokens || null,
         input.attachments?.length ? JSON.stringify(input.attachments) : null,
-        now,
+        createdAt,
       ]
     );
 

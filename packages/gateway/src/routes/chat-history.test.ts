@@ -1410,7 +1410,15 @@ describe('Chat History & Logs Routes', () => {
       expect(json.data.compacted).toBe(true);
       expect(json.data.removedMessages).toBe(8);
       expect(json.data.newTokenEstimate).toBe(450);
-      expect(mockCompactContext).toHaveBeenCalledWith('openai', 'gpt-4o', 4);
+      // 4th arg: per-user context window override (undefined in tests).
+      // 5th arg: userId for DB mirroring.
+      expect(mockCompactContext).toHaveBeenCalledWith(
+        'openai',
+        'gpt-4o',
+        4,
+        undefined,
+        expect.any(String)
+      );
     });
 
     it('uses default keepRecentMessages of 6', async () => {
@@ -1421,7 +1429,13 @@ describe('Chat History & Logs Routes', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(mockCompactContext).toHaveBeenCalledWith('anthropic', 'claude-3', 6);
+      expect(mockCompactContext).toHaveBeenCalledWith(
+        'anthropic',
+        'claude-3',
+        6,
+        undefined,
+        expect.any(String)
+      );
     });
 
     it('uses provider/model defaults when not specified', async () => {

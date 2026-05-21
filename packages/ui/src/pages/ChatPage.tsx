@@ -181,6 +181,13 @@ export function ChatPage() {
     pendingApproval,
     sessionId,
     sessionInfo,
+    autoCompactPrompt,
+    isCompacting,
+    compactSession,
+    dismissAutoCompactPrompt,
+    disableAutoCompactPrompt,
+    lastCompactionSummary,
+    clearLastCompactionSummary,
     sendMessage,
     retryLastMessage,
     loadConversation,
@@ -750,11 +757,33 @@ export function ChatPage() {
   );
 
   const handleCompactContext = async () => {
+    const res = await compactSession();
+    if (!res.compacted) {
+      // Map server reasons to human-friendly messages so the modal can show
+      // why the compaction did nothing instead of a generic "Failed".
+      const reasonText: Record<string, string> = {
+        too_few_messages: 'Need a few more messages before compacting is worthwhile.',
+        no_api_key:
+          'This provider has no API key configured. Add one in Settings to enable compacting.',
+        summary_failed:
+          'The summarization model returned an error. Try again in a moment, or pick a different model.',
+        no_agent: 'No active chat session yet — send a message first.',
+        concurrent_modification:
+          'A reply came in while compacting. Try again now that the message has finished.',
+        exception: 'Something went wrong while compacting. Check the server logs.',
+      };
+      const message = res.reason
+        ? (reasonText[res.reason] ?? `Could not compact: ${res.reason}`)
+        : 'Could not compact this conversation.';
+      throw new Error(message);
+    }
+  };
+
+  const handleAcceptAutoCompact = async () => {
     try {
-      await chatApi.compactContext(provider, model);
+      await compactSession();
     } catch {
-      // Error propagates to ContextDetailModal's try/catch
-      throw new Error('Failed to compact context');
+      /* swallow — the bar reflects whatever the server returned */
     }
   };
 
@@ -1075,9 +1104,44 @@ export function ChatPage() {
             defaultMaxTokens={
               models.find((m) => m.id === model && m.provider === provider)?.contextWindow
             }
+            isCompacting={isCompacting}
             onNewSession={handleNewChat}
             onShowDetail={() => setShowContextDetail(true)}
           />
+        )}
+
+        {/* Auto-compact suggestion — appears once when context crosses 85% */}
+        {!isChannelMode && autoCompactPrompt && (
+          <div className="flex items-center gap-3 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800/40 text-xs">
+            <span className="text-yellow-800 dark:text-yellow-200 font-medium">
+              Context {autoCompactPrompt.fillPercent}% full
+            </span>
+            <span className="text-yellow-700 dark:text-yellow-300/80 truncate">
+              Compact older messages into a summary to free up room without losing the thread?
+            </span>
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleAcceptAutoCompact}
+                disabled={isCompacting}
+                className="px-2.5 py-1 rounded-md bg-yellow-600 text-white text-xs hover:bg-yellow-700 disabled:opacity-50"
+              >
+                {isCompacting ? 'Compacting…' : 'Compact now'}
+              </button>
+              <button
+                onClick={dismissAutoCompactPrompt}
+                className="px-2 py-1 rounded-md text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
+              >
+                Not now
+              </button>
+              <button
+                onClick={disableAutoCompactPrompt}
+                className="px-2 py-1 rounded-md text-yellow-700/80 dark:text-yellow-300/70 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
+                title="Stop showing this banner. You can still compact manually from the context bar."
+              >
+                Don't ask again
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Context detail modal */}
@@ -1099,6 +1163,8 @@ export function ChatPage() {
             onClose={() => setShowContextDetail(false)}
             onCompact={handleCompactContext}
             onClear={handleNewChat}
+            lastCompactionSummary={lastCompactionSummary}
+            onDismissSummary={clearLastCompactionSummary}
           />
         )}
 

@@ -1,11 +1,13 @@
 import type { SessionInfo } from '../types';
 import { formatNumber } from '../utils/formatters';
-import { Plus } from './icons';
+import { Plus, RefreshCw } from './icons';
 
 interface ContextBarProps {
   sessionInfo: SessionInfo | null;
   /** Context window size from model config, used as default before first API response */
   defaultMaxTokens?: number;
+  /** When true, a compaction is running — show a small spinner near the bar. */
+  isCompacting?: boolean;
   onNewSession: () => void;
   onShowDetail?: () => void;
 }
@@ -31,6 +33,7 @@ function getContextStatus(percent: number): string {
 export function ContextBar({
   sessionInfo,
   defaultMaxTokens,
+  isCompacting = false,
   onNewSession,
   onShowDetail,
 }: ContextBarProps) {
@@ -104,9 +107,23 @@ export function ContextBar({
       {cachedTokens != null && cachedTokens > 0 && (
         <span
           className="text-text-tertiary dark:text-dark-text-tertiary whitespace-nowrap"
-          title={`${formatNumber(cachedTokens)} tokens served from prompt cache`}
+          title={`${formatNumber(cachedTokens)} tokens served from prompt cache (≈10% of normal cost)`}
         >
           {formatNumber(cachedTokens)} cached
+          {estimatedTokens > 0 && (
+            <span className="ml-1 opacity-70">
+              ({Math.min(100, Math.round((cachedTokens / estimatedTokens) * 100))}%)
+            </span>
+          )}
+        </span>
+      )}
+      {isCompacting && (
+        <span
+          className="flex items-center gap-1 text-text-secondary dark:text-dark-text-secondary whitespace-nowrap"
+          title="Compacting older messages into a summary"
+        >
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Compacting…
         </span>
       )}
 
