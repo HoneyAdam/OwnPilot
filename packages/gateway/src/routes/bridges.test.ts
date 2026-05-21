@@ -14,7 +14,11 @@ import { errorHandler } from '../middleware/error-handler.js';
 // ---------------------------------------------------------------------------
 
 const mockRepo = {
-  getAll: vi.fn(),
+  // `listForUser` scopes by user (replaces the old `getAll`, which leaked
+  // every user's bridges). The route always goes through listForUser for
+  // unfiltered list and uses it for the ownership intersection when
+  // filtering by channel.
+  listForUser: vi.fn(),
   getById: vi.fn(),
   getByChannel: vi.fn(),
   save: vi.fn(),
@@ -74,6 +78,8 @@ describe('Bridge Routes', () => {
     vi.clearAllMocks();
     // Default: user owns the bridge
     mockRepo.isOwnedByUser.mockResolvedValue(true);
+    // Default: empty user-scoped list. Individual tests override.
+    mockRepo.listForUser.mockResolvedValue([]);
     app = createApp();
   });
 
@@ -82,9 +88,9 @@ describe('Bridge Routes', () => {
   // =========================================================================
 
   describe('GET /bridges', () => {
-    it('returns all bridges when no channelId filter is given', async () => {
+    it('returns all bridges for the user when no channelId filter is given', async () => {
       const bridges = [makeBridge({ id: 'bridge-1' }), makeBridge({ id: 'bridge-2' })];
-      mockRepo.getAll.mockResolvedValue(bridges);
+      mockRepo.listForUser.mockResolvedValue(bridges);
 
       const res = await app.request('/bridges');
 
@@ -92,13 +98,16 @@ describe('Bridge Routes', () => {
       const json = await res.json();
       expect(json.success).toBe(true);
       expect(json.data).toHaveLength(2);
-      expect(mockRepo.getAll).toHaveBeenCalledOnce();
+      expect(mockRepo.listForUser).toHaveBeenCalledOnce();
       expect(mockRepo.getByChannel).not.toHaveBeenCalled();
     });
 
-    it('filters by channelId when query param is provided', async () => {
-      const bridges = [makeBridge({ sourceChannelId: 'channel.telegram' })];
-      mockRepo.getByChannel.mockResolvedValue(bridges);
+    it('filters by channelId and intersects with user-owned bridges', async () => {
+      const bridge = makeBridge({ id: 'bridge-1', sourceChannelId: 'channel.telegram' });
+      // getByChannel returns the channel-scoped list; listForUser returns the
+      // user-owned set used to intersect.
+      mockRepo.getByChannel.mockResolvedValue([bridge]);
+      mockRepo.listForUser.mockResolvedValue([bridge]);
 
       const res = await app.request('/bridges?channelId=channel.telegram');
 
@@ -106,11 +115,26 @@ describe('Bridge Routes', () => {
       const json = await res.json();
       expect(json.data).toHaveLength(1);
       expect(mockRepo.getByChannel).toHaveBeenCalledWith('channel.telegram');
-      expect(mockRepo.getAll).not.toHaveBeenCalled();
+      expect(mockRepo.listForUser).toHaveBeenCalled();
     });
 
-    it('returns empty array when no bridges exist', async () => {
-      mockRepo.getAll.mockResolvedValue([]);
+    it('drops channel results that the user does not own', async () => {
+      // Channel has two bridges, user owns only one.
+      const ownBridge = makeBridge({ id: 'bridge-mine' });
+      const otherBridge = makeBridge({ id: 'bridge-other' });
+      mockRepo.getByChannel.mockResolvedValue([ownBridge, otherBridge]);
+      mockRepo.listForUser.mockResolvedValue([ownBridge]);
+
+      const res = await app.request('/bridges?channelId=channel.telegram');
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].id).toBe('bridge-mine');
+    });
+
+    it('returns empty array when the user has no bridges', async () => {
+      mockRepo.listForUser.mockResolvedValue([]);
 
       const res = await app.request('/bridges');
 
@@ -120,7 +144,7 @@ describe('Bridge Routes', () => {
     });
 
     it('returns 500 on repository error', async () => {
-      mockRepo.getAll.mockRejectedValue(new Error('DB timeout'));
+      mockRepo.listForUser.mockRejectedValue(new Error('DB timeout'));
 
       const res = await app.request('/bridges');
 
@@ -456,7 +480,7 @@ describe('Bridge Routes', () => {
 
   describe('Response format', () => {
     it('success responses include meta.timestamp', async () => {
-      mockRepo.getAll.mockResolvedValue([]);
+      mockRepo.listForUser.mockResolvedValue([]);
 
       const res = await app.request('/bridges');
       const json = await res.json();
