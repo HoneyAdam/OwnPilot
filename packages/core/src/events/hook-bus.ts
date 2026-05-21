@@ -71,6 +71,18 @@ const DEFAULT_PRIORITY = 10;
 /** Maximum number of tap entries allowed per hook type. */
 const MAX_TAPS_PER_HOOK = 100;
 
+/**
+ * Per-handler timeout in milliseconds. A hook handler that never resolves
+ * (third-party plugin bug, prompt-injection-driven stuck handler, or just a
+ * forgotten `await`) would otherwise block the entire hook chain — and any
+ * caller awaiting it (e.g. `tool:before-execute` blocks every tool call).
+ * After this many ms a handler is logged + skipped; the chain continues.
+ */
+const HANDLER_TIMEOUT_MS = 5000;
+
+/** Sentinel rejection used by the per-handler timeout. */
+const HANDLER_TIMED_OUT = Symbol('hook-handler-timeout');
+
 export class HookBus implements IHookBus {
   private hooks = new Map<string, TapEntry[]>();
 
@@ -155,10 +167,25 @@ export class HookBus implements IHookBus {
     // adds/removes taps during execution.
     for (const entry of [...entries]) {
       if (context.cancelled) break;
+      let timer: NodeJS.Timeout | undefined;
       try {
-        await entry.handler(context);
+        // Race handler against a hard timeout. A handler that never resolves
+        // would otherwise block the chain (and every awaiting caller) forever.
+        const timeout = new Promise<typeof HANDLER_TIMED_OUT>((resolve) => {
+          timer = setTimeout(() => resolve(HANDLER_TIMED_OUT), HANDLER_TIMEOUT_MS);
+          timer.unref?.();
+        });
+        const result = await Promise.race([
+          Promise.resolve(entry.handler(context)).then(() => undefined as unknown),
+          timeout,
+        ]);
+        if (result === HANDLER_TIMED_OUT) {
+          log.error(`Handler for "${hook}" timed out after ${HANDLER_TIMEOUT_MS}ms; skipping`);
+        }
       } catch (err) {
         log.error(`Handler error for "${hook}":`, err);
+      } finally {
+        if (timer) clearTimeout(timer);
       }
     }
 

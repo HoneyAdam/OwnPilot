@@ -80,8 +80,15 @@ export class SecureMemoryStore {
 
     await fs.mkdir(this.config.storageDir, { recursive: true });
 
-    // Resolve installation salt: env > explicit config > persisted file > generate new
+    // Resolve installation salt: env > explicit config > persisted file > generate new.
+    // CRITICAL: propagate the resolved salt back into `config.installationSalt` so
+    // `hashUserId()` and `hashContent()` use the same per-installation value as the
+    // encryption-key derivation. Otherwise both call sites silently fall back to
+    // the empty-string default (or env), making user-id hashes deterministic and
+    // identical across every install — defeating the per-installation isolation
+    // property this store promises.
     const resolvedSalt = await this.loadOrCreateSalt();
+    this.config.installationSalt = resolvedSalt;
     const saltBuffer = createHash('sha256').update(resolvedSalt).digest();
     saltBuffer.copy(this.salt);
 

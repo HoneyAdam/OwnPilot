@@ -12,6 +12,15 @@ import { getErrorMessage } from '../services/error-utils.js';
 import { CORE_TOOLS, CORE_EXECUTORS } from './core-tool-definitions.js';
 
 const log = getLog('ToolRegistry');
+
+/**
+ * Maximum number of tool calls executed in parallel by
+ * {@link ToolRegistry.executeToolCalls}. Each tool call may spawn a sandbox,
+ * hit a network API, or open a database transaction — unbounded parallelism
+ * here lets a single LLM turn DoS the host, drain rate limits, and blow up
+ * cost. 8 is a conservative default; tune via fork if you need higher.
+ */
+const TOOL_CALL_CONCURRENCY = 8;
 import type {
   ToolDefinition,
   ToolExecutor,
@@ -811,24 +820,43 @@ export class ToolRegistry {
   }
 
   /**
-   * Execute multiple tool calls in parallel
+   * Execute multiple tool calls with bounded parallelism.
+   *
+   * An LLM (potentially driven by prompt injection in untrusted input) can
+   * return arbitrarily many tool calls in a single turn. Firing them all in
+   * parallel can spawn unbounded sandboxes, hit paid APIs, and exhaust the
+   * provider's rate limits. Cap concurrency at {@link TOOL_CALL_CONCURRENCY}.
+   * Results preserve input order.
    */
   async executeToolCalls(
     toolCalls: readonly ToolCall[],
     conversationId: string,
     userId?: string
   ): Promise<readonly ToolResult[]> {
-    const settled = await Promise.allSettled(
-      toolCalls.map((tc) => this.executeToolCall(tc, conversationId, userId))
-    );
-    return settled.map((outcome, i) => {
-      if (outcome.status === 'fulfilled') return outcome.value;
-      return {
-        toolCallId: toolCalls[i]?.id ?? 'unknown',
-        content: `Tool execution failed: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`,
-        isError: true,
-      };
-    });
+    const results = new Array<ToolResult>(toolCalls.length);
+    let nextIndex = 0;
+    const concurrency = Math.min(TOOL_CALL_CONCURRENCY, toolCalls.length);
+
+    const runWorker = async (): Promise<void> => {
+      while (true) {
+        const i = nextIndex++;
+        if (i >= toolCalls.length) return;
+        const tc = toolCalls[i]!;
+        try {
+          results[i] = await this.executeToolCall(tc, conversationId, userId);
+        } catch (err) {
+          results[i] = {
+            toolCallId: tc.id ?? 'unknown',
+            content: `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`,
+            isError: true,
+          };
+        }
+      }
+    };
+
+    const workers = Array.from({ length: concurrency }, () => runWorker());
+    await Promise.all(workers);
+    return results;
   }
 
   /**

@@ -20,6 +20,22 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+/**
+ * Reject userId values that could escape the per-user partition via `path.join`.
+ * Allows letters, digits, dot, dash, underscore; max 128 chars; no `..` or
+ * separator characters. Path traversal here would let a caller passing
+ * `../../../etc/passwd` (or `..\\Windows\\...` on Windows) read/write outside
+ * the user's personal-data directory.
+ */
+const SAFE_USER_ID = /^[A-Za-z0-9_.-]{1,128}$/;
+function assertSafeUserId(userId: string): void {
+  if (!SAFE_USER_ID.test(userId) || userId === '.' || userId === '..') {
+    throw new Error(
+      `Invalid userId for personal memory store: must match ${SAFE_USER_ID.source} and not be "." or ".."`
+    );
+  }
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -233,6 +249,7 @@ export class PersonalMemoryStore {
   private initialized = false;
 
   constructor(userId: string, storageDir?: string) {
+    assertSafeUserId(userId);
     this.userId = userId;
     const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '.';
     this.storageDir = storageDir ?? path.join(homeDir, '.ownpilot', 'personal', userId);
