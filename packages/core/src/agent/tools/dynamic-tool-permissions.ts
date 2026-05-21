@@ -33,6 +33,11 @@ const BLOCKED_CALLABLE_TOOLS = new Set([
   'git_add',
   'git_push',
   'git_reset',
+  // H-S11: git_branch supports create/delete/rename actions — it's a mutation
+  // tool and was missed in the original block list. Read-only git tools
+  // (git_status, git_diff, git_log) are intentionally left allowed since
+  // filesystem permission already lets the extension read the same content.
+  'git_branch',
   'create_tool',
   'delete_custom_tool',
   'toggle_custom_tool',

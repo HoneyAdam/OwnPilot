@@ -5,7 +5,7 @@
  * tool definitions, system prompt sections, scan, reload, and singleton.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // =============================================================================
 // Hoisted mocks
@@ -655,9 +655,37 @@ describe('ExtensionService', () => {
   // ==========================================================================
 
   describe('getToolDefinitions()', () => {
+    // H-S10: AgentSkills script bridges are now operator-opt-in. The existing
+    // tests assume the bridge is active, so enable it for this describe block.
+    const originalSkillScripts = process.env.OWNPILOT_ENABLE_SKILL_SCRIPTS;
+    beforeEach(() => {
+      process.env.OWNPILOT_ENABLE_SKILL_SCRIPTS = 'true';
+    });
+    afterEach(() => {
+      if (originalSkillScripts === undefined) {
+        delete process.env.OWNPILOT_ENABLE_SKILL_SCRIPTS;
+      } else {
+        process.env.OWNPILOT_ENABLE_SKILL_SCRIPTS = originalSkillScripts;
+      }
+    });
+
     it('returns empty array when no enabled extensions', () => {
       mockRepo.getEnabled.mockReturnValue([]);
       expect(svc.getToolDefinitions()).toEqual([]);
+    });
+
+    it('does NOT auto-bridge script_paths when OWNPILOT_ENABLE_SKILL_SCRIPTS is unset (H-S10)', () => {
+      delete process.env.OWNPILOT_ENABLE_SKILL_SCRIPTS;
+      const manifest = makeManifest({
+        format: 'agentskills',
+        tools: [],
+        script_paths: ['scripts/run.sh'],
+      });
+      const record = makeRecord({ manifest, sourcePath: '/skills/mypkg/SKILL.md' });
+      mockRepo.getEnabled.mockReturnValue([record]);
+
+      const defs = svc.getToolDefinitions();
+      expect(defs).toHaveLength(0);
     });
 
     it('returns tool definitions for ownpilot extensions', () => {

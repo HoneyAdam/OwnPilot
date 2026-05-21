@@ -468,11 +468,23 @@ export class ExtensionService implements IExtensionService {
         });
       }
 
-      // AgentSkills.io: bridge scripts/ to executable tools
+      // AgentSkills.io: bridge scripts/ to executable tools.
+      //
+      // H-S10: this bridge silently grants `filesystem` permission to every
+      // installed skill that ships scripts, and the generated tool body
+      // directs the LLM to run those scripts via execute_shell / _python /
+      // _javascript. Installing a skill therefore implicitly elevates host
+      // capability without operator consent. We now require the operator to
+      // explicitly opt in via OWNPILOT_ENABLE_SKILL_SCRIPTS=true. When the
+      // env is unset, skills still install (SKILL.md, instructions, manifest
+      // tools all work) — but `script_paths` no longer auto-create callable
+      // shell/python bridges.
+      const SKILL_SCRIPTS_ENABLED = process.env.OWNPILOT_ENABLE_SKILL_SCRIPTS === 'true';
       if (
         pkg.manifest.format === 'agentskills' &&
         pkg.manifest.script_paths?.length &&
-        pkg.sourcePath
+        pkg.sourcePath &&
+        SKILL_SCRIPTS_ENABLED
       ) {
         const skillDir = pkg.sourcePath.replace(/[/\\]SKILL\.md$/, '');
         for (const scriptPath of pkg.manifest.script_paths) {

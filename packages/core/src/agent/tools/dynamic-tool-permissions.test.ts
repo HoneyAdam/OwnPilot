@@ -33,6 +33,7 @@ describe('isToolCallAllowed', () => {
       'git_add',
       'git_push',
       'git_reset',
+      'git_branch',
       'create_tool',
       'delete_custom_tool',
       'toggle_custom_tool',
