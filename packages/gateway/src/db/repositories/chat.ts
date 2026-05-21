@@ -481,7 +481,16 @@ export class ChatRepository extends BaseRepository {
   }
 
   async getMessage(id: string): Promise<Message | null> {
-    const row = await this.queryOne<MessageRow>('SELECT * FROM messages WHERE id = $1', [id]);
+    // H-D1 fix: scope by user_id via conversations join. The two surrounding
+    // methods (createMessage, getLatestMessage, getMessages via conversation
+    // ownership) all enforce user scope; this one used to look up any
+    // message globally, enabling cross-user read by ID guess.
+    const row = await this.queryOne<MessageRow>(
+      `SELECT m.* FROM messages m
+         JOIN conversations c ON c.id = m.conversation_id
+        WHERE m.id = $1 AND c.user_id = $2`,
+      [id, this.userId]
+    );
     return row ? rowToMessage(row) : null;
   }
 
@@ -524,11 +533,19 @@ export class ChatRepository extends BaseRepository {
   }
 
   async deleteMessage(id: string): Promise<boolean> {
-    // Get conversation_id first to update count
+    // H-D1 fix: scope DELETE by user_id. getMessage above now joins through
+    // conversations so a foreign id returns null and we short-circuit. The
+    // DELETE itself also re-scopes via conversation ownership to avoid TOCTOU
+    // between the getMessage lookup and the DELETE.
     const msg = await this.getMessage(id);
     if (!msg) return false;
 
-    const result = await this.execute('DELETE FROM messages WHERE id = $1', [id]);
+    const result = await this.execute(
+      `DELETE FROM messages WHERE id = $1 AND conversation_id IN (
+         SELECT id FROM conversations WHERE user_id = $2
+       )`,
+      [id, this.userId]
+    );
 
     if (result.changes > 0) {
       await this.execute(

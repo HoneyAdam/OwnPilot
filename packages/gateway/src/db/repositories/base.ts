@@ -124,30 +124,49 @@ export abstract class BaseRepository {
     allowedOrderByColumns?: Set<string>
   ): Promise<{ rows: T[]; total: number; limit: number; offset: number }> {
     const limit = query.limit ?? 50;
-    const offset = query.offset ?? 0;
+    // H-D11: clamp offset to bound deep-paging table-scan cost. Mirrors the
+    // route-layer cap in helpers.ts so repos called directly from non-HTTP
+    // contexts (jobs, channels) are equally bounded.
+    const MAX_OFFSET = 10000;
+    const rawOffset = query.offset ?? 0;
+    const offset = Math.min(MAX_OFFSET, Math.max(0, rawOffset));
+    if (rawOffset > MAX_OFFSET) {
+      log.warn(
+        `[paginatedQuery] offset ${rawOffset} clamped to ${MAX_OFFSET} — consider keyset pagination`
+      );
+    }
 
     // Count query
     const countResult = await this.queryOne<{ count: string }>(countSql, params);
     const total = parseInt(countResult?.count ?? '0', 10);
 
-    // Build ORDER BY — validate column name against allowlist to prevent SQL injection
-    let orderClause: string;
+    // H-D2 fix: secure-by-default ORDER BY. The previous behavior accepted
+    // any identifier-shaped column when no allowlist was passed, which
+    // turned a `?orderBy=` query param into a column-existence oracle and
+    // let callers pivot to expensive/unindexed columns (table-scan DoS).
+    //
+    // Contract is now:
+    //   - allowedOrderByColumns absent → user orderBy is IGNORED entirely
+    //     (fall back to defaultOrderBy and log a warning to the operator)
+    //   - allowedOrderByColumns present → orderBy must be in the allowlist
+    let orderClause = defaultOrderBy;
     if (query.orderBy) {
-      // First check basic identifier format
-      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(query.orderBy)) {
-        orderClause = defaultOrderBy;
-      } else if (allowedOrderByColumns && !allowedOrderByColumns.has(query.orderBy)) {
-        // Column not in allowlist - use default
+      if (!allowedOrderByColumns) {
         log.warn(
-          `[SQL Injection Prevention] Blocked orderBy '${query.orderBy}' - not in allowlist`
+          `[SQL Injection Prevention] orderBy '${query.orderBy}' ignored — caller did not provide an allowlist`
         );
-        orderClause = defaultOrderBy;
+      } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(query.orderBy)) {
+        log.warn(
+          `[SQL Injection Prevention] orderBy '${query.orderBy}' ignored — invalid identifier format`
+        );
+      } else if (!allowedOrderByColumns.has(query.orderBy)) {
+        log.warn(
+          `[SQL Injection Prevention] orderBy '${query.orderBy}' ignored — not in allowlist`
+        );
       } else {
         const dir = query.orderDir === 'asc' ? 'ASC' : 'DESC';
         orderClause = `${query.orderBy} ${dir}`;
       }
-    } else {
-      orderClause = defaultOrderBy;
     }
 
     // Data query with pagination

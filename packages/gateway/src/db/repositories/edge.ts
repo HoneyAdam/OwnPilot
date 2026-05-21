@@ -370,21 +370,26 @@ export class EdgeTelemetryRepository extends BaseRepository {
   ): Promise<void> {
     if (entries.length === 0) return;
 
-    const values: string[] = [];
-    const params: unknown[] = [];
-    let idx = 1;
-
-    for (const entry of entries) {
-      const id = generateId('etel');
-      values.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, NOW())`);
-      params.push(id, entry.deviceId, entry.sensorId, JSON.stringify(entry.value));
+    // H-D6: chunk by row count so we never approach PostgreSQL's 65535
+    // bound-parameter ceiling. 500 rows × 4 params = 2000 params per statement.
+    const CHUNK_SIZE = 500;
+    for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+      const chunk = entries.slice(i, i + CHUNK_SIZE);
+      const values: string[] = [];
+      const params: unknown[] = [];
+      let idx = 1;
+      for (const entry of chunk) {
+        const id = generateId('etel');
+        values.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, NOW())`);
+        params.push(id, entry.deviceId, entry.sensorId, JSON.stringify(entry.value));
+      }
+      await this.query(
+        `INSERT INTO edge_telemetry (id, device_id, sensor_id, value, recorded_at)
+         VALUES ${values.join(', ')}
+         ON CONFLICT (id) DO NOTHING`,
+        params
+      );
     }
-
-    await this.query(
-      `INSERT INTO edge_telemetry (id, device_id, sensor_id, value, recorded_at)
-       VALUES ${values.join(', ')}`,
-      params
-    );
   }
 
   /**

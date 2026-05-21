@@ -408,16 +408,17 @@ describe('ContactsRepository', () => {
       expect(sql).toContain('is_favorite = $');
     });
 
-    it('should filter by tags', async () => {
+    it('should filter by tags using JSONB containment (H-D9)', async () => {
       mockAdapter.query.mockResolvedValueOnce([]);
 
       await repo.list({ tags: ['vip', 'client'] });
 
       const sql = mockAdapter.query.mock.calls[0]![0] as string;
-      expect(sql).toContain('tags::text LIKE');
+      expect(sql).toContain('tags @> ');
+      expect(sql).toContain('::jsonb');
       const params = mockAdapter.query.mock.calls[0]![1] as unknown[];
-      expect(params).toContain('%"vip"%');
-      expect(params).toContain('%"client"%');
+      expect(params).toContain(JSON.stringify(['vip']));
+      expect(params).toContain(JSON.stringify(['client']));
     });
 
     it('should search by name, nickname, email, phone, and company', async () => {

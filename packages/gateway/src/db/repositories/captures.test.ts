@@ -478,13 +478,16 @@ describe('CapturesRepository', () => {
       expect(params).toContain('idea');
     });
 
-    it('should filter by tag', async () => {
+    it('should filter by tag using JSONB containment (H-D9)', async () => {
       mockAdapter.query.mockResolvedValueOnce([]);
 
       await repo.list({ tag: 'typescript' });
 
       const sql = mockAdapter.query.mock.calls[0]![0] as string;
-      expect(sql).toContain('tags::text LIKE');
+      expect(sql).toContain('tags @> ');
+      expect(sql).toContain('::jsonb');
+      const params = mockAdapter.query.mock.calls[0]![1] as unknown[];
+      expect(params).toContain(JSON.stringify(['typescript']));
     });
 
     it('should filter by processed status', async () => {
@@ -560,14 +563,15 @@ describe('CapturesRepository', () => {
       expect(params).toContain('%50\\%\\_off%');
     });
 
-    it('should escape LIKE wildcards in tag filter', async () => {
+    it('should pass tag as JSONB-serialized array (H-D9: no longer needs LIKE escaping)', async () => {
       mockAdapter.query.mockResolvedValueOnce([]);
 
       await repo.list({ tag: 'special%tag' });
 
       const params = mockAdapter.query.mock.calls[0]![1] as unknown[];
-      // The tag should be escaped and wrapped in quotes
-      expect(params).toContain('%"special\\%tag"%');
+      // With JSONB containment, the % character is just part of the tag value;
+      // pg-node parameterisation handles it safely without LIKE escaping.
+      expect(params).toContain(JSON.stringify(['special%tag']));
     });
   });
 

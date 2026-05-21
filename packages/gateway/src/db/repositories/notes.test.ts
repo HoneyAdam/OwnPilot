@@ -364,15 +364,16 @@ describe('NotesRepository', () => {
       expect(sql).toContain('is_pinned = $');
     });
 
-    it('should filter by tags', async () => {
+    it('should filter by tags using JSONB containment (H-D9)', async () => {
       mockAdapter.query.mockResolvedValueOnce([]);
 
       await repo.list({ tags: ['journal'] });
 
       const sql = mockAdapter.query.mock.calls[0]![0] as string;
-      expect(sql).toContain('tags::text LIKE');
+      expect(sql).toContain('tags @> ');
+      expect(sql).toContain('::jsonb');
       const params = mockAdapter.query.mock.calls[0]![1] as unknown[];
-      expect(params).toContain('%"journal"%');
+      expect(params).toContain(JSON.stringify(['journal']));
     });
 
     it('should search by title and content', async () => {

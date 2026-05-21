@@ -213,31 +213,67 @@ export class JobsRepository extends BaseRepository {
 
   /**
    * Mark a job as failed. If attempts exhausted, move to job_history.
+   *
+   * H-D5 fix: the previous implementation read the job, decided whether to
+   * dead-letter or retry, then wrote — with NO lock between. Two concurrent
+   * fail() calls (or a concurrent claim) could each insert into history
+   * with `${jobId}_${Date.now()}` ids, producing duplicate dead-letter rows;
+   * or the retry-UPDATE could land on a job that another worker already
+   * completed. Wrap the whole sequence in a transaction with `SELECT ...
+   * FOR UPDATE` so the decision and writes are atomic.
    */
   async fail(jobId: string, error: string): Promise<void> {
-    const job = await this.getById(jobId);
-    if (!job) return;
-
-    const now = new Date().toISOString();
-
-    if (job.attempts >= job.maxAttempts) {
-      // Move to dead-letter queue
-      const historyId = `${jobId}_${Date.now()}`;
-      await this.execute(
-        `INSERT INTO ${JOB_HISTORY_TABLE} (id, job_id, job_name, queue, payload, result, status, attempt, max_attempts, failed_at, error)
-         VALUES ($1, $2, $3, $4, $5, $6, 'failed', $7, $8, $9, $10)`,
-        [historyId, jobId, job.name, job.queue, JSON.stringify(job.payload), JSON.stringify({ error }), job.attempts, job.maxAttempts, now, error]
+    await this.transaction(async () => {
+      const lockedRow = await this.queryOne<{
+        attempts: number;
+        max_attempts: number;
+        name: string;
+        queue: string;
+        payload: unknown;
+      }>(
+        `SELECT attempts, max_attempts, name, queue, payload
+           FROM ${JOBS_TABLE}
+          WHERE id = $1
+          FOR UPDATE`,
+        [jobId]
       );
-      await this.execute(`DELETE FROM ${JOBS_TABLE} WHERE id = $1`, [jobId]);
-    } else {
-      // Reschedule with exponential backoff
-      const backoffMs = Math.min(job.attempts ** 2 * 5000, 3600000);
-      const runAfter = new Date(Date.now() + backoffMs).toISOString();
-      await this.execute(
-        `UPDATE ${JOBS_TABLE} SET status = 'available', result = $2, run_after = $3, updated_at = $4 WHERE id = $1`,
-        [jobId, JSON.stringify({ error }), runAfter, now]
-      );
-    }
+      if (!lockedRow) return; // Already deleted / never existed — idempotent.
+
+      const now = new Date().toISOString();
+
+      if (lockedRow.attempts >= lockedRow.max_attempts) {
+        // Move to dead-letter queue, then remove from active table.
+        const historyId = `${jobId}_${Date.now()}`;
+        await this.execute(
+          `INSERT INTO ${JOB_HISTORY_TABLE} (id, job_id, job_name, queue, payload, result, status, attempt, max_attempts, failed_at, error)
+           VALUES ($1, $2, $3, $4, $5, $6, 'failed', $7, $8, $9, $10)`,
+          [
+            historyId,
+            jobId,
+            lockedRow.name,
+            lockedRow.queue,
+            // payload comes back already parsed from JSONB.
+            JSON.stringify(lockedRow.payload ?? {}),
+            JSON.stringify({ error }),
+            lockedRow.attempts,
+            lockedRow.max_attempts,
+            now,
+            error,
+          ]
+        );
+        await this.execute(`DELETE FROM ${JOBS_TABLE} WHERE id = $1`, [jobId]);
+      } else {
+        // Reschedule with exponential backoff.
+        const backoffMs = Math.min(lockedRow.attempts ** 2 * 5000, 3600000);
+        const runAfter = new Date(Date.now() + backoffMs).toISOString();
+        await this.execute(
+          `UPDATE ${JOBS_TABLE}
+              SET status = 'available', result = $2, run_after = $3, updated_at = $4
+            WHERE id = $1`,
+          [jobId, JSON.stringify({ error }), runAfter, now]
+        );
+      }
+    });
   }
 
   /**
@@ -319,25 +355,48 @@ export class JobsRepository extends BaseRepository {
   async listByStatus(status: JobStatus, queue?: string, limit = 100): Promise<JobRecord[]> {
     const where = [`status = $1`];
     const params: unknown[] = [status];
-    if (queue) { where.push(`queue = $2`); params.push(queue); }
+    if (queue) {
+      where.push(`queue = $2`);
+      params.push(queue);
+    }
     where.push(`LIMIT $${params.length + 1}`);
     params.push(limit);
 
     const rows = await this.query<{
-      id: string; name: string; queue: string; priority: number; payload: Record<string, unknown>;
-      result: Record<string, unknown> | null; status: JobStatus; run_after: Date;
-      started_at: Date | null; completed_at: Date | null; attempts: number;
-      max_attempts: number; created_at: Date; updated_at: Date;
+      id: string;
+      name: string;
+      queue: string;
+      priority: number;
+      payload: Record<string, unknown>;
+      result: Record<string, unknown> | null;
+      status: JobStatus;
+      run_after: Date;
+      started_at: Date | null;
+      completed_at: Date | null;
+      attempts: number;
+      max_attempts: number;
+      created_at: Date;
+      updated_at: Date;
     }>(
       `SELECT id, name, queue, priority, payload, result, status, run_after, started_at, completed_at, attempts, max_attempts, created_at, updated_at
        FROM ${JOBS_TABLE} WHERE ${where.join(' AND ')} ORDER BY created_at DESC`,
       params
     );
-    return rows.map(r => ({
-      id: r.id, name: r.name, queue: r.queue, priority: r.priority, payload: r.payload,
-      result: r.result, status: r.status, runAfter: r.run_after, startedAt: r.started_at ?? null,
-      completedAt: r.completed_at ?? null, attempts: r.attempts, maxAttempts: r.max_attempts,
-      createdAt: r.created_at, updatedAt: r.updated_at,
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      queue: r.queue,
+      priority: r.priority,
+      payload: r.payload,
+      result: r.result,
+      status: r.status,
+      runAfter: r.run_after,
+      startedAt: r.started_at ?? null,
+      completedAt: r.completed_at ?? null,
+      attempts: r.attempts,
+      maxAttempts: r.max_attempts,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }));
   }
 
@@ -347,7 +406,8 @@ export class JobsRepository extends BaseRepository {
    */
   async cleanupOld(maxAgeDays = 30): Promise<number> {
     const result = await this.execute(
-      `DELETE FROM ${JOBS_TABLE} WHERE status IN ('completed', 'failed') AND updated_at < NOW() - INTERVAL '${maxAgeDays} days'`
+      `DELETE FROM ${JOBS_TABLE} WHERE status IN ('completed', 'failed') AND updated_at < NOW() - INTERVAL '1 day' * $1`,
+      [maxAgeDays]
     );
     return result.changes;
   }
@@ -357,7 +417,8 @@ export class JobsRepository extends BaseRepository {
    */
   async cleanupHistory(maxAgeDays = 90): Promise<number> {
     const result = await this.execute(
-      `DELETE FROM ${JOB_HISTORY_TABLE} WHERE failed_at < NOW() - INTERVAL '${maxAgeDays} days'`
+      `DELETE FROM ${JOB_HISTORY_TABLE} WHERE failed_at < NOW() - INTERVAL '1 day' * $1`,
+      [maxAgeDays]
     );
     return result.changes;
   }

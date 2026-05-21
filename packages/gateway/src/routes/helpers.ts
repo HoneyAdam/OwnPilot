@@ -50,6 +50,16 @@ export function getUserId(c: Context): string {
  * @param maxLimit - Maximum allowed limit (default: 100)
  * @returns Object with limit and offset
  */
+/**
+ * H-D11: hard cap on OFFSET to bound worst-case scan cost on hot tables
+ * (messages, channel_messages, request_logs, heartbeat_log, costs, ...).
+ * Deep pagination with `?offset=1000000` forces the planner to discard a
+ * million rows per request, so we clamp at 10000 (≥page 100 at limit=100,
+ * page 500 at limit=20). Routes that genuinely need deeper paging should
+ * switch to keyset/cursor pagination.
+ */
+export const MAX_PAGINATION_OFFSET = 10000;
+
 export function getPaginationParams(
   c: Context,
   defaultLimit: number = 20,
@@ -58,7 +68,10 @@ export function getPaginationParams(
   const limitRaw = parseInt(c.req.query('limit') ?? String(defaultLimit), 10);
   const limit = Math.min(Math.max(1, Number.isNaN(limitRaw) ? defaultLimit : limitRaw), maxLimit);
   const offsetRaw = parseInt(c.req.query('offset') ?? '0', 10);
-  const offset = Math.max(0, Number.isNaN(offsetRaw) ? 0 : offsetRaw);
+  const offset = Math.min(
+    MAX_PAGINATION_OFFSET,
+    Math.max(0, Number.isNaN(offsetRaw) ? 0 : offsetRaw)
+  );
 
   return { limit, offset };
 }
@@ -173,8 +186,7 @@ export function apiError(
   error: string | { code: ErrorCode | string; message: string },
   status: ContentfulStatusCode = 400
 ) {
-  let errorObj =
-    typeof error === 'string' ? { code: ERROR_CODES.ERROR, message: error } : error;
+  let errorObj = typeof error === 'string' ? { code: ERROR_CODES.ERROR, message: error } : error;
 
   // EXPOSE-001 mitigation: redact raw 5xx error messages in production.
   // Route-level try/catch blocks routinely return `getErrorMessage(err)` which
@@ -184,7 +196,7 @@ export function apiError(
   if (REDACT_5XX && status >= 500 && status < 600) {
     const requestId = c.get('requestId') ?? 'unknown';
     // Surface the detail to operators but not the client.
-     
+
     log.warn(`[apiError] redacted 5xx detail (requestId=${requestId}): ${errorObj.message}`);
     errorObj = {
       code: errorObj.code ?? ERROR_CODES.INTERNAL_ERROR,

@@ -242,8 +242,9 @@ export class CapturesRepository extends BaseRepository {
     }
 
     if (query.tag) {
-      sql += ` AND tags::text LIKE $${paramIndex++}`;
-      params.push(`%"${this.escapeLike(query.tag.toLowerCase())}"%`);
+      // H-D9 fix: JSONB containment — see bookmarks.ts for full rationale.
+      sql += ` AND tags @> $${paramIndex++}::jsonb`;
+      params.push(JSON.stringify([query.tag.toLowerCase()]));
     }
 
     if (query.processed !== undefined) {

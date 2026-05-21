@@ -171,8 +171,12 @@ export class BookmarksRepository extends CrudRepository<
 
     if (query.tags && query.tags.length > 0) {
       for (const tag of query.tags) {
-        sql += ` AND tags::text LIKE $${paramIndex++}`;
-        params.push(`%"${this.escapeLike(tag)}"%`);
+        // H-D9 fix: JSONB containment instead of string-pattern matching.
+        // The old `%"${tag}"%` LIKE could be evaded by tag values containing
+        // `"` or JSON structure chars, turning a tag filter into a free-text
+        // scan. `@>` is also indexable with GIN.
+        sql += ` AND tags @> $${paramIndex++}::jsonb`;
+        params.push(JSON.stringify([tag]));
       }
     }
 

@@ -74,9 +74,17 @@ class TestRepository extends BaseRepository {
     countSql: string,
     query?: Parameters<BaseRepository['paginatedQuery']>[2],
     params?: unknown[],
-    defaultOrderBy?: string
+    defaultOrderBy?: string,
+    allowedOrderByColumns?: Set<string>
   ) {
-    return this.paginatedQuery<T>(baseSql, countSql, query, params, defaultOrderBy);
+    return this.paginatedQuery<T>(
+      baseSql,
+      countSql,
+      query,
+      params,
+      defaultOrderBy,
+      allowedOrderByColumns
+    );
   }
   public testBuildPaginated<T>(items: T[], total: number, limit: number, offset: number) {
     return this.buildPaginated(items, total, limit, offset);
@@ -279,28 +287,55 @@ describe('BaseRepository', () => {
       expect(result.total).toBe(100);
     });
 
-    it('applies custom orderBy with ascending direction', async () => {
+    it('applies custom orderBy with ascending direction when column is in allowlist', async () => {
       mockAdapter.queryOne.mockResolvedValueOnce({ count: '1' });
       mockAdapter.query.mockResolvedValueOnce([]);
 
+      // H-D2 fix: orderBy now requires an explicit allowlist.
+      await repo.testPaginatedQuery(
+        'SELECT * FROM t',
+        'SELECT COUNT(*) as count FROM t',
+        { orderBy: 'name', orderDir: 'asc' },
+        undefined,
+        undefined,
+        new Set(['name', 'created_at'])
+      );
+
+      const dataCall = mockAdapter.query.mock.calls[0];
+      expect(dataCall[0]).toContain('ORDER BY name ASC');
+    });
+
+    it('ignores orderBy when caller did not provide an allowlist (H-D2)', async () => {
+      mockAdapter.queryOne.mockResolvedValueOnce({ count: '1' });
+      mockAdapter.query.mockResolvedValueOnce([]);
+
+      // No allowlist passed → orderBy is dropped, fall back to defaultOrderBy.
       await repo.testPaginatedQuery('SELECT * FROM t', 'SELECT COUNT(*) as count FROM t', {
         orderBy: 'name',
         orderDir: 'asc',
       });
 
       const dataCall = mockAdapter.query.mock.calls[0];
-      expect(dataCall[0]).toContain('ORDER BY name ASC');
+      expect(dataCall[0]).toContain('ORDER BY created_at DESC');
+      expect(dataCall[0]).not.toContain('name ASC');
     });
 
     it('rejects invalid orderBy column names to prevent SQL injection', async () => {
       mockAdapter.queryOne.mockResolvedValueOnce({ count: '1' });
       mockAdapter.query.mockResolvedValueOnce([]);
 
-      await repo.testPaginatedQuery('SELECT * FROM t', 'SELECT COUNT(*) as count FROM t', {
-        orderBy: 'name; DROP TABLE t--',
-      });
+      await repo.testPaginatedQuery(
+        'SELECT * FROM t',
+        'SELECT COUNT(*) as count FROM t',
+        { orderBy: 'name; DROP TABLE t--' },
+        undefined,
+        undefined,
+        // Even with the column present in spirit, the dangerous string fails
+        // the identifier-format regex.
+        new Set(['name'])
+      );
 
-      // Should fall back to default, not use the injection string
+      // Should fall back to default, not use the injection string.
       const dataCall = mockAdapter.query.mock.calls[0];
       expect(dataCall[0]).toContain('ORDER BY created_at DESC');
     });

@@ -296,8 +296,9 @@ export class ContactsRepository extends BaseRepository {
 
     if (query.tags && query.tags.length > 0) {
       for (const tag of query.tags) {
-        sql += ` AND tags::text LIKE $${paramIndex++}`;
-        params.push(`%"${this.escapeLike(tag)}"%`);
+        // H-D9 fix: JSONB containment — see bookmarks.ts for full rationale.
+        sql += ` AND tags @> $${paramIndex++}::jsonb`;
+        params.push(JSON.stringify([tag]));
       }
     }
 

@@ -336,8 +336,12 @@ export class MemoriesRepository extends BaseRepository {
 
     if (query.tags && query.tags.length > 0) {
       for (const tag of query.tags) {
-        sql += ` AND tags ILIKE $${paramIndex++}`;
-        params.push(`%"${this.escapeLike(tag)}"%`);
+        // H-D9 fix: JSONB containment — see bookmarks.ts for full rationale.
+        // Bonus: the prior `tags ILIKE` would have errored at runtime on a
+        // JSONB column without a `::text` cast; nobody noticed because the
+        // path is rarely exercised.
+        sql += ` AND tags @> $${paramIndex++}::jsonb`;
+        params.push(JSON.stringify([tag]));
       }
     }
 

@@ -380,6 +380,15 @@ export class ChannelMessagesRepository extends BaseRepository {
   /**
    * Batch insert messages with deduplication (ON CONFLICT DO NOTHING).
    * Used for history sync — processes in chunks of 100 for memory safety.
+   *
+   * H-D6: previously this did N sequential INSERTs inside a single transaction
+   * with a per-row try/catch. That was doubly broken: (a) holding a connection
+   * across N network round-trips starves the pool, and (b) any real DB error
+   * aborts the transaction in PostgreSQL, so every subsequent row in the same
+   * chunk failed with `current transaction is aborted` — the catch swallowed
+   * those silently and the inserted-count was wrong. The current impl uses one
+   * multi-row INSERT VALUES statement per chunk; ON CONFLICT (id) DO NOTHING
+   * handles duplicates without aborting, and real errors propagate normally.
    */
   async createBatch(
     rows: Array<{
@@ -402,37 +411,47 @@ export class ChannelMessagesRepository extends BaseRepository {
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);
-      await this.transaction(async () => {
-        for (const data of batch) {
-          try {
-            const result = await this.execute(
-              `INSERT INTO channel_messages (
-                id, channel_id, external_id, direction, sender_id, sender_name,
-                content, content_type, attachments, metadata, created_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-              ON CONFLICT (id) DO NOTHING`,
-              [
-                data.id,
-                data.channelId,
-                data.externalId ?? null,
-                data.direction,
-                data.senderId ?? null,
-                data.senderName ?? null,
-                data.content,
-                data.contentType ?? 'text',
-                data.attachments ? JSON.stringify(data.attachments) : null,
-                JSON.stringify(data.metadata ?? {}),
-                data.createdAt ? data.createdAt.toISOString() : new Date().toISOString(),
-              ]
-            );
-            if (result.changes > 0) inserted++;
-          } catch (err) {
-            // ON CONFLICT DO NOTHING won't throw — this catches real DB errors
-            log.warn('[createBatch] Row insert failed:', { id: data.id, error: String(err) });
-          }
-        }
-      });
-      // Yield event loop between batches (WAHA pattern)
+      const valueGroups: string[] = [];
+      const params: unknown[] = [];
+      let idx = 1;
+      for (const data of batch) {
+        valueGroups.push(
+          `($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`
+        );
+        params.push(
+          data.id,
+          data.channelId,
+          data.externalId ?? null,
+          data.direction,
+          data.senderId ?? null,
+          data.senderName ?? null,
+          data.content,
+          data.contentType ?? 'text',
+          data.attachments ? JSON.stringify(data.attachments) : null,
+          JSON.stringify(data.metadata ?? {}),
+          data.createdAt ? data.createdAt.toISOString() : new Date().toISOString()
+        );
+      }
+      try {
+        const result = await this.execute(
+          `INSERT INTO channel_messages (
+            id, channel_id, external_id, direction, sender_id, sender_name,
+            content, content_type, attachments, metadata, created_at
+          ) VALUES ${valueGroups.join(', ')}
+          ON CONFLICT (id) DO NOTHING`,
+          params
+        );
+        inserted += result.changes;
+      } catch (err) {
+        // Real DB error on the whole batch (network, constraint other than
+        // PRIMARY KEY, etc.). Log and continue with next chunk.
+        log.warn('[createBatch] Batch insert failed:', {
+          chunkStart: i,
+          chunkSize: batch.length,
+          error: String(err),
+        });
+      }
+      // Yield event loop between batches
       if (i + BATCH_SIZE < rows.length) {
         await new Promise((r) => setTimeout(r, 1));
       }

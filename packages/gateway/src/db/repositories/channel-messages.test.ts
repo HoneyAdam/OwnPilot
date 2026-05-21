@@ -844,11 +844,14 @@ describe('ChannelMessagesRepository', () => {
       const result = await repo.createBatch([]);
 
       expect(result).toBe(0);
-      expect(mockAdapter.transaction).not.toHaveBeenCalled();
+      expect(mockAdapter.execute).not.toHaveBeenCalled();
     });
 
-    it('inserts rows and counts successful insertions', async () => {
-      mockAdapter.execute.mockResolvedValue({ changes: 1 });
+    it('inserts rows in one statement per chunk and returns changes', async () => {
+      // H-D6: createBatch now issues one multi-row INSERT per BATCH_SIZE chunk
+      // instead of N per-row INSERTs inside a transaction. The driver's
+      // `changes` reflects rows actually inserted (ON CONFLICT skips don't count).
+      mockAdapter.execute.mockResolvedValue({ changes: 2 });
 
       const result = await repo.createBatch([
         { id: 'msg-1', channelId: 'ch-1', direction: 'inbound', content: 'Hello' },
@@ -856,14 +859,14 @@ describe('ChannelMessagesRepository', () => {
       ]);
 
       expect(result).toBe(2);
-      expect(mockAdapter.transaction).toHaveBeenCalled();
+      expect(mockAdapter.execute).toHaveBeenCalledTimes(1);
+      // No transaction wrapper — multi-row INSERT is atomic at the statement level
+      expect(mockAdapter.transaction).not.toHaveBeenCalled();
     });
 
-    it('counts only rows where changes > 0 (deduplication)', async () => {
-      // First row inserted, second skipped (ON CONFLICT DO NOTHING → changes: 0)
-      mockAdapter.execute
-        .mockResolvedValueOnce({ changes: 1 })
-        .mockResolvedValueOnce({ changes: 0 });
+    it('reports only rows actually inserted (ON CONFLICT skips)', async () => {
+      // One new, one duplicate → ON CONFLICT DO NOTHING → changes: 1
+      mockAdapter.execute.mockResolvedValueOnce({ changes: 1 });
 
       const result = await repo.createBatch([
         { id: 'msg-new', channelId: 'ch-1', direction: 'inbound', content: 'New' },
@@ -873,17 +876,22 @@ describe('ChannelMessagesRepository', () => {
       expect(result).toBe(1);
     });
 
-    it('continues processing on row-level errors', async () => {
+    it('continues to next chunk when a chunk INSERT fails', async () => {
+      // Two chunks of 100 — first throws, second succeeds.
+      const rows = Array.from({ length: 150 }, (_, i) => ({
+        id: `msg-${i}`,
+        channelId: 'ch-1',
+        direction: 'inbound' as const,
+        content: `m${i}`,
+      }));
       mockAdapter.execute
         .mockRejectedValueOnce(new Error('DB error'))
-        .mockResolvedValueOnce({ changes: 1 });
+        .mockResolvedValueOnce({ changes: 50 });
 
-      const result = await repo.createBatch([
-        { id: 'msg-err', channelId: 'ch-1', direction: 'inbound', content: 'Fail' },
-        { id: 'msg-ok', channelId: 'ch-1', direction: 'inbound', content: 'OK' },
-      ]);
+      const result = await repo.createBatch(rows);
 
-      expect(result).toBe(1);
+      expect(result).toBe(50);
+      expect(mockAdapter.execute).toHaveBeenCalledTimes(2);
     });
 
     it('passes correct INSERT SQL with ON CONFLICT DO NOTHING', async () => {

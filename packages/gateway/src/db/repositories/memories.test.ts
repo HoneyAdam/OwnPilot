@@ -397,7 +397,9 @@ describe('MemoriesRepository', () => {
       await repo.list({ tags: ['nature', 'science'] });
 
       const sql = mockAdapter.query.mock.calls[0]![0] as string;
-      expect(sql).toContain('tags ILIKE');
+      // H-D9 fix: JSONB containment replaced the (broken on JSONB) ILIKE form.
+      expect(sql).toContain('tags @> ');
+      expect(sql).toContain('::jsonb');
     });
 
     it('applies search filter on content', async () => {
