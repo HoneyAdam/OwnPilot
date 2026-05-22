@@ -14,7 +14,12 @@ const log = getLog('Telegram');
  */
 const DEFAULT_CONFIG: Partial<TelegramConfig> = {
   maxMessageLength: 4096,
-  parseMode: 'HTML',
+  // Default to plain text so an LLM that emits literal `<` (e.g. "5 < 10",
+  // JSX snippets, `<thinking>` tags) does not cause Telegram to return
+  // 400 'can't parse entities' on every reply. Callers that genuinely need
+  // formatting must opt-in by setting parseMode explicitly AND escaping
+  // user-controlled substrings themselves.
+  parseMode: undefined,
 };
 
 /**
@@ -195,7 +200,10 @@ export class TelegramBot {
     }
     const text = message.text;
     const parseMode = message.parseMode ?? this.config.parseMode;
-    const maxLength = this.config.maxMessageLength ?? 4096;
+    // Clamp maxLength to a positive value. A misconfigured `0` (or negative)
+    // would otherwise drive splitMessage into an infinite loop on its
+    // `splitIndex = 0 → slice(0)` path.
+    const maxLength = Math.max(1, this.config.maxMessageLength ?? 4096);
 
     // Split long messages
     const parts = this.splitMessage(text, maxLength);
@@ -235,6 +243,11 @@ export class TelegramBot {
    * Split long message into parts
    */
   private splitMessage(text: string, maxLength: number): string[] {
+    // Defense-in-depth: callers should already clamp, but a `0` here would
+    // make `splitIndex = 0 → slice(0)` loop forever.
+    if (!Number.isFinite(maxLength) || maxLength < 1) {
+      maxLength = 4096;
+    }
     if (text.length <= maxLength) {
       return [text];
     }

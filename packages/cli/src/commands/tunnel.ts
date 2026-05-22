@@ -8,6 +8,69 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 
+/**
+ * Validate a port argument from the CLI. Must be a finite integer in the
+ * usable TCP range. Reject silently-coerced garbage like `"8080; rm -rf"`
+ * (`parseInt` would return `8080`) by also enforcing the raw input matches
+ * `/^\d+$/` when it's a string.
+ */
+function parsePort(raw: string | number | undefined, fallback: number): number {
+  if (raw === undefined || raw === null) return fallback;
+  if (typeof raw === 'string' && !/^\d+$/.test(raw)) {
+    throw new Error(`Invalid port: ${raw}. Must be a positive integer.`);
+  }
+  const n = typeof raw === 'number' ? raw : parseInt(raw, 10);
+  if (!Number.isInteger(n) || n < 1 || n > 65535) {
+    throw new Error(`Invalid port: ${raw}. Must be 1-65535.`);
+  }
+  return n;
+}
+
+/**
+ * Build a sanitized environment for child processes. The CLI eagerly hydrates
+ * provider API keys into process.env via loadCredentialsToEnv (so the agent
+ * SDKs can read them), but a spawned binary like cloudflared has no need for
+ * any of those — leaving them in the child's env exposes them via
+ * /proc/<pid>/environ on Linux, `ps eww` on BSD, and crash-report uploads.
+ * Allow-list only generic OS plumbing.
+ */
+function buildSpawnEnv(): NodeJS.ProcessEnv {
+  const ALLOWED_ENV_KEYS = new Set([
+    'PATH',
+    'HOME',
+    'USER',
+    'USERPROFILE', // Windows
+    'USERNAME', // Windows
+    'TEMP',
+    'TMP',
+    'TMPDIR',
+    'LANG',
+    'LC_ALL',
+    'LC_CTYPE',
+    'TZ',
+    'SHELL',
+    'TERM',
+    'COMSPEC', // Windows
+    'SYSTEMROOT', // Windows
+    'WINDIR', // Windows
+    'APPDATA', // Windows
+    'LOCALAPPDATA', // Windows
+    'PROGRAMFILES', // Windows
+    'PROGRAMDATA', // Windows
+    'HOSTNAME',
+    // ngrok / cloudflared specific — these the child legitimately needs.
+    'NGROK_AUTHTOKEN',
+    'CLOUDFLARED_AUTOUPDATE_FREQ',
+    'CLOUDFLARE_API_TOKEN',
+    'TUNNEL_TOKEN',
+  ]);
+  const out: NodeJS.ProcessEnv = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (ALLOWED_ENV_KEYS.has(k)) out[k] = v;
+  }
+  return out;
+}
+
 // ============================================================================
 // Types & State
 // ============================================================================
@@ -34,7 +97,13 @@ export async function tunnelStartNgrok(options: { token?: string; port?: string 
     return void process.exit(1);
   }
 
-  const port = parseInt(options.port ?? '8080', 10);
+  let port: number;
+  try {
+    port = parsePort(options.port, 8080);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    return void process.exit(1);
+  }
 
   console.log(`Starting ngrok tunnel to localhost:${port}...`);
 
@@ -102,7 +171,13 @@ export async function tunnelStartCloudflare(options: {
     return void process.exit(1);
   }
 
-  const port = options.port ?? '8080';
+  let port: number;
+  try {
+    port = parsePort(options.port, 8080);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    return void process.exit(1);
+  }
 
   console.log(`Starting Cloudflare tunnel to localhost:${port}...`);
 
@@ -114,6 +189,10 @@ export async function tunnelStartCloudflare(options: {
   try {
     const child = spawn('cloudflared', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
+      // Sanitized env — do NOT leak provider API keys, JWT secrets, or
+      // Telegram bot tokens via /proc/<pid>/environ / `ps eww` /
+      // cloudflared crash uploads.
+      env: buildSpawnEnv(),
     });
 
     // Parse URL from cloudflared stderr output
@@ -151,7 +230,7 @@ export async function tunnelStartCloudflare(options: {
     console.log(`\nTunnel active: ${url}`);
     console.log('Note: Cloudflare quick tunnels use ephemeral URLs that change on restart.');
 
-    await registerWebhookUrl(url, parseInt(port, 10));
+    await registerWebhookUrl(url, port);
 
     console.log('\nTunnel is running. Press Ctrl+C to stop.');
 
@@ -225,18 +304,71 @@ async function doTunnelStop(): Promise<void> {
 }
 
 /**
+ * Build common headers for gateway calls. Attach `Authorization` when the
+ * operator has configured an API key (or JWT) via env — without this, an
+ * `--auth` gateway would silently 401 on every CLI subcommand and the
+ * webhook-secret PUT below would be rejected.
+ */
+function gatewayHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...(extra ?? {}) };
+  const apiKey = process.env.OWNPILOT_API_KEY;
+  const jwt = process.env.OWNPILOT_JWT;
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  else if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+  return headers;
+}
+
+/**
+ * Probe the gateway with a lightweight health check before sending any
+ * webhook-secret material. Without this, another process listening on the
+ * same loopback port (a malicious local app, a docker port-forward, a
+ * misconfigured container) would receive a freshly-minted 256-bit webhook
+ * secret + the public tunnel URL, then could register itself as Telegram's
+ * webhook recipient. The health endpoint returns the gateway's version
+ * field — we only proceed if the response shape matches.
+ */
+async function verifyGatewayFingerprint(baseUrl: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${baseUrl}/api/v1/health`, { headers: gatewayHeaders() });
+    if (!res.ok) return false;
+    const body = (await res.json()) as unknown;
+    if (!body || typeof body !== 'object') return false;
+    // Health endpoint may wrap in `{ data: { version, ... } }` (apiResponse
+    // envelope) or return it at the top level — accept either shape.
+    const candidate =
+      'version' in body
+        ? (body as { version?: unknown }).version
+        : (body as { data?: { version?: unknown } }).data?.version;
+    return typeof candidate === 'string' && candidate.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Register the tunnel URL as the Telegram webhook in Config Center.
  * Calls the gateway REST API to update the config and reconnect the channel.
  */
 async function registerWebhookUrl(tunnelUrl: string, port: number): Promise<void> {
   const baseUrl = `http://localhost:${port}`;
-  const secret = randomBytes(32).toString('hex');
 
   console.log('Registering webhook with gateway...');
 
+  if (!(await verifyGatewayFingerprint(baseUrl))) {
+    console.warn(
+      `Refusing to register webhook: ${baseUrl} did not respond as an OwnPilot gateway.\n` +
+        `Start the gateway first (\`ownpilot server --port ${port}\`) before running the tunnel command.`
+    );
+    return;
+  }
+
+  const secret = randomBytes(32).toString('hex');
+
   try {
     // 1. Get the telegram_bot service to find the default entry ID
-    const svcRes = await fetch(`${baseUrl}/api/v1/config-services/telegram_bot`);
+    const svcRes = await fetch(`${baseUrl}/api/v1/config-services/telegram_bot`, {
+      headers: gatewayHeaders(),
+    });
     if (!svcRes.ok) {
       console.warn(
         'Could not find telegram_bot service. Make sure the server is running and Telegram plugin is registered.'
@@ -262,7 +394,7 @@ async function registerWebhookUrl(tunnelUrl: string, port: number): Promise<void
       `${baseUrl}/api/v1/config-services/telegram_bot/entries/${defaultEntry.id}`,
       {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: gatewayHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           data: {
             ...defaultEntry.data,
@@ -285,6 +417,7 @@ async function registerWebhookUrl(tunnelUrl: string, port: number): Promise<void
     // 3. Reconnect the Telegram channel to apply webhook mode
     const reconnRes = await fetch(`${baseUrl}/api/v1/channels/channel.telegram/reconnect`, {
       method: 'POST',
+      headers: gatewayHeaders(),
     });
 
     if (reconnRes.ok) {

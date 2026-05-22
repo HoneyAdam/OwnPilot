@@ -12,6 +12,7 @@ interface EmbedItem {
   title?: string;
   width?: number | string;
   height?: number | string;
+  /** @deprecated The `sandbox` flag is ignored; embeds are always sandboxed. */
   sandbox?: boolean;
 }
 
@@ -74,7 +75,13 @@ export function EmbedWidget({ data, title: titleProp }: Props) {
 }
 
 function EmbedItemRenderer({ item }: { item: EmbedItem }) {
-  const { src, title, width = '100%', height = 400, sandbox = true } = item;
+  // `sandbox` is intentionally ignored. The widget JSON used to honor a
+  // `sandbox: false` flag, which removed the iframe sandbox attribute
+  // entirely and let an LLM-emitted `<widget name="embed" data='{"src":
+  // "https://attacker.tld","sandbox":false}'>` render fully unsandboxed
+  // (top-level navigation, popups, storage, form submission) — full
+  // RCE-in-page via top-level nav hijack. Always sandbox.
+  const { src, title, width = '100%', height = 400 } = item;
 
   // Basic URL validation - only allow safe protocols
   try {
@@ -119,7 +126,7 @@ function EmbedItemRenderer({ item }: { item: EmbedItem }) {
         title={title || 'Embedded content'}
         width={width}
         height={height}
-        sandbox={sandbox ? 'allow-scripts allow-forms' : undefined}
+        sandbox="allow-scripts allow-forms"
         className="border-0 w-full"
         loading="lazy"
       />

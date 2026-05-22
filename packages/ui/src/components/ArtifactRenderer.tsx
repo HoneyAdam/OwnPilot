@@ -12,9 +12,13 @@
  * postMessage so the parent can resize them to fit content exactly.
  */
 
-import { useMemo, useCallback, useEffect, useState } from 'react';
+import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { MarkdownContent } from './MarkdownContent';
 import type { ArtifactType, DataBinding } from '../api/endpoints/artifacts';
+
+/** Maximum iframe height accepted from a postMessage. Prevents layout-shift
+ *  DoS where a malicious or buggy artifact reports `height: 9_999_999`. */
+const MAX_ARTIFACT_HEIGHT_PX = 10_000;
 
 interface ArtifactRendererProps {
   type: ArtifactType;
@@ -105,15 +109,24 @@ function HtmlRenderer({
   height?: number;
 }) {
   const [iframeHeight, setIframeHeight] = useState<number | undefined>(height);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const srcdoc = useMemo(
     () => buildIframeDoc(content, dataBindings, autoHeight),
     [content, dataBindings, autoHeight]
   );
 
   const handleMessage = useCallback((event: MessageEvent) => {
-    if (event.data?.type === 'artifactHeight') {
-      setIframeHeight(event.data.height);
-    }
+    // Pin to OUR iframe's contentWindow. Without this, any other page in
+    // the window's message bus (browser extensions, sibling iframes, or
+    // future iframes that don't use sandbox=allow-scripts) can spoof a
+    // postMessage and force layout-shift on our artifact pane. Origin
+    // checks don't work for srcdoc + sandbox=allow-scripts (origin is the
+    // opaque "null"), but source identity is reliable.
+    if (event.source !== iframeRef.current?.contentWindow) return;
+    if (event.data?.type !== 'artifactHeight') return;
+    const raw = event.data.height;
+    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < 0) return;
+    setIframeHeight(Math.min(raw, MAX_ARTIFACT_HEIGHT_PX));
   }, []);
 
   useEffect(() => {
@@ -124,6 +137,7 @@ function HtmlRenderer({
 
   return (
     <iframe
+      ref={iframeRef}
       srcDoc={srcdoc}
       sandbox="allow-scripts"
       className={`w-full border-0 rounded-lg bg-white dark:bg-dark-bg-tertiary ${className ?? ''}`}

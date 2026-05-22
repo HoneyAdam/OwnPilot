@@ -340,10 +340,13 @@ describe('Bot CLI Command', () => {
           username: 'user',
         });
 
+        // Detail message logged server-side; chat reply is generic to avoid
+        // leaking provider error strings (request URLs, partial keys, file
+        // paths) to untrusted Telegram users.
         expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Rate limit exceeded'));
         expect(mockSendMessage).toHaveBeenCalledWith({
           chatId: 200,
-          text: 'Sorry, I encountered an error: Rate limit exceeded',
+          text: 'Sorry, I encountered an error processing your request.',
           replyToMessageId: 5,
         });
       });

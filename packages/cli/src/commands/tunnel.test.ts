@@ -61,8 +61,14 @@ describe('tunnel commands', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    // Default: fetch returns OK for all gateway calls
+    // Default: fetch returns OK for all gateway calls. The CLI now
+    // verifies a gateway fingerprint at /api/v1/health before sending
+    // any webhook material, so every test path needs that endpoint
+    // to respond with a recognizable shape.
     mockFetch.mockImplementation(async (url: string) => {
+      if (url.includes('/api/v1/health')) {
+        return { ok: true, json: async () => ({ version: '0.5.1' }) };
+      }
       if (url.includes('/config-services/telegram_bot') && !url.includes('/entries/')) {
         return {
           ok: true,
@@ -162,9 +168,15 @@ describe('tunnel commands', () => {
         );
       });
 
-      // Verify gateway calls
+      // Verify gateway calls. The CLI now hits /api/v1/health first to
+      // fingerprint the gateway before sending any webhook material.
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/config-services/telegram_bot')
+        expect.stringContaining('/api/v1/health'),
+        expect.anything()
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/config-services/telegram_bot'),
+        expect.anything()
       );
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/entries/entry-1'),
@@ -209,9 +221,13 @@ describe('tunnel commands', () => {
       const p = tunnelStartNgrok({ port: '9000' });
       floatingPromises.push(p.catch(() => {}));
 
+      // The fingerprint preflight (/api/v1/health) is the first call and
+      // throws, so registerWebhookUrl now emits the "did not respond as an
+      // OwnPilot gateway" warning instead of the legacy "Could not reach
+      // gateway" message from the catch block at the end of the function.
       await vi.waitFor(() => {
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Could not reach gateway')
+          expect.stringContaining('did not respond as an OwnPilot gateway')
         );
       });
     });
@@ -263,11 +279,25 @@ describe('tunnel commands', () => {
         expect(spawn).toHaveBeenCalled();
       });
 
+      // Spawn now receives a sanitized env to keep provider API keys and
+      // bot tokens out of the cloudflared child process. Match on the
+      // stdio shape and assert that `env` is an object that does NOT
+      // contain known-sensitive keys.
       expect(spawn).toHaveBeenCalledWith(
         'cloudflared',
         ['tunnel', '--url', 'http://localhost:5000'],
-        { stdio: ['ignore', 'pipe', 'pipe'] }
+        expect.objectContaining({
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env: expect.any(Object),
+        })
       );
+      const callArgs = vi.mocked(spawn).mock.calls[0]!;
+      const opts = callArgs[2] as { env?: Record<string, string> };
+      expect(opts.env).toBeDefined();
+      expect(opts.env).not.toHaveProperty('OPENAI_API_KEY');
+      expect(opts.env).not.toHaveProperty('ANTHROPIC_API_KEY');
+      expect(opts.env).not.toHaveProperty('JWT_SECRET');
+      expect(opts.env).not.toHaveProperty('TELEGRAM_BOT_TOKEN');
     });
 
     it('should include --hostname when domain provided', async () => {
@@ -562,6 +592,9 @@ describe('tunnel commands', () => {
   describe('registerWebhookUrl edge cases', () => {
     it('should warn when telegram_bot service not found', async () => {
       mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/health')) {
+          return { ok: true, json: async () => ({ version: '0.5.1' }) };
+        }
         if (url.includes('/config-services/telegram_bot') && !url.includes('/entries/')) {
           return { ok: false };
         }
@@ -580,6 +613,9 @@ describe('tunnel commands', () => {
 
     it('should warn when no config entries found', async () => {
       mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/health')) {
+          return { ok: true, json: async () => ({ version: '0.5.1' }) };
+        }
         if (url.includes('/config-services/telegram_bot') && !url.includes('/entries/')) {
           return {
             ok: true,
@@ -601,6 +637,9 @@ describe('tunnel commands', () => {
 
     it('should warn when webhook config update fails', async () => {
       mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/health')) {
+          return { ok: true, json: async () => ({ version: '0.5.1' }) };
+        }
         if (url.includes('/config-services/telegram_bot') && !url.includes('/entries/')) {
           return {
             ok: true,
@@ -629,6 +668,9 @@ describe('tunnel commands', () => {
 
     it('should warn when channel reconnect fails', async () => {
       mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/health')) {
+          return { ok: true, json: async () => ({ version: '0.5.1' }) };
+        }
         if (url.includes('/config-services/telegram_bot') && !url.includes('/entries/')) {
           return {
             ok: true,
@@ -660,6 +702,9 @@ describe('tunnel commands', () => {
 
     it('should use non-default entry when no default is marked', async () => {
       mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/health')) {
+          return { ok: true, json: async () => ({ version: '0.5.1' }) };
+        }
         if (url.includes('/config-services/telegram_bot') && !url.includes('/entries/')) {
           return {
             ok: true,

@@ -83,14 +83,16 @@ export async function startBot(options: BotOptions): Promise<void> {
     .map(Number)
     .filter((n) => Number.isFinite(n));
 
-  // Create bot config
+  // Create bot config. parseMode is intentionally left undefined (plain text)
+  // so LLM-generated content containing `<`, `&`, or arbitrary tag-like
+  // substrings does not trigger Telegram's 'can't parse entities' 400 and
+  // does not provide an HTML-injection sink for prompt-injection payloads.
   const config: TelegramConfig = {
     type: 'telegram',
     enabled: true,
     botToken: token,
     allowedUserIds: allowedUserIds,
     allowedChatIds: allowedChatIds,
-    parseMode: 'HTML',
   };
 
   const bot = createTelegramBot(config);
@@ -111,11 +113,15 @@ export async function startBot(options: BotOptions): Promise<void> {
           replyToMessageId: message.id,
         });
       } else {
+        // Log full error detail server-side; reply with a generic apology so
+        // provider SDK error strings (which can include request URLs, file
+        // paths, model names, or truncated bearer tokens) do not leak to
+        // the chat user.
         console.error(`❌ Error: ${result.error.message}`);
         try {
           await bot.sendMessage({
             chatId: message.chatId,
-            text: `Sorry, I encountered an error: ${result.error.message}`,
+            text: 'Sorry, I encountered an error processing your request.',
             replyToMessageId: message.id,
           });
         } catch (sendErr) {
