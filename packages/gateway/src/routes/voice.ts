@@ -13,8 +13,29 @@ import { Hono } from 'hono';
 import { getVoiceService } from '../services/voice-service.js';
 import { getUserId, apiResponse, apiError, ERROR_CODES, getErrorMessage } from './helpers.js';
 import { validateBody, synthesizeVoiceSchema } from '../middleware/validation.js';
+import { createLoginThrottle } from '../utils/login-throttle.js';
+import { getClientIp } from '../utils/client-ip.js';
+import { MS_PER_MINUTE } from '../config/defaults.js';
 
 export const voiceRoutes = new Hono();
+
+// RATE-001: Per-endpoint throttle for voice transcription. The global
+// rate limit (500 req/min) is generous because most API calls are cheap;
+// transcribe hits a paid Whisper API and processes up to 25MB of audio
+// per call. A small per-IP throttle (30/min, 5-min lockout) prevents
+// run-away cost and CPU usage on the audio buffer parse path without
+// hindering normal use. Same applies to synthesize (TTS, similar cost
+// profile).
+const voiceThrottle = createLoginThrottle({
+  maxAttempts: 30,
+  windowMs: MS_PER_MINUTE,
+  lockoutMs: 5 * MS_PER_MINUTE,
+});
+
+const voiceThrottleCleanup = setInterval(() => voiceThrottle.cleanup(), 2 * MS_PER_MINUTE);
+if (typeof voiceThrottleCleanup === 'object' && 'unref' in voiceThrottleCleanup) {
+  voiceThrottleCleanup.unref();
+}
 
 // =============================================================================
 // GET /config
@@ -71,6 +92,24 @@ voiceRoutes.get('/diagnostics', async (c) => {
 voiceRoutes.post('/transcribe', async (c) => {
   try {
     getUserId(c); // ensure authenticated
+
+    // Per-endpoint throttle — see voiceThrottle declaration above.
+    // Skip in test env so sequential tests don't collide.
+    if (process.env.NODE_ENV !== 'test') {
+      const ip = getClientIp(c.req);
+      const throttleResult = voiceThrottle.check(ip);
+      if (!throttleResult.allowed) {
+        c.header('Retry-After', String(Math.ceil(throttleResult.retryAfterMs / 1000)));
+        return apiError(
+          c,
+          {
+            code: ERROR_CODES.ACCESS_DENIED,
+            message: 'Voice transcription rate limit exceeded. Please retry later.',
+          },
+          429
+        );
+      }
+    }
 
     const service = getVoiceService();
     if (!(await service.isAvailable())) {
@@ -133,6 +172,22 @@ voiceRoutes.post('/transcribe', async (c) => {
 voiceRoutes.post('/synthesize', async (c) => {
   try {
     getUserId(c); // ensure authenticated
+
+    if (process.env.NODE_ENV !== 'test') {
+      const ip = getClientIp(c.req);
+      const throttleResult = voiceThrottle.check(ip);
+      if (!throttleResult.allowed) {
+        c.header('Retry-After', String(Math.ceil(throttleResult.retryAfterMs / 1000)));
+        return apiError(
+          c,
+          {
+            code: ERROR_CODES.ACCESS_DENIED,
+            message: 'Voice synthesis rate limit exceeded. Please retry later.',
+          },
+          429
+        );
+      }
+    }
 
     const service = getVoiceService();
     if (!(await service.isAvailable())) {

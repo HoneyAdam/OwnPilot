@@ -7,7 +7,7 @@
 import { writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { getServiceRegistry, Services } from '@ownpilot/core';
 import { type ExtensionService, ExtensionError } from '../../services/extension-service.js';
 import {
@@ -26,8 +26,51 @@ import {
   normalizeArchiveEntryPath,
   sanitizeFilenameSegment,
 } from '../../utils/file-safety.js';
+import { createLoginThrottle } from '../../utils/login-throttle.js';
+import { getClientIp } from '../../utils/client-ip.js';
+import { MS_PER_MINUTE } from '../../config/defaults.js';
 
 export const installRoutes = new Hono();
+
+// RATE-002: Per-endpoint throttle for extension upload/install. Both
+// endpoints unzip-and-stage 5MB ZIPs and write multiple files to
+// extensions/, which is expensive even when the upload itself is
+// short. A 20/min cap with a 10-min lockout deters zip-bomb-style
+// abuse and accidental client retry storms without hindering normal
+// install flows (a single install is one POST).
+const installThrottle = createLoginThrottle({
+  maxAttempts: 20,
+  windowMs: MS_PER_MINUTE,
+  lockoutMs: 10 * MS_PER_MINUTE,
+});
+
+const installThrottleCleanup = setInterval(() => installThrottle.cleanup(), 2 * MS_PER_MINUTE);
+if (typeof installThrottleCleanup === 'object' && 'unref' in installThrottleCleanup) {
+  installThrottleCleanup.unref();
+}
+
+function checkInstallThrottle(c: Context): Response | null {
+  // Skip in test env so sequential test runs don't collide on the
+  // shared in-memory bucket. The integration tests already verify the
+  // 429 path via a dedicated test (see install.test.ts after this
+  // commit); per-route tests focus on the actual install logic.
+  if (process.env.NODE_ENV === 'test') return null;
+
+  const ip = getClientIp(c.req);
+  const result = installThrottle.check(ip);
+  if (!result.allowed) {
+    c.header('Retry-After', String(Math.ceil(result.retryAfterMs / 1000)));
+    return apiError(
+      c,
+      {
+        code: ERROR_CODES.ACCESS_DENIED,
+        message: 'Extension install rate limit exceeded. Please retry later.',
+      },
+      429
+    );
+  }
+  return null;
+}
 
 /** Get ExtensionService from registry (cast needed for ExtensionError-specific methods). */
 const getExtService = () => getServiceRegistry().get(Services.Extension) as ExtensionService;
@@ -126,6 +169,8 @@ function findManifestInDir(dir: string): string | null {
  */
 installRoutes.post('/install', async (c) => {
   const userId = getUserId(c);
+  const throttled = checkInstallThrottle(c);
+  if (throttled) return throttled;
   const body = await parseJsonBody(c);
 
   if (!body || typeof (body as { path?: string }).path !== 'string') {
@@ -166,6 +211,8 @@ installRoutes.post('/install', async (c) => {
  */
 installRoutes.post('/upload', async (c) => {
   const userId = getUserId(c);
+  const throttled = checkInstallThrottle(c);
+  if (throttled) return throttled;
 
   // Parse multipart form data
   const body = await c.req.parseBody();
