@@ -609,6 +609,124 @@ export interface CrewTaskFailedData {
   result?: string;
 }
 
+// --- Audit Events ---
+// Forensic / security-relevant operations. Emitted for incident response,
+// not for normal application flow. Subscribers: audit log writer, alerting.
+
+export interface AuditAuthLoginFailedData {
+  ip: string;
+  attempts: number;
+  lockedOut: boolean;
+}
+
+export interface AuditAuthLoginSucceededData {
+  ip: string;
+}
+
+export interface AuditAuthLogoutData {
+  ip: string;
+}
+
+export interface AuditAuthPasswordChangedData {
+  ip: string;
+}
+
+export interface AuditAuthPasswordSetData {
+  ip: string;
+}
+
+export interface AuditAuthPasswordRemovedData {
+  ip: string;
+}
+
+export interface AuditSecurityPrivescBlockedData {
+  reason: string;
+  ip: string;
+}
+
+export interface AuditExtensionInstalledData {
+  ip: string;
+  extensionId: string;
+  source: string;
+  userId: string;
+}
+
+export interface AuditExtensionUninstalledData {
+  ip: string;
+  extensionId: string;
+  userId: string;
+}
+
+export interface AuditExtensionEnabledData {
+  ip: string;
+  extensionId: string;
+  userId: string;
+}
+
+export interface AuditExtensionDisabledData {
+  ip: string;
+  extensionId: string;
+  userId: string;
+}
+
+export interface AuditPluginEnabledData {
+  ip: string;
+  pluginId: string;
+  pluginName: string;
+  permissions: string[];
+}
+
+export interface AuditPluginDisabledData {
+  ip: string;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface AuditPluginConfigChangedData {
+  ip: string;
+  pluginId: string;
+  pluginName: string;
+  /** Key names only — values are NOT logged (may contain secrets). */
+  changedKeys: string[];
+}
+
+export interface AuditDatabaseBackupStartedData {
+  ip: string;
+}
+
+export interface AuditDatabaseRestoreStartedData {
+  ip: string;
+  filename: string;
+}
+
+export interface AuditDatabaseBackupDeletedData {
+  ip: string;
+  filename: string;
+}
+
+// --- Claw Events ---
+// Autonomous claw runtime communication channel.
+
+export interface ClawOutputData {
+  clawId: string;
+  /** Optional fields — present for message vs report variants */
+  message?: string;
+  /** Free-form urgency string set by the caller; common values 'low'/'medium'/'high'. */
+  urgency?: string;
+  type?: 'report';
+  title?: string;
+  summary?: string;
+  artifactId?: string;
+  timestamp: string;
+}
+
+export interface ClawUpdateData {
+  clawId: string;
+  status?: string;
+  cycle?: number;
+  [key: string]: unknown;
+}
+
 // ============================================================================
 // Master Event Map
 // ============================================================================
@@ -742,6 +860,29 @@ export interface EventMap {
   'crew.task.claimed': CrewTaskClaimedData;
   'crew.task.completed': CrewTaskCompletedData;
   'crew.task.failed': CrewTaskFailedData;
+
+  // --- Audit Events ---
+  'audit.auth.loginFailed': AuditAuthLoginFailedData;
+  'audit.auth.loginSucceeded': AuditAuthLoginSucceededData;
+  'audit.auth.logout': AuditAuthLogoutData;
+  'audit.auth.passwordChanged': AuditAuthPasswordChangedData;
+  'audit.auth.passwordSet': AuditAuthPasswordSetData;
+  'audit.auth.passwordRemoved': AuditAuthPasswordRemovedData;
+  'audit.security.privesc_blocked': AuditSecurityPrivescBlockedData;
+  'audit.extension.installed': AuditExtensionInstalledData;
+  'audit.extension.uninstalled': AuditExtensionUninstalledData;
+  'audit.extension.enabled': AuditExtensionEnabledData;
+  'audit.extension.disabled': AuditExtensionDisabledData;
+  'audit.plugin.enabled': AuditPluginEnabledData;
+  'audit.plugin.disabled': AuditPluginDisabledData;
+  'audit.plugin.configChanged': AuditPluginConfigChangedData;
+  'audit.database.backupStarted': AuditDatabaseBackupStartedData;
+  'audit.database.restoreStarted': AuditDatabaseRestoreStartedData;
+  'audit.database.backupDeleted': AuditDatabaseBackupDeletedData;
+
+  // --- Claw Events ---
+  'claw.output': ClawOutputData;
+  'claw.update': ClawUpdateData;
 }
 
 // ============================================================================

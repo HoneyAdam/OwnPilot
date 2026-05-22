@@ -28,7 +28,15 @@ export type EventCategory =
   | 'memory'
   | 'mcp'
   | 'subagent'
-  | 'orchestra';
+  | 'orchestra'
+  | 'audit'
+  | 'claw'
+  | 'crew'
+  | 'soul'
+  | 'edge'
+  | 'fleet'
+  | 'workflow'
+  | 'coding-agent';
 
 // ============================================================================
 // Event Types
@@ -120,6 +128,14 @@ export function deriveCategory(type: string): EventCategory {
     'mcp',
     'subagent',
     'orchestra',
+    'audit',
+    'claw',
+    'crew',
+    'soul',
+    'edge',
+    'fleet',
+    'workflow',
+    'coding-agent',
   ];
   if (validCategories.includes(firstSegment as EventCategory)) {
     return firstSegment as EventCategory;

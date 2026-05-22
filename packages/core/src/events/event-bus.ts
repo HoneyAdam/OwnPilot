@@ -141,11 +141,16 @@ export class EventBus implements IEventBus {
     }
     const set = this.categoryHandlers.get(category)!;
     if (set.size >= MAX_LISTENERS_PER_EVENT) {
-      const msg =
+      // Soft-fail: log a leak warning but return a no-op unsubscribe.
+      // Throwing here used to crash subscription paths during WS fan-out spikes;
+      // missing a handler is better than crashing the registration site.
+      log.warn(
         `Max listeners (${MAX_LISTENERS_PER_EVENT}) reached for category "${category}". ` +
-        `Handler not added. Possible memory leak.`;
-      log.error(msg);
-      throw new Error(msg);
+          `Handler dropped. Possible memory leak — investigate missing unsubscribes.`
+      );
+      return () => {
+        /* no-op: handler was never added */
+      };
     }
     set.add(handler);
     return () => {
@@ -163,11 +168,14 @@ export class EventBus implements IEventBus {
     }
     const set = this.patternHandlers.get(pattern)!;
     if (set.size >= MAX_LISTENERS_PER_EVENT) {
-      const msg =
+      // Soft-fail: log a leak warning but return a no-op unsubscribe.
+      log.warn(
         `Max listeners (${MAX_LISTENERS_PER_EVENT}) reached for pattern "${pattern}". ` +
-        `Handler not added. Possible memory leak.`;
-      log.error(msg);
-      throw new Error(msg);
+          `Handler dropped. Possible memory leak — investigate missing unsubscribes.`
+      );
+      return () => {
+        /* no-op: handler was never added */
+      };
     }
     set.add(handler);
     return () => {
@@ -210,11 +218,16 @@ export class EventBus implements IEventBus {
     }
     const set = this.handlers.get(type)!;
     if (set.size >= MAX_LISTENERS_PER_EVENT) {
-      const msg =
+      // Soft-fail: log a leak warning but return a no-op unsubscribe.
+      // Subscription is hot-path code (WS fan-out, plugin lifecycle);
+      // a thrown exception would crash the caller for a recoverable condition.
+      log.warn(
         `Max listeners (${MAX_LISTENERS_PER_EVENT}) reached for "${type}". ` +
-        `Handler not added. Possible memory leak.`;
-      log.error(msg);
-      throw new Error(msg);
+          `Handler dropped. Possible memory leak — investigate missing unsubscribes.`
+      );
+      return () => {
+        /* no-op: handler was never added */
+      };
     }
     set.add(handler);
     return () => this.off(type, handler);

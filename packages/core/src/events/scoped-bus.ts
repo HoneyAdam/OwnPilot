@@ -15,6 +15,7 @@
  */
 
 import type { EventHandler, HookHandler, HookContext, Unsubscribe } from './types.js';
+import { deriveCategory } from './types.js';
 import type { IEventBus } from './event-bus.js';
 import type { IHookBus } from './hook-bus.js';
 
@@ -92,10 +93,12 @@ export class ScopedEventBus implements IScopedBus {
 
   emit(type: string, data: unknown): void {
     const fullType = `${this.prefix}.${type}`;
-    // Use emitRaw since the full type may not be in EventMap
+    // Use emitRaw since the full type may not be in EventMap.
+    // Resolve category via deriveCategory so unknown prefixes fall back to 'system'
+    // (mirrors EventBus.emit semantics — consistency matters for category subscribers).
     this.eventBus.emitRaw({
       type: fullType,
-      category: fullType.split('.')[0] as import('./types.js').EventCategory,
+      category: deriveCategory(fullType),
       timestamp: new Date().toISOString(),
       source: this.source,
       data,
