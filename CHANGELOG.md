@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- **Fleet, Subagent, and Orchestra subsystems removed.** These three autonomous-agent surfaces overlapped with existing primitives without adding unique value: Fleet's "worker army" was covered by Claw's concurrent cycles + `claw_spawn_subclaw` and Workflow's `parallelNode`; Subagent's ephemeral spawn was covered by `claw_spawn_subclaw` and Crew's `delegate_task`; Orchestra was tightly coupled to Subagent and couldn't survive its removal. Migration 038 drops `fleets`, `fleet_sessions`, `fleet_tasks`, `fleet_worker_history`, `subagent_history`, and `orchestra_executions`. The mental model is now **Agent (base) → Claw (unified runtime) → Soul/Crew/Heartbeat (persistent team identity)** with Workflow and Coding Agents as separate paradigms.
+
 ## [0.5.1] - 2026-05-22
 
 ### Security

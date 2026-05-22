@@ -22,7 +22,7 @@
 14. [Channel System](#14-channel-system)
 15. [Extension System](#15-extension-system)
 16. [Soul & Crew System](#16-soul--crew-system)
-17. [Fleet System](#17-fleet-system)
+17. [Removed: Fleet, Subagent, Orchestra](#17-removed-fleet-subagent-orchestra)
 18. [Habit Tracking](#18-habit-tracking)
 19. [Event System](#19-event-system)
 20. [WebSocket Server](#20-websocket-server)
@@ -1074,43 +1074,20 @@ AgentCommunicationBus
 
 ---
 
-## 17. Fleet System
+## 17. Removed: Fleet, Subagent, Orchestra
 
-Multi-agent fleet coordination with 5 worker types.
+The Fleet (worker army), Subagent (ephemeral spawn), and Orchestra
+(multi-task DAG) subsystems were removed on 2026-05-23. Their roles
+are covered by:
 
-```
-FleetManager
-  │
-  ├── fleets: Map<fleetId, FleetSession>
-  │
-  ├── MAX_CONCURRENT_TASKS per worker type
-  │
-  ├── createFleet(definition) → fleetId
-  ├── addTask(fleetId, task)
-  └── failDependentTasks(taskId) — Cascades failures
+- **Claw** — concurrent cycles + `claw_spawn_subclaw` for hierarchical work
+- **Crew** — `delegate_task` for ad-hoc task handoff between agents
+- **Workflow** — `parallelNode` for visual DAG execution
 
-FleetSession
-  ├── status, context (structuredClone isolation)
-  └── tasks: FleetTask[]
-```
-
-### Fleet Worker Types
-
-```
-ai-chat      — Conversational AI chat
-coding-cli  — CLI coding agent (uses codex CLI)
-api-call    — API call worker
-mcp-bridge  — MCP server bridge
-claw        — Claw single-shot (ephemeral create → execute → cleanup)
-```
-
-### Fleet Task Dependency
-
-```
-failDependentTasks(failedTaskId)
-  │
-  └── Cascades failure to all tasks that depend on failedTaskId
-```
+Migration 038 dropped the legacy tables (`fleets`, `fleet_sessions`,
+`fleet_tasks`, `fleet_worker_history`, `subagent_history`,
+`orchestra_executions`). The autonomous-agent surface is now
+**Agent → Claw → Soul/Crew/Heartbeat**.
 
 ---
 
