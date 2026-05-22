@@ -1,6 +1,6 @@
 # OwnPilot Architecture
 
-**Version:** 1.0 | **Date:** 2026-05-07 | **Stack:** TypeScript Monorepo · pnpm · Turborepo
+**Version:** 1.1 | **Date:** 2026-05-22 | **Stack:** TypeScript Monorepo · pnpm · Turborepo
 
 ---
 
@@ -29,6 +29,8 @@
 21. [API Routes](#21-api-routes)
 22. [Security Architecture](#22-security-architecture)
 23. [Key Patterns & Conventions](#23-key-patterns--conventions)
+24. [Additional Subsystems](#23a-additional-subsystems) — MCP, Coding Agents, Browser, Voice, Composio, Pulse, Tunnel, Pairing, Notifications, Security Scanner, Job Queue, Retention, Metrics, Provider Health
+25. [Security Gaps Analysis (Audit)](#24-security-gaps-analysis-external-audit--2026-05-07)
 
 ---
 
@@ -69,8 +71,8 @@
 │                         packages/                                      │
 │                                                                         │
 │   ┌──────────┐                                                         │
-│   │   cli    │  Commands: server, bot, config, channel, tunnel,        │
-│   │          │  skill, soul, crew, msg, heartbeat, fleet                │
+│   │   cli    │  Commands: start, server, bot, config, channel,         │
+│   │          │  tunnel, skill, soul                                    │
 │   └────┬─────┘                                                         │
 │        │  initializes repos, loads credentials                         │
 │        ▼                                                                │
@@ -123,30 +125,32 @@ cli → gateway → core
 packages/
 ├── core/src/
 │   ├── agent/          # Agent, orchestrator, providers, memory, tools
-│   ├── plugins/        # PluginRegistry, runtime, isolation, marketplace
-│   ├── channels/       # Builder pattern, UCP, channel adapters
-│   ├── events/         # EventSystem, EventBus, HookBus, ScopedBus
-│   ├── sandbox/        # Secure code execution
-│   ├── crypto/         # Keychain, signing
-│   ├── credentials/    # Credential management
-│   ├── scheduler/      # Task scheduling
-│   ├── memory/         # Secure memory
-│   ├── privacy/        # Privacy controls
 │   ├── assistant/      # Assistant/skills infrastructure
-│   ├── services/       # ServiceRegistry, interfaces
+│   ├── audit/          # Tamper-evident audit logging
+│   ├── channels/       # Builder pattern, UCP, channel adapters
 │   ├── costs/          # Cost calculation
+│   ├── credentials/    # Credential management
+│   ├── crypto/         # Keychain, signing, vault
 │   ├── data-gateway/   # Data gateway
-│   ├── workspace/      # User workspace isolation
+│   ├── edge/           # IoT/edge device delegation
+│   ├── events/         # EventSystem, EventBus, HookBus, ScopedBus
+│   ├── memory/         # Secure memory
+│   ├── plugins/        # PluginRegistry, runtime, isolation, marketplace
+│   ├── privacy/        # PII detection/redaction
+│   ├── sandbox/        # Secure code execution
+│   ├── scheduler/      # Task scheduling
 │   ├── security/       # Critical pattern blocking, code risk analysis
-│   └── edge/           # IoT/edge device delegation
+│   ├── services/       # ServiceRegistry, interfaces
+│   ├── types/          # Branded types, Result<T,E>, errors, guards
+│   └── workspace/      # User workspace isolation
 │
 ├── gateway/src/
-│   ├── routes/         # 50+ Hono route files
-│   ├── services/      # Service implementations
+│   ├── routes/         # 70+ Hono route files
+│   ├── services/      # Service implementations (90+ files)
 │   ├── middleware/    # Auth, rate-limit, validation, audit
 │   ├── db/
-│   │   ├── repositories/  # Data access objects
-│   │   └── schema/        # PostgreSQL DDL (13 domain files)
+│   │   ├── repositories/  # Data access objects (60+ repos)
+│   │   └── schema/        # PostgreSQL DDL (15 domain files)
 │   ├── channels/      # Channel service implementation
 │   ├── tools/         # Gateway tool providers
 │   └── ws/            # WebSocket server
@@ -293,7 +297,7 @@ Tool Call Request
 
 ## 4. Database Schema
 
-PostgreSQL via `pg` adapter. **13 domain schema files** in `packages/gateway/src/db/schema/`.
+PostgreSQL via `pg` adapter. **15 domain schema files** in `packages/gateway/src/db/schema/`.
 
 ### Schema Files & Tables
 
@@ -303,30 +307,41 @@ packages/gateway/src/db/schema/
 ├── index.ts              # Assembles all schemas (order matters for FK)
 ├── core.ts               # conversations, messages, request_logs, channels,
 │                         # channel_messages, costs, agents, settings,
-│                         # system_settings, channel_bridges
+│                         # system_settings, channel_bridges, idempotency_keys,
+│                         # jobs, job_history, provider_metrics
 ├── personal-data.ts      # bookmarks, notes, tasks, calendar_events,
-│                         # contacts, captures
+│                         # contacts, projects, reminders, captures
 ├── productivity.ts       # pomodoro_sessions, pomodoro_settings,
 │                         # pomodoro_daily_stats, habits, habit_logs
-├── autonomous.ts        # memories (pgvector), goals, goal_steps,
-│                         # triggers, trigger_history, plans, plan_steps,
-│                         # plan_history, heartbeats, embedding_cache
-├── workspaces.ts         # File workspace tables
-├── models.ts            # model_configurations
-├── workflows.ts         # workflows, workflow_versions, workflow_logs,
+├── autonomous.ts         # memories (pgvector + embedding_model_id), goals,
+│                         # goal_steps, triggers, trigger_history, plans,
+│                         # plan_steps, plan_history, heartbeats,
+│                         # embedding_cache
+├── workspaces.ts         # user_workspaces, user_containers, code_executions,
+│                         # workspace_audit, execution_permissions
+├── models.ts             # user_model_configs, custom_providers,
+│                         # user_provider_configs, custom_data, custom_tools,
+│                         # custom_table_schemas, custom_data_records,
+│                         # oauth_integrations, config_services, config_entries,
+│                         # plugins, local_providers, local_models
+├── workflows.ts          # workflows, workflow_versions, workflow_logs,
 │                         # workflow_approvals, autonomy_log, mcp_servers
-├── coding-agents.ts     # coding_agent_* tables
-├── souls.ts             # agent_souls, agent_soul_versions, skill_usage,
+├── coding-agents.ts      # coding_agent_results, cli_providers,
+│                         # cli_tool_policies, coding_agent_permissions,
+│                         # coding_agent_skill_attachments,
+│                         # coding_agent_subscriptions, orchestration_runs,
+│                         # orchestra_executions, artifacts, artifact_versions
+├── souls.ts              # agent_souls, agent_soul_versions, skill_usage,
 │                         # agent_messages, agent_crews, agent_crew_members,
 │                         # heartbeat_log, subagent_history
-├── channels.ts          # channel_users, channel_sessions,
+├── channels.ts           # channel_users, channel_sessions,
 │                         # channel_verification_tokens, channel_assets,
-│                         # user_extensions
-├── fleet.ts             # fleets, fleet_sessions, fleet_tasks,
+│                         # user_extensions, user_extension_removals
+├── fleet.ts              # fleets, fleet_sessions, fleet_tasks,
 │                         # fleet_worker_history
-├── claw.ts              # claws, claw_sessions, claw_history,
+├── claw.ts               # claws, claw_sessions, claw_history,
 │                         # claw_audit_log
-└── ui-sessions.ts       # ui_sessions, ui_session_tokens
+└── ui-sessions.ts        # ui_sessions
 ```
 
 ### Migration Pattern
@@ -397,13 +412,16 @@ packages/core/src/
 │   ├── tool-namespace.ts     # Tool name qualification (core., custom., etc.)
 │   ├── dynamic-tools.ts      # LLM-created dynamic tools
 │   ├── providers/
-│   │   ├── openai-compatible.ts   # OpenAI-compatible API
-│   │   ├── zhipu.ts               # Zhipu AI
-│   │   ├── google.ts              # Google AI
-│   │   ├── router.ts              # Smart model selection
-│   │   ├── aggregators.ts        # fal.ai, together.ai, groq, fireworks
-│   │   ├── fallback.ts           # Automatic failover
-│   │   └── configs/              # JSON-based provider/model configs
+│   │   ├── openai-provider.ts     # OpenAI native adapter
+│   │   ├── openai-compatible.ts   # OpenAI-compatible API (DeepSeek, etc.)
+│   │   ├── anthropic-provider.ts  # Anthropic native (Claude models)
+│   │   ├── google.ts              # Google AI (Gemini)
+│   │   ├── zhipu.ts               # Zhipu AI (GLM)
+│   │   ├── router.ts              # Smart model selection (cheapest/fastest/
+│   │   │                          # smartest/balanced/fallback)
+│   │   ├── aggregators.ts         # fal.ai, together.ai, groq, fireworks
+│   │   ├── fallback.ts            # Automatic failover wrapper
+│   │   └── configs/               # JSON-based provider/model configs
 │   ├── tools/
 │   │   ├── index.ts              # ToolRegistry with 10 tool sets
 │   │   ├── file-system.ts        # file_read, file_write, etc.
@@ -550,7 +568,7 @@ packages/gateway/src/
 │   └── circuit-breaker.ts # Circuit breaker for external calls
 │
 ├── db/
-│   ├── repositories/       # 20+ repository classes
+│   ├── repositories/       # 60+ repository classes
 │   │   ├── conversations.ts
 │   │   ├── messages.ts
 │   │   ├── claws.ts
@@ -624,20 +642,21 @@ Commander.js CLI with workspace support.
 packages/cli/src/
 ├── index.ts
 ├── commands/
-│   ├── server.ts         # pnpm run dev (starts gateway)
-│   ├── bot.ts           # Telegram bot
-│   ├── config.ts        # Configuration management
-│   ├── channel.ts       # Channel setup
-│   ├── tunnel.ts        # ngrok/localtunnel for webhook exposure
-│   ├── skill.ts         # Skill management
-│   ├── soul.ts          # Soul agent management
-│   ├── crew.ts          # Crew orchestration
-│   ├── msg.ts           # Send messages
-│   ├── heartbeat.ts     # Heartbeat control
-│   └── fleet.ts         # Fleet command
+│   ├── start.ts            # Start gateway (default entrypoint)
+│   ├── server.ts           # Server lifecycle management
+│   ├── bot.ts              # Telegram bot
+│   ├── config.ts           # Configuration management
+│   ├── channel.ts          # Channel setup (REST client)
+│   ├── tunnel.ts           # ngrok/localtunnel for webhook exposure
+│   ├── tunnel-wizard.ts    # Interactive tunnel setup
+│   ├── skill.ts            # Skill management
+│   ├── soul.ts             # Soul agent management
+│   └── gateway-client.ts   # Shared REST client for CLI subcommands
 └── telegram/
-    └── telegram-bot.ts  # TelegramBot implementation
+    └── telegram-bot.ts     # TelegramBot implementation
 ```
+
+> Note: Crew, msg, heartbeat, fleet operations live in the gateway HTTP API, not as dedicated CLI commands.
 
 ---
 
@@ -920,9 +939,15 @@ ChannelPluginBuilder
   ├── .channelApi()    — Set IChannelService factory
   └── .build()          — Build the plugin
 
-Channel Plugins registered in plugins/init.ts:
+Channel Plugins registered in plugins/init.ts (8 active):
   ├── TelegramPlugin
-  └── WhatsAppPlugin (Baileys)
+  ├── DiscordPlugin
+  ├── WhatsAppPlugin (Baileys)
+  ├── SlackPlugin
+  ├── WebChatPlugin
+  ├── SmsPlugin
+  ├── EmailPlugin (IMAP/SMTP)
+  └── MatrixPlugin
 ```
 
 ### Message Flow (Incoming Channel Message)
@@ -1109,9 +1134,12 @@ habit_logs
 ### 8 Habit Tools
 
 ```
-habit_create, habit_update, habit_delete, habit_list,
-habit_log, habit_stats, habit_reminder, habit_search
+create_habit, list_habits, update_habit, delete_habit,
+log_habit, get_today_habits, get_habit_stats, archive_habit
 ```
+
+> Defined in `packages/gateway/src/tools/habit-tools.ts`. Backed by
+> `HabitsRepository` (645 lines) in `db/repositories/habits.ts`.
 
 ### REST API
 
@@ -1203,22 +1231,59 @@ WebSocketServer
 
 ### WebSocket Message Types
 
-```
-client → server:
-  ├── chat-send         — Send chat message
-  ├── chat-stop         — Stop agent iteration
-  ├── chat-retry        — Retry last message
-  ├── tool-call         — Execute tool directly
-  ├── claw-control      — Start/stop/pause claw
-  └── ping              — Keepalive
+All events use **colon-namespaced** identifiers (e.g. `chat:stream:chunk`),
+typed via `ServerEvents` / `ClientEvents` interfaces in
+`packages/gateway/src/ws/types.ts`. Selected events:
 
-server → client:
-  ├── chat-progress    — Streaming response chunks
-  ├── chat-complete    — Final response
-  ├── tool-progress    — Tool execution progress
-  ├── claw-event       — Claw runtime events
-  └── error            — Error notifications
 ```
+client → server (ClientEvents):
+  ├── session:ping            — Keepalive request
+  └── session:pong            — Keepalive ack (resets WS session TTL)
+
+server → client (ServerEvents):
+  ├── connection:ready        — Session established
+  ├── connection:error        — Auth / protocol error
+  ├── connection:ping         — Server-initiated heartbeat
+  │
+  ├── channel:connected       — Channel adapter online
+  ├── channel:disconnected    — Channel adapter offline
+  ├── channel:qr              — WhatsApp/Baileys QR code
+  ├── channel:status          — Status change
+  ├── channel:message         — Incoming/outgoing channel message
+  ├── channel:message:sent    — Outbound delivery ack
+  ├── channel:message:error   — Outbound delivery failure
+  ├── channel:user:pending|approved|blocked|unblocked|verified|first_seen
+  │
+  ├── chat:message            — Final assistant message
+  ├── chat:stream:start       — Streaming begins
+  ├── chat:stream:chunk       — Streaming token chunk
+  ├── chat:stream:end         — Streaming done
+  ├── chat:error              — Chat-level error
+  ├── chat:history:updated    — Conversation list changed
+  │
+  ├── agent:state             — Agent state change (idle/running/etc.)
+  ├── agent:thinking          — Thought trace
+  ├── agent:response          — Agent response message
+  │
+  ├── tool:start              — Tool invocation begin
+  ├── tool:progress           — Tool execution progress
+  ├── tool:end                — Tool execution complete
+  │
+  ├── workspace:created|updated|deleted
+  ├── trigger:executed        — Trigger fired (success/failure/skipped)
+  ├── data:changed            — Personal-data CRUD ({entity, action, id})
+  ├── pulse:activity          — Pulse engine stage updates
+  ├── debug:entry             — Per-request debug entries
+  ├── system:notification     — User-facing system notification
+  ├── system:status           — Online/version/uptime
+  │
+  └── coding-agent:session:{created,output,state,exit,error}
+      coding-agent:acp:{tool-call,tool-update,...}  — ACP protocol events
+```
+
+Chat invocation itself is delivered via `POST /api/v1/chat` (REST/SSE) or via
+the WebChat channel plugin, not via a client→server WS event. The WS layer is
+event broadcasting only; clients subscribe and the gateway pushes updates.
 
 ---
 
@@ -1226,7 +1291,11 @@ server → client:
 
 **50+ route files** registered in 5 groups:
 
-### Route Groups
+### Route Groups (registered in `app.ts`)
+
+The gateway uses **6 registration helpers**:
+`registerPlatformRoutes`, `registerAgentRoutes`, `registerDataRoutes`,
+`registerAutomationRoutes`, `registerIntegrationRoutes`, `registerV2Routes`.
 
 ```
 registerPlatformRoutes()
@@ -1270,6 +1339,10 @@ registerIntegrationRoutes()
   ├── /api/v1/subagents
   ├── /api/v1/orchestra
   └── /webhooks/telegram/:secret
+
+registerV2Routes()
+  └── /api/v2/*               # side-by-side v2 of all v1 routes (ADR-003)
+                              # GET /api/v2 returns version + endpoint map
 ```
 
 ### Key REST Endpoint Families
@@ -1391,6 +1464,129 @@ log.warn('message', { error: err });
 ✓ Zero TODO/FIXME/HACK in production
 ✓ Zero lint warnings in production
 ✓ 3 intentional as any (WS/event type workarounds with eslint-disable)
+```
+
+---
+
+## 23.A Additional Subsystems
+
+Beyond the named systems above, the gateway hosts several first-class subsystems
+that share the same routing/service/repository pattern but don't have a dedicated
+section. Each is listed here with file pointers.
+
+### MCP Integration (Model Context Protocol)
+
+```
+mcp-client-service.ts    — Connects to external MCP servers (stdio / SSE / HTTP)
+mcp-server-service.ts    — Exposes OwnPilot tools AS an MCP server to other clients
+mcp_servers table        — Configured MCP server records (workflows.ts schema)
+/api/v1/mcp routes       — CRUD + connect/disconnect + tool discovery
+```
+
+Bridges OwnPilot's 250+ tools to any MCP-compatible client (Claude Desktop, Cursor,
+Claude Code) and consumes tools from external MCP servers as virtual `plugin.mcp.*`
+tools.
+
+### Coding Agents (Multi-Provider CLI Orchestration)
+
+```
+coding-agent-orchestrator.ts  — Top-level lifecycle for CLI coding sessions
+coding-agent-providers.ts     — Per-provider adapters (claude-code, codex, etc.)
+coding-agent-pty.ts           — node-pty wrapper for terminal capture
+coding-agent-sessions.ts      — In-memory session registry
+coding-agent-service.ts       — Public service facade
+orchestra-engine.ts           — Multi-agent collaboration (parallel CLI sessions)
+DB tables                     — coding_agent_results, cli_providers,
+                                cli_tool_policies, coding_agent_permissions,
+                                coding_agent_skill_attachments,
+                                coding_agent_subscriptions, orchestration_runs,
+                                orchestra_executions, artifacts, artifact_versions
+Routes                        — /api/v1/coding-agents, /api/v1/orchestra,
+                                /api/v1/cli-providers, /api/v1/cli-tools,
+                                /api/v1/artifacts
+```
+
+### Browser Automation
+
+```
+browser-service.ts            — Playwright-based browser session manager
+SSRF guard                    — Reuses isBlockedUrl / isPrivateUrlAsync
+Routes                        — /api/v1/browser (navigate, screenshot, extract)
+```
+
+### Voice
+
+```
+voice-service.ts              — TTS/STT provider routing + audio overrides
+Routes                        — /api/v1/voice (speak, transcribe)
+```
+
+### Composio (External SaaS Tooling)
+
+```
+composio-service.ts           — OAuth + tool catalog from composio.dev
+Routes                        — /api/v1/composio (apps, connect, callback)
+Open-redirect guard           — Composio callback validation
+```
+
+### Pulse Engine (Background Heartbeat / Metrics)
+
+```
+pulse-metrics-service.ts      — In-process pulse counters
+Routes                        — /pulse (system pulse + metrics)
+UI                            — AutonomyPage → PulseEngineSection
+```
+
+### Tunnel (Webhook Exposure)
+
+```
+tunnel-service.ts             — ngrok / localtunnel / cloudflared wrappers
+Routes                        — /api/v1/tunnel (start, stop, status)
+CLI                           — tunnel command + tunnel-wizard interactive setup
+```
+
+### Pairing (Device Linking)
+
+```
+pairing-service.ts            — Pairing-code flow for channel + edge devices
+channel_verification_tokens   — Backing table
+```
+
+### Notification Router
+
+```
+notification-router.ts        — Routes notifications to user-preferred channels
+                                (DB-backed preferences, replaces in-memory)
+```
+
+### Security Scanner
+
+```
+security-scanner.ts           — Static analysis of skill/extension code at install
+skill-security-audit.ts       — Per-skill security audit report
+Routes                        — /api/v1/security (scan, audit)
+```
+
+### Operational Infrastructure (cross-cutting)
+
+```
+job-queue-service.ts          — Postgres-backed durable job queue (FOR UPDATE
+                                SKIP LOCKED). See ADR-001 + section 24.1
+jobs.ts (repo)                — claimJob, complete, fail (exponential backoff),
+                                cancel, cleanupOld
+retention-service.ts          — Nightly cleanup across 13 tables. See ADR-002 +
+                                section 24.3
+orphan-reconciliation.ts      — Boot-time reclamation of crashed Claw / Fleet /
+                                Subagent / Workflow / Plan sessions. See 24.5
+provider-health-service.ts    — Boot-time /models probe for all configured
+                                providers. See 24.10
+metrics-service.ts            — In-process Prometheus exporter (GET /metrics).
+                                See 24.6
+idempotency-keys (repo+mw)    — 24h-TTL deduplication on tool exec + POST /chat.
+                                See 24.1 / 24.7
+llm-semaphore.ts              — Global LLM concurrency limiter
+embedding-queue.ts            — Async embedding generation queue
+config validation             — config/validation.ts fail-fast at boot. See 24.8
 ```
 
 ---
