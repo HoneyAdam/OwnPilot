@@ -167,6 +167,7 @@ function RunnerCard({
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {Object.entries(stats)
+          .filter(([, v]) => typeof v === 'number' || typeof v === 'string')
           .slice(0, 4)
           .map(([k, v]) => (
             <div key={k} className="flex items-center justify-between">

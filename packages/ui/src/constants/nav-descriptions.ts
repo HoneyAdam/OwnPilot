@@ -51,7 +51,7 @@ export const NAV_DESCRIPTIONS: Record<string, string> = {
   '/claws': 'Autonomous continuous AI agent runners',
   '/edge-devices': 'Manage IoT and edge device connections',
   '/coding-agents': 'AI agents that write and run code',
-  '/orchestration': 'Coordinate complex multi-agent tasks',
+  '/orchestration': 'Multi-step coding-agent pipelines (Claude/Gemini/Codex)',
 
   // Settings
   '/settings/api-keys': 'Manage your LLM provider API keys',

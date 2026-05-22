@@ -97,7 +97,7 @@ export function SystemStatsWidget() {
       label: 'Extensions',
       value: stats.extensions,
       icon: Puzzle,
-      link: '/extensions',
+      link: '/skills?tab=installed&format=ownpilot',
       createLink: '/skills',
       color: 'text-amber-500',
       bgColor: 'bg-amber-500/10',
