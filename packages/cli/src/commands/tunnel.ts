@@ -303,20 +303,11 @@ async function doTunnelStop(): Promise<void> {
   }
 }
 
-/**
- * Build common headers for gateway calls. Attach `Authorization` when the
- * operator has configured an API key (or JWT) via env — without this, an
- * `--auth` gateway would silently 401 on every CLI subcommand and the
- * webhook-secret PUT below would be rejected.
- */
-function gatewayHeaders(extra?: Record<string, string>): Record<string, string> {
-  const headers: Record<string, string> = { ...(extra ?? {}) };
-  const apiKey = process.env.OWNPILOT_API_KEY;
-  const jwt = process.env.OWNPILOT_JWT;
-  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-  else if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
-  return headers;
-}
+// Auth-header builder lives in `./gateway-client.ts` so every CLI subcommand
+// that talks to the gateway attaches the same `Authorization: Bearer …`
+// from OWNPILOT_API_KEY / OWNPILOT_JWT.
+
+import { gatewayHeaders } from './gateway-client.js';
 
 /**
  * Probe the gateway with a lightweight health check before sending any

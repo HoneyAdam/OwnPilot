@@ -47,40 +47,16 @@ interface PermissionInfo {
 // ============================================================================
 // Gateway API Helper
 // ============================================================================
+// apiFetch + auth-header attachment lives in `./gateway-client.ts`.
 
-const getBaseUrl = () => process.env.OWNPILOT_GATEWAY_URL ?? 'http://localhost:8080';
-
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${getBaseUrl()}/api/v1${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  });
-
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    const errField = body.error;
-    const msg =
-      typeof errField === 'object' && errField !== null
-        ? ((errField as Record<string, string>).message ?? JSON.stringify(errField))
-        : ((errField as string) ?? (body.message as string) ?? `HTTP ${res.status}`);
-    throw new Error(msg);
-  }
-
-  const json = (await res.json()) as Record<string, unknown>;
-  return (json.data ?? json) as T;
-}
+import { apiFetch, gatewayUnreachableMessage } from './gateway-client.js';
 
 function ensureGatewayError(error: unknown): never {
-  const msg = error instanceof Error ? error.message : String(error);
-  if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
-    console.error(
-      '\nCould not reach gateway at ' +
-        getBaseUrl() +
-        '.\n' +
-        'Make sure the server is running: ownpilot start\n'
-    );
+  const hint = gatewayUnreachableMessage(error);
+  if (hint) {
+    console.error(hint);
   } else {
+    const msg = error instanceof Error ? error.message : String(error);
     console.error(`\nError: ${msg}\n`);
   }
   process.exit(1);
@@ -280,7 +256,7 @@ export async function skillInstall(nameOrPath: string): Promise<void> {
 
         // Grant permissions
         if (granted.length > 0 && result.extensionId) {
-          await apiFetch(`/skills/permissions/${result.extensionId}`, {
+          await apiFetch(`/skills/permissions/${encodeURIComponent(result.extensionId)}`, {
             method: 'POST',
             body: JSON.stringify({ grantedPermissions: granted }),
           });
@@ -371,7 +347,7 @@ export async function skillUninstall(id?: string): Promise<void> {
       return;
     }
 
-    await apiFetch(`/skills/${targetId}`, { method: 'DELETE' });
+    await apiFetch(`/skills/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
     console.log(`\n\u2705 Removed "${ext.name}"\n`);
   } catch (error) {
     if (error instanceof Error && error.message.includes('ExitPromptError')) return;
@@ -402,7 +378,7 @@ export async function skillEnable(id?: string): Promise<void> {
         })),
       }));
 
-    await apiFetch(`/extensions/${targetId}/enable`, { method: 'POST' });
+    await apiFetch(`/extensions/${encodeURIComponent(targetId)}/enable`, { method: 'POST' });
 
     console.log(`\n\u2705 Enabled "${targetId}"\n`);
   } catch (error) {
@@ -434,7 +410,7 @@ export async function skillDisable(id?: string): Promise<void> {
         })),
       }));
 
-    await apiFetch(`/extensions/${targetId}/disable`, { method: 'POST' });
+    await apiFetch(`/extensions/${encodeURIComponent(targetId)}/disable`, { method: 'POST' });
 
     console.log(`\n\u26AA Disabled "${targetId}"\n`);
   } catch (error) {

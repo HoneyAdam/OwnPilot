@@ -85,12 +85,12 @@ const program = new Command();
 
 program.name('ownpilot').description('Privacy-first AI Gateway CLI').version(VERSION);
 
-// Setup command - first-time configuration
-program
-  .command('setup')
-  .description('Initialize the gateway with encrypted credential storage')
-  .option('-p, --password <password>', 'Master password (will prompt if not provided)')
-  .action(setup);
+// Setup command - first-time configuration.
+// `--password` used to live here; the encrypted-credential-store has been
+// removed (see configChangePassword in commands/config.ts), so the flag is
+// dropped to avoid lulling users into thinking a master password is being
+// stored or required.
+program.command('setup').description('Initialize the gateway database').action(setup);
 
 // Server command - initializes repos before starting
 program

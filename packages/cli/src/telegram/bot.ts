@@ -113,21 +113,25 @@ export class TelegramBot {
   }
 
   /**
-   * Check if user is allowed to use the bot
+   * Check if user is allowed to use the bot.
+   *
+   * Fail-CLOSED semantics: if the operator passed a whitelist (any defined
+   * array), only listed IDs pass — even when the array is empty. The
+   * previous `length > 0` guard fell open if `--users abc,def` (all
+   * NaN-filtered to `[]`) was supplied, accidentally exposing the bot
+   * to every Telegram user.
    */
   private isUserAllowed(ctx: Context): boolean {
     const userId = ctx.from?.id;
     const chatId = ctx.chat?.id;
 
-    // Check user whitelist
-    if (this.config.allowedUserIds && this.config.allowedUserIds.length > 0) {
+    if (this.config.allowedUserIds !== undefined) {
       if (!userId || !this.config.allowedUserIds.includes(userId)) {
         return false;
       }
     }
 
-    // Check chat whitelist
-    if (this.config.allowedChatIds && this.config.allowedChatIds.length > 0) {
+    if (this.config.allowedChatIds !== undefined) {
       if (!chatId || !this.config.allowedChatIds.includes(chatId)) {
         return false;
       }
@@ -208,7 +212,7 @@ export class TelegramBot {
     // Split long messages
     const parts = this.splitMessage(text, maxLength);
 
-    let lastError: Error | null = null;
+    const failures: Array<{ partIndex: number; error: string }> = [];
     for (let i = 0; i < parts.length; i++) {
       const partText = parts[i];
       if (!partText) continue;
@@ -220,10 +224,11 @@ export class TelegramBot {
             i === 0 && message.replyToMessageId ? Number(message.replyToMessageId) : undefined,
         });
       } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
+        const message = err instanceof Error ? err.message : String(err);
+        failures.push({ partIndex: i + 1, error: message });
         log.error(`Failed to send message part ${i + 1}/${parts.length}`, {
           chatId,
-          error: lastError.message,
+          error: message,
         });
       }
 
@@ -233,9 +238,16 @@ export class TelegramBot {
       }
     }
 
-    // Throw if any part failed (after attempting all parts)
-    if (lastError) {
-      throw lastError;
+    // Aggregate all failures into the thrown error. The previous code only
+    // surfaced the last failure, so the caller couldn't tell partial
+    // delivery (part 1 succeeded, part 2 failed) from total failure — both
+    // looked like "one error".
+    if (failures.length > 0) {
+      const total = parts.filter(Boolean).length;
+      const summary = failures.map((f) => `part ${f.partIndex}: ${f.error}`).join('; ');
+      throw new Error(
+        `Telegram sendMessage failed for ${failures.length}/${total} parts — ${summary}`
+      );
     }
   }
 

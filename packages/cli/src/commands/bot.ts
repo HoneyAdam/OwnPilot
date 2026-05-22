@@ -73,15 +73,28 @@ export async function startBot(options: BotOptions): Promise<void> {
     systemPrompt: 'You are a helpful AI assistant on Telegram. Be concise and friendly.',
   });
 
-  // Parse allowed users/chats from CLI options
-  const allowedUserIds = options.users
-    ?.split(',')
-    .map(Number)
-    .filter((n) => Number.isFinite(n));
-  const allowedChatIds = options.chats
-    ?.split(',')
-    .map(Number)
-    .filter((n) => Number.isFinite(n));
+  // Parse allowed users/chats from CLI options. Surface a loud warning when
+  // the operator passed a value that parsed to nothing — the bot will
+  // refuse all messages (fail-closed, see TelegramBot.isUserAllowed), which
+  // would otherwise look like a silent outage.
+  const parseAllowList = (raw: string | undefined, flagName: string): number[] | undefined => {
+    if (raw === undefined) return undefined;
+    const ids = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map(Number)
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (ids.length === 0) {
+      console.error(
+        `⚠️  --${flagName} was provided but parsed to no valid numeric IDs — ` +
+          'the bot will refuse all messages. Pass comma-separated integer IDs.'
+      );
+    }
+    return ids;
+  };
+  const allowedUserIds = parseAllowList(options.users, 'users');
+  const allowedChatIds = parseAllowList(options.chats, 'chats');
 
   // Create bot config. parseMode is intentionally left undefined (plain text)
   // so LLM-generated content containing `<`, `&`, or arbitrary tag-like

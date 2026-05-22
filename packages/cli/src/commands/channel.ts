@@ -34,41 +34,18 @@ interface SetupResponse {
 // ============================================================================
 // Gateway API Helper
 // ============================================================================
+// apiFetch and gateway-base-URL handling live in `./gateway-client.ts` so the
+// Authorization header (OWNPILOT_API_KEY / OWNPILOT_JWT) is attached
+// consistently across every CLI subcommand that talks to the gateway.
 
-const getBaseUrl = () => process.env.OWNPILOT_GATEWAY_URL ?? 'http://localhost:8080';
-
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${getBaseUrl()}/api/v1${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  });
-
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    // Gateway returns { error: { code, message } } or { error: "string" }
-    const errField = body.error;
-    const msg =
-      typeof errField === 'object' && errField !== null
-        ? ((errField as Record<string, string>).message ?? JSON.stringify(errField))
-        : ((errField as string) ?? (body.message as string) ?? `HTTP ${res.status}`);
-    throw new Error(msg);
-  }
-
-  const json = (await res.json()) as Record<string, unknown>;
-  return (json.data ?? json) as T;
-}
+import { apiFetch, gatewayUnreachableMessage } from './gateway-client.js';
 
 function ensureGatewayError(error: unknown): never {
-  const msg = error instanceof Error ? error.message : String(error);
-  if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
-    console.error(
-      '\nCould not reach gateway at ' +
-        getBaseUrl() +
-        '.\n' +
-        'Make sure the server is running: ownpilot start\n'
-    );
+  const hint = gatewayUnreachableMessage(error);
+  if (hint) {
+    console.error(hint);
   } else {
+    const msg = error instanceof Error ? error.message : String(error);
     console.error(`\nError: ${msg}\n`);
   }
   process.exit(1);
@@ -185,10 +162,15 @@ export async function channelAdd(): Promise<void> {
     // 4. Call quick setup endpoint
     console.log(`\nConnecting ${type} bot...`);
 
-    const result = await apiFetch<SetupResponse>(`/channels/${pluginId}/setup`, {
-      method: 'POST',
-      body: JSON.stringify({ config }),
-    });
+    // Encode pluginId so a future config-driven plugin name with `?`/`#`/`/`
+    // cannot reshape the gateway path.
+    const result = await apiFetch<SetupResponse>(
+      `/channels/${encodeURIComponent(pluginId)}/setup`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ config }),
+      }
+    );
 
     // 5. Show result
     console.log(`\nChannel connected!`);
