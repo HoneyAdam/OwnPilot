@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-05-22
+
+### Security
+
+Forensic audit pass on `packages/core`. 11 CRITICAL+HIGH findings; all closed.
+
+- **CRITICAL — sandbox host-realm RCE via constructor chain.** Verified end-to-end: before this fix, plugin code running in `WorkerSandbox` could execute `new URL('http://x').constructor.constructor('return process.versions.node')()` and obtain real host-realm `process` access. The injected host `URL` (and `URLSearchParams`, `TextEncoder`, `TextDecoder`, `Response`, `Request`, `Headers`) walked into the host `Function` constructor, which compiles strings in the host realm and is NOT governed by `vm.createContext`'s `codeGeneration.strings:false`. Three-layer fix in `core/sandbox/context.ts` + `core/sandbox/code-validator.ts`: (a) stop injecting V8-already-provided constructors (`Date`, `RegExp`, `Error`, `JSON`, `Math`, typed arrays, `DataView`) — the VM context provides its own safe versions; (b) Proxy-wrap the Node-only host constructors V8 doesn't supply, returning a sandbox-realm stub Proxy from `.constructor` that recursively returns itself and throws on call; (c) extend the static code-validator regex to catch the `'construct'+'or'` string-concat bypass.
+- **CRITICAL — `SecurePluginRuntime` removed.** The legacy runtime in `core/plugins/runtime.ts` advertised plugin isolation but provided none: its worker had `eval: true` with full Node access, `pluginModule` was never assigned (so every `call()` returned "Method not found"), and the entire API had zero callers in gateway/cli/ui. Deleted the file, its 1,500-line test, and the corresponding re-exports from `core/plugins/index.ts`. The functional plugin system is `PluginRegistry`.
+- **CRITICAL — WorkerSandbox concurrency race.** Two concurrent `execute()` calls both passed the `state !== 'idle'` check after the lazy-init `await`; the second overwrote `currentResolve`/`currentReject`/`executionTimeout` — the first promise hung forever. Now serialized via a sync busy-flag + queue; uncontended calls still run inline so the synchronous `worker.postMessage` side-effect is preserved.
+- **HIGH — Plugin network SSRF (no DNS resolution).** `PluginIsolatedNetwork.fetch` only checked literal IPv4 octets, so `evil.com` whose A record points at `169.254.169.254` (cloud-metadata endpoint) sailed past the guard. Added DNS resolution via `node:dns/promises` with 1-minute block cache, IPv4-mapped-IPv6 and CGNAT (`100.64.0.0/10`) ranges in the static check, redirect-target re-check, and fail-closed on unresolvable hostnames.
+- **HIGH — Unbounded parallel tool execution.** `ToolRegistry.executeToolCalls` did `Promise.allSettled` with no concurrency cap; an LLM (possibly driven by prompt injection) could return 100+ tool calls in a turn and spawn sandboxes, hit paid APIs, and drain rate limits in parallel. Capped at 8 concurrent via an index-based worker pool.
+- **HIGH — HookBus has no per-handler timeout.** A handler that never resolves used to block the entire chain and every awaiting caller (e.g. `tool:before-execute` blocked every tool call). Each handler is now raced against a 5-second timeout; the chain continues with the offender skipped.
+- **HIGH — Memory store path traversal via userId.** `ConversationMemoryStore` and `PersonalMemoryStore` joined `userId` directly into the storage path; a caller passing `../../../etc/foo` escaped the per-user partition. Added `assertSafeUserId(/^[A-Za-z0-9_.-]{1,128}$/)` in both constructors.
+- **HIGH — `SecureMemoryStore` empty salt default.** `loadOrCreateSalt()` resolved the salt and used it to derive the encryption key, but never propagated it back to `config.installationSalt` — so `hashUserId()` and `hashContent()` silently used the empty-string default, making both hashes deterministic and identical across every OwnPilot install on earth. Defeats the per-installation isolation property. Now propagated.
+- **HIGH — `CredentialContext` plaintext cache TTL.** Decrypted credential plaintext used to linger in the cache forever in long-lived services (background workers, soul heartbeat). Entries now expire after 5 minutes.
+- **HIGH — Silent random encryption key.** `createInMemoryCredentialStore` silently generated a random key when none was configured. If a persistent backend was swapped in, all credentials would be unreadable after restart. Now throws in `NODE_ENV=production`; emits a loud warning otherwise.
+- **HIGH — Worker exit cross-plugin pending-call leak.** When one plugin's worker exited, the runtime iterated the global `pendingCalls` map and rejected EVERY in-flight call, including those belonging to other plugins. Now tagged with `pluginId` and scoped to the exiting plugin only.
+
+### Fixed
+
+- **WhatsApp channel resilience (440 displace storm).** `consecutive440Count` was reset on every successful `'open'` event, which defeated `MAX_CONSECUTIVE_440=3` during brief-reconnect storms. Now deferred behind a 2-minute stable-connection window so a flapping connection cannot zero the counter on every cycle.
+- **Telegram channel resilience (409 conflict storm).** Symmetric to the WhatsApp fix: `reconnectAttempts = 0` in `onStart` was deferred behind the same 2-minute stable-connection window, so `RECONNECT_CONFIG.maxAttempts=10` can no longer be defeated by a 409 conflict bouncing the poller between brief successes.
+
+### Removed
+
+- `SecurePluginRuntime`, `createPluginRuntime`, `getDefaultRuntime`, `resetDefaultRuntime`, `type PluginState`, `type PluginInstance`, `type LoadOptions`, `type RuntimeConfig`, `type RuntimeEvents`, and class `PluginSecurityBarrier` from `@ownpilot/core/plugins`. Net diff: -2,489 lines. External consumers should migrate to `PluginRegistry` (already used internally).
+
 ## [0.5.0] - 2026-05-22
 
 ### Added
