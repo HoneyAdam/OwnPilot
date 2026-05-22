@@ -264,12 +264,12 @@ pluginsRoutes.post('/:id/enable', async (c) => {
 
   // Audit plugin enable — re-activates the plugin's declared permissions
   // (network, storage, exec) and its tool/handler registrations.
-  getEventSystem().emit('audit.plugin.enabled' as never, 'plugins', {
+  getEventSystem().emit('audit.plugin.enabled', 'plugins', {
     ip: getClientIp(c.req),
     pluginId: id,
     pluginName: plugin.manifest.name,
     permissions: plugin.manifest.permissions ?? [],
-  } as never);
+  });
 
   return apiResponse(c, {
     message: `Plugin ${plugin.manifest.name} enabled`,
@@ -297,11 +297,11 @@ pluginsRoutes.post('/:id/disable', async (c) => {
   wsGateway.broadcast('data:changed', { entity: 'plugin', action: 'updated', id });
 
   // Audit plugin disable.
-  getEventSystem().emit('audit.plugin.disabled' as never, 'plugins', {
+  getEventSystem().emit('audit.plugin.disabled', 'plugins', {
     ip: getClientIp(c.req),
     pluginId: id,
     pluginName: plugin.manifest.name,
-  } as never);
+  });
 
   return apiResponse(c, {
     message: `Plugin ${plugin.manifest.name} disabled`,
@@ -340,12 +340,12 @@ pluginsRoutes.put('/:id/config', async (c) => {
   // ("the slack token was changed at 14:23 from 1.2.3.4") without
   // shipping the secret to wherever the audit log ends up.
   const changedKeys = Object.keys(body.settings ?? {});
-  getEventSystem().emit('audit.plugin.configChanged' as never, 'plugins', {
+  getEventSystem().emit('audit.plugin.configChanged', 'plugins', {
     ip: getClientIp(c.req),
     pluginId: id,
     pluginName: plugin.manifest.name,
     changedKeys,
-  } as never);
+  });
 
   return apiResponse(c, {
     message: 'Configuration updated',

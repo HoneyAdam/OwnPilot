@@ -188,12 +188,12 @@ installRoutes.post('/install', async (c) => {
     wsGateway.broadcast('data:changed', { entity: 'extension', action: 'created', id: record.id });
     // Audit extension install — registers new code, tools, and triggers
     // in the runtime, plus any permissions the manifest declared.
-    getEventSystem().emit('audit.extension.installed' as never, 'extensions', {
+    getEventSystem().emit('audit.extension.installed', 'extensions', {
       ip: getClientIp(c.req),
       extensionId: record.id,
       source: 'path',
       userId,
-    } as never);
+    });
     const security = (record.manifest as unknown as Record<string, unknown>)?._security ?? null;
     return apiResponse(
       c,
@@ -361,12 +361,12 @@ installRoutes.post('/upload', async (c) => {
           action: 'created',
           id: record.id,
         });
-        getEventSystem().emit('audit.extension.installed' as never, 'extensions', {
+        getEventSystem().emit('audit.extension.installed', 'extensions', {
           ip: getClientIp(c.req),
           extensionId: record.id,
           source: ext === '.skill' ? 'upload-skill' : 'upload-zip',
           userId,
-        } as never);
+        });
 
         const zipSecurity =
           (record.manifest as unknown as Record<string, unknown>)?._security ?? null;
@@ -422,12 +422,12 @@ installRoutes.post('/upload', async (c) => {
           action: 'created',
           id: record.id,
         });
-        getEventSystem().emit('audit.extension.installed' as never, 'extensions', {
+        getEventSystem().emit('audit.extension.installed', 'extensions', {
           ip: getClientIp(c.req),
           extensionId: record.id,
           source: ext === '.md' ? 'upload-md' : 'upload-json',
           userId,
-        } as never);
+        });
 
         const fileSecurity =
           (record.manifest as unknown as Record<string, unknown>)?._security ?? null;

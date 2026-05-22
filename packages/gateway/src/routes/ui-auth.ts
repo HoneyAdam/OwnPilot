@@ -113,11 +113,11 @@ uiAuthRoutes.post('/login', async (c) => {
 
   if (!verifyPassword(password, storedHash)) {
     loginThrottle.recordFailure(clientIp);
-    getEventSystem().emit('audit.auth.loginFailed' as never, 'ui-auth', {
+    getEventSystem().emit('audit.auth.loginFailed', 'ui-auth', {
       ip: clientIp,
       attempts: 1,
       lockedOut: !loginThrottle.check(clientIp).allowed,
-    } as never);
+    });
     return apiError(c, { code: ERROR_CODES.ACCESS_DENIED, message: 'Invalid password' }, 403);
   }
 
@@ -128,9 +128,9 @@ uiAuthRoutes.post('/login', async (c) => {
   // audit log shows only attacker noise (failed attempts) and never
   // the legitimate "who actually got in" signal. Knowing baseline
   // login behavior is what makes anomaly detection possible.
-  getEventSystem().emit('audit.auth.loginSucceeded' as never, 'ui-auth', {
+  getEventSystem().emit('audit.auth.loginSucceeded', 'ui-auth', {
     ip: clientIp,
-  } as never);
+  });
   return apiResponse(c, {
     expiresAt: session.expiresAt.toISOString(),
   });
@@ -148,9 +148,9 @@ uiAuthRoutes.post('/logout', async (c) => {
 
   await invalidateSession(token);
   clearUiSessionCookie(c);
-  getEventSystem().emit('audit.auth.logout' as never, 'ui-auth', {
+  getEventSystem().emit('audit.auth.logout', 'ui-auth', {
     ip: getClientIpHttp(c),
-  } as never);
+  });
   return apiResponse(c, { message: 'Logged out' });
 });
 
@@ -219,10 +219,10 @@ uiAuthRoutes.post('/password', async (c) => {
     // First-time setup — require bootstrap token to prevent race condition (PRIVESC-001)
     const bootstrapToken = process.env.BOOTSTRAP_TOKEN;
     if (!bootstrapToken) {
-      getEventSystem().emit('audit.security.privesc_blocked' as never, 'ui-auth', {
+      getEventSystem().emit('audit.security.privesc_blocked', 'ui-auth', {
         reason: 'first_password_setup_no_bootstrap_token',
         ip: getClientIpHttp(c),
-      } as never);
+      });
       return apiError(
         c,
         {
@@ -238,10 +238,10 @@ uiAuthRoutes.post('/password', async (c) => {
     // input from the network — a short/predictable one is brute-forceable, and
     // the throttle (5/15min) on /auth/password gives ~480 attempts/day per IP.
     if (bootstrapToken.length < MIN_BOOTSTRAP_TOKEN_LENGTH) {
-      getEventSystem().emit('audit.security.privesc_blocked' as never, 'ui-auth', {
+      getEventSystem().emit('audit.security.privesc_blocked', 'ui-auth', {
         reason: 'first_password_setup_weak_bootstrap_token',
         ip: getClientIpHttp(c),
-      } as never);
+      });
       return apiError(
         c,
         {
@@ -272,10 +272,10 @@ uiAuthRoutes.post('/password', async (c) => {
     const providedToken = c.req.header('X-Bootstrap-Token') ?? '';
     if (!providedToken || !safeKeyCompare(providedToken, bootstrapToken)) {
       loginThrottle.recordFailure(setupIp);
-      getEventSystem().emit('audit.security.privesc_blocked' as never, 'ui-auth', {
+      getEventSystem().emit('audit.security.privesc_blocked', 'ui-auth', {
         reason: 'first_password_setup_invalid_token',
         ip: setupIp,
-      } as never);
+      });
       return apiError(
         c,
         { code: ERROR_CODES.ACCESS_DENIED, message: 'Invalid bootstrap token' },
@@ -299,11 +299,15 @@ uiAuthRoutes.post('/password', async (c) => {
   // Audit password set/change. This is the highest-value sensitive
   // operation in the auth surface — without it we have no trail of
   // who acquired credential access and when.
-  getEventSystem().emit(
-    (existingHash ? 'audit.auth.passwordChanged' : 'audit.auth.passwordSet') as never,
-    'ui-auth',
-    { ip: getClientIpHttp(c) } as never
-  );
+  if (existingHash) {
+    getEventSystem().emit('audit.auth.passwordChanged', 'ui-auth', {
+      ip: getClientIpHttp(c),
+    });
+  } else {
+    getEventSystem().emit('audit.auth.passwordSet', 'ui-auth', {
+      ip: getClientIpHttp(c),
+    });
+  }
 
   return apiResponse(c, {
     message: existingHash ? 'Password changed' : 'Password set',
@@ -329,9 +333,9 @@ uiAuthRoutes.delete('/password', async (c) => {
   clearUiSessionCookie(c);
   // Audit password removal — disabling UI auth is a privilege-relevant
   // change that should be visible in incident response.
-  getEventSystem().emit('audit.auth.passwordRemoved' as never, 'ui-auth', {
+  getEventSystem().emit('audit.auth.passwordRemoved', 'ui-auth', {
     ip: getClientIpHttp(c),
-  } as never);
+  });
   return apiResponse(c, { message: 'Password removed' });
 });
 

@@ -181,12 +181,12 @@ export async function executeSendOutput(
   // 2. Emit WS event for live UI feed
   try {
     const { getEventSystem } = await import('@ownpilot/core');
-    getEventSystem().emit('claw.output' as never, 'claw-tools', {
+    getEventSystem().emit('claw.output', 'claw-tools', {
       clawId: ctx.clawId,
       message,
       urgency,
       timestamp: new Date().toISOString(),
-    } as never);
+    });
     deliveries.push('websocket');
   } catch {
     // Event system may not be initialized
@@ -281,14 +281,14 @@ export async function executeCompleteReport(
   // 3. Emit WS notification
   try {
     const { getEventSystem } = await import('@ownpilot/core');
-    getEventSystem().emit('claw.output' as never, 'claw-tools', {
+    getEventSystem().emit('claw.output', 'claw-tools', {
       clawId: ctx.clawId,
       type: 'report',
       title,
       summary,
-      artifactId: results.artifactId,
+      artifactId: results.artifactId as string | undefined,
       timestamp: new Date().toISOString(),
-    } as never);
+    });
     results.websocketSent = true;
   } catch {
     results.websocketSent = false;

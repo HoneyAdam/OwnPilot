@@ -165,9 +165,9 @@ backupRoutes.post('/backup', async (c) => {
   // Audit the backup initiation. Backups expose every credential and
   // setting in the DB once they leave the host, so the operation
   // needs a forensic record.
-  getEventSystem().emit('audit.database.backupStarted' as never, 'db-backup', {
+  getEventSystem().emit('audit.database.backupStarted', 'db-backup', {
     ip: getClientIp(c.req),
-  } as never);
+  });
 
   const config = getDatabaseConfig();
 
@@ -314,10 +314,10 @@ backupRoutes.post('/restore', async (c) => {
   // password hash, the JWT secret, the API keys, anything) if the
   // operator's session is hijacked. We log BEFORE doing anything so
   // even a crash mid-restore leaves a trail.
-  getEventSystem().emit('audit.database.restoreStarted' as never, 'db-backup', {
+  getEventSystem().emit('audit.database.restoreStarted', 'db-backup', {
     ip: getClientIp(c.req),
     filename: sanitizeId(basename(body.filename)),
-  } as never);
+  });
 
   const config = getDatabaseConfig();
   const backupPath = join(getBackupDir(), basename(body.filename)); // Sanitize path
@@ -441,10 +441,10 @@ backupRoutes.delete('/backup/:filename', (c) => {
     unlinkSync(backupPath);
     // Audit backup deletion — destroys a recovery option, must be
     // visible in incident response.
-    getEventSystem().emit('audit.database.backupDeleted' as never, 'db-backup', {
+    getEventSystem().emit('audit.database.backupDeleted', 'db-backup', {
       ip: getClientIp(c.req),
       filename: sanitizeId(basename(filename)),
-    } as never);
+    });
     return apiResponse(c, { message: `Deleted backup: ${sanitizeId(basename(filename))}` });
   } catch (err) {
     return apiError(

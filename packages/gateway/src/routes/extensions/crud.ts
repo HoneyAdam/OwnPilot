@@ -49,11 +49,11 @@ async function uninstallExtension(c: Context) {
   wsGateway.broadcast('data:changed', { entity: 'extension', action: 'deleted', id });
   // Audit extension uninstall — removes code, triggers, granted
   // permissions, and any DB state the extension owned.
-  getEventSystem().emit('audit.extension.uninstalled' as never, 'extensions', {
+  getEventSystem().emit('audit.extension.uninstalled', 'extensions', {
     ip: getClientIp(c.req),
     extensionId: id,
     userId,
-  } as never);
+  });
   return apiResponse(c, {
     deleted: true,
     uninstalled: true,
@@ -255,11 +255,11 @@ crudRoutes.post('/:id/enable', async (c) => {
     wsGateway.broadcast('data:changed', { entity: 'extension', action: 'updated', id });
     // Audit extension enable — re-activates tools, triggers, and any
     // granted permissions the extension holds.
-    getEventSystem().emit('audit.extension.enabled' as never, 'extensions', {
+    getEventSystem().emit('audit.extension.enabled', 'extensions', {
       ip: getClientIp(c.req),
       extensionId: id,
       userId,
-    } as never);
+    });
     return apiResponse(c, { package: pkg, message: 'Extension enabled.' });
   } catch (error) {
     return apiError(
@@ -291,11 +291,11 @@ crudRoutes.post('/:id/disable', async (c) => {
     wsGateway.broadcast('data:changed', { entity: 'extension', action: 'updated', id });
     // Audit extension disable — silences tools/triggers but does not
     // remove the extension or its DB state.
-    getEventSystem().emit('audit.extension.disabled' as never, 'extensions', {
+    getEventSystem().emit('audit.extension.disabled', 'extensions', {
       ip: getClientIp(c.req),
       extensionId: id,
       userId,
-    } as never);
+    });
     return apiResponse(c, { package: pkg, message: 'Extension disabled.' });
   } catch (error) {
     return apiError(
