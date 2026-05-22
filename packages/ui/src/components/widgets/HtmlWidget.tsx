@@ -23,6 +23,71 @@ function isHtmlData(item: unknown): item is HtmlData {
   return typeof (item as Record<string, unknown>).html === 'string';
 }
 
+// Restrict URIs in href/src to http(s), mailto, and relative paths. The
+// default DOMPurify allow-list also permits `tel:`, `xmpp:`, and a handful
+// of niche schemes; we tighten so a sanitized blob cannot ship a
+// surprise `data:`, `blob:`, or `vbscript:` link.
+const SAFE_URI_RE = /^(?:(?:https?|mailto):|\/|#|[a-zA-Z0-9_./?=&%+-]+$)/i;
+
+// Tags / attributes we accept. Explicit allow-listing means we don't rely
+// on DOMPurify USE_PROFILES (which is implicit and version-dependent).
+const ALLOWED_TAGS = [
+  'p',
+  'br',
+  'b',
+  'i',
+  'em',
+  'strong',
+  'ul',
+  'ol',
+  'li',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'pre',
+  'code',
+  'a',
+  'img',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  'div',
+  'span',
+] as const;
+
+const ALLOWED_ATTR = ['href', 'src', 'alt', 'title', 'class', 'target', 'rel'] as const;
+
+let dompurifyHooked = false;
+function ensureDompurifyHook(): void {
+  if (dompurifyHooked) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dp = DOMPurify as any;
+  if (typeof dp.addHook !== 'function') return;
+  // After sanitization, force `rel="noopener noreferrer"` on every
+  // `<a target="_blank">` so a sanitized link cannot tabnab the parent
+  // window via `window.opener`.
+  dp.addHook('afterSanitizeAttributes', (node: Element) => {
+    if (node.tagName === 'A' && node.getAttribute('target') === '_blank') {
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+    // Strip target on non-_blank values to avoid `target="self"` shadowing.
+    if (node.tagName === 'A') {
+      const target = node.getAttribute('target');
+      if (target && target !== '_blank') {
+        node.removeAttribute('target');
+      }
+    }
+  });
+  dompurifyHooked = true;
+}
+
 function sanitizeHtml(html: string): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const dp = DOMPurify as any;
@@ -30,41 +95,23 @@ function sanitizeHtml(html: string): string {
     // Fallback: strip all tags in non-DOMPurify environments (e.g., test SSR)
     return html.replace(/<[^>]*>/g, '').slice(0, 10000);
   }
-  // Use DOMPurify for production-grade XSS sanitization
+  ensureDompurifyHook();
+  // Explicit, restrictive config — no implicit profiles, no SVG/MathML
+  // namespace, no `data:` URIs, no `style` attribute, no template
+  // expressions. SAFE_FOR_TEMPLATES blocks mXSS via `{{}}` `${}` brackets.
   return dp.sanitize(html, {
-    USE_PROFILES: { html: true },
-    ALLOWED_TAGS: [
-      'p',
-      'br',
-      'b',
-      'i',
-      'em',
-      'strong',
-      'ul',
-      'ol',
-      'li',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'blockquote',
-      'pre',
-      'code',
-      'a',
-      'img',
-      'table',
-      'thead',
-      'tbody',
-      'tr',
-      'th',
-      'td',
-      'div',
-      'span',
-    ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel'],
+    ALLOWED_TAGS: [...ALLOWED_TAGS],
+    ALLOWED_ATTR: [...ALLOWED_ATTR],
+    ALLOWED_URI_REGEXP: SAFE_URI_RE,
     ALLOW_DATA_ATTR: false,
+    ALLOW_ARIA_ATTR: false,
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+    USE_PROFILES: { html: true, svg: false, svgFilters: false, mathMl: false },
+    SAFE_FOR_TEMPLATES: true,
+    FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form', 'meta', 'link', 'base'],
+    FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick', 'formaction', 'srcdoc'],
+    KEEP_CONTENT: false,
+    RETURN_TRUSTED_TYPE: false,
   });
 }
 

@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="OwnPilot - Privacy-first AI Assistant" />
+    <!--
+      Baseline Content Security Policy. The gateway also sets a stricter
+      CSP via secure-headers when serving the production bundle; this
+      meta tag is the fallback for dev (Vite) and any non-gateway hosting.
+      Notes:
+      - 'unsafe-inline' on style-src is required by Tailwind runtime
+        utility injection. All HTML injection sinks in the app route
+        through DOMPurify with strict allow-listing.
+      - 'unsafe-inline' on script-src is dev-only for Vite HMR; the
+        gateway overrides with a 'self'-only policy in production via
+        the CSP header (header trumps meta when both are present).
+      - object-src 'none' and frame-src 'none' block legacy plugin XSS.
+      - frame-ancestors is enforced via header (meta cannot set it).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'"
+    />
     <title>OwnPilot</title>
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   </head>

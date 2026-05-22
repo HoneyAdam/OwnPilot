@@ -719,11 +719,29 @@ function JsonWidget({ name, data }: ChatMessageWidgetProps) {
   );
 }
 
-export function ChatMessageWidget({ name, data }: ChatMessageWidgetProps) {
-  const normalized = name
+// Defense-in-depth: the widget `name` is supplied by an LLM in a chat
+// message (via parsed markers). We already render it through React (so
+// no innerHTML risk), but unbounded LLM-controlled strings reaching the
+// UI as a widget title are a phishing surface (e.g. a "title" of
+// "Click here to verify your account"). Clamp length and restrict to a
+// conservative character set BEFORE the switch matches, so the resulting
+// `normalized` is also the only string that can land in a fallback
+// `<WidgetShell title>`.
+const WIDGET_NAME_MAX_LEN = 64;
+const WIDGET_NAME_ALLOWED_RE = /[^a-z0-9_]/g;
+
+function sanitizeWidgetName(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  return raw
     .trim()
     .toLowerCase()
-    .replace(/[\s-]+/g, '_');
+    .replace(/[\s-]+/g, '_')
+    .replace(WIDGET_NAME_ALLOWED_RE, '')
+    .slice(0, WIDGET_NAME_MAX_LEN);
+}
+
+export function ChatMessageWidget({ name, data }: ChatMessageWidgetProps) {
+  const normalized = sanitizeWidgetName(name);
   const renderData = normalizeRenderableData(normalized, data);
 
   if (isRecord(renderData) && renderData.error === 'Invalid widget data') {

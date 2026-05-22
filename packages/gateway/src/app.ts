@@ -120,17 +120,24 @@ export function createApp(config: Partial<GatewayConfig> = {}): Hono {
         magnetometer: [],
         gyroscope: [],
       },
-      // Content Security Policy for API (restrictive default)
+      // Content Security Policy for everything served by the gateway
+      // (including the React SPA bundle). API routes are tightened
+      // further below.
+      // connect-src includes ws/wss so the SPA can open its WebSocket
+      // session against same-origin (`new WebSocket(...)` in
+      // useWebSocket.tsx). frame-ancestors blocks clickjacking; meta-tag
+      // CSP cannot set this so it must live on the HTTP header.
       contentSecurityPolicy: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
-        fontSrc: ["'self'"],
-        connectSrc: ["'self'"],
-        mediaSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'", 'ws:', 'wss:'],
+        mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
         frameSrc: ["'none'"],
+        frameAncestors: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
       },
