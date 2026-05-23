@@ -134,7 +134,7 @@ healthRoutes.get('/', async (c) => {
   // Claw stats
   let clawStats: { total: number; running: number; paused: number; waiting: number } | null = null;
   try {
-    const { getClawManager } = await import('../services/claw-manager.js');
+    const { getClawManager } = await import('../services/claw/manager.js');
     const sessions = getClawManager().getAllSessions();
     clawStats = {
       total: sessions.length,

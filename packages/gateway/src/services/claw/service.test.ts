@@ -16,7 +16,7 @@ const mockCreate = vi.fn();
 const mockUpdate = vi.fn();
 const mockGetByIdAnyUser = vi.fn();
 
-vi.mock('../db/repositories/claws.js', () => ({
+vi.mock('../../db/repositories/claws.js', () => ({
   getClawsRepository: () => ({
     getById: mockGetById,
     getHistory: mockGetHistory,
@@ -34,7 +34,7 @@ const mockResumeClaw = vi.fn();
 const mockDelete = vi.fn();
 const mockDeleteSessionWorkspace = vi.fn();
 
-vi.mock('./claw-manager.js', () => ({
+vi.mock('./manager.js', () => ({
   getClawManager: () => ({
     getSession: mockGetSession,
     executeNow: mockExecuteNow,
@@ -48,11 +48,11 @@ vi.mock('./claw-manager.js', () => ({
   }),
 }));
 
-vi.mock('../workspace/file-workspace.js', () => ({
+vi.mock('../../workspace/file-workspace.js', () => ({
   deleteSessionWorkspace: mockDeleteSessionWorkspace,
 }));
 
-import { ClawServiceImpl } from './claw-service.js';
+import { ClawServiceImpl } from './service.js';
 
 describe('ClawService authorization', () => {
   let service: ClawServiceImpl;

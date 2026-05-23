@@ -20,7 +20,7 @@ import type {
   ClawSession,
   UpdateClawInput,
 } from '@ownpilot/core';
-import { getClawService } from '../services/claw-service.js';
+import { getClawService } from '../services/claw/service.js';
 import { getLlmSemaphore } from '../services/llm-semaphore.js';
 import {
   getUserId,
@@ -414,7 +414,7 @@ clawRoutes.post('/recommendations/apply', async (c) => {
     const service = getClawService();
     const configs = await service.listClaws(userId);
     const sessions = service.listSessions(userId);
-    const { getClawManager } = await import('../services/claw-manager.js');
+    const { getClawManager } = await import('../services/claw/manager.js');
 
     const targets = configs.filter((config) => {
       if (requestedIds && !requestedIds.has(config.id)) return false;
@@ -715,7 +715,7 @@ clawRoutes.post('/:id/apply-recommendations', async (c) => {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Claw not found' }, 404);
     }
 
-    const { getClawManager } = await import('../services/claw-manager.js');
+    const { getClawManager } = await import('../services/claw/manager.js');
     getClawManager().updateClawConfig(id, updated);
 
     return apiResponse(c, {
@@ -1008,7 +1008,7 @@ clawRoutes.put('/:id', async (c) => {
     }
 
     // Hot-reload in-memory config so changes take effect without restart
-    const { getClawManager } = await import('../services/claw-manager.js');
+    const { getClawManager } = await import('../services/claw/manager.js');
     getClawManager().updateClawConfig(id, updated);
 
     return apiResponse(c, updated);

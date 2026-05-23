@@ -14,19 +14,15 @@
 
 import { getEventSystem, getErrorMessage, generateId } from '@ownpilot/core';
 import type { ClawSession, ClawCycleResult, ClawEscalation, EventHandler } from '@ownpilot/core';
-import { ClawRunner } from './claw-runner.js';
-import { getClawsRepository } from '../db/repositories/claws.js';
+import { ClawRunner } from './runner.js';
+import { getClawsRepository } from '../../db/repositories/claws.js';
 import {
   getOrCreateSessionWorkspace,
   updateSessionWorkspaceMeta,
-} from '../workspace/file-workspace.js';
-import { getLog } from './log.js';
-import {
-  scaffoldClawDir,
-  runRetentionCleanup,
-  ensureConversationRow,
-} from './claw/manager-helpers.js';
-import { safeCost, safeDuration } from '../utils/safe-value.js';
+} from '../../workspace/file-workspace.js';
+import { getLog } from '../log.js';
+import { scaffoldClawDir, runRetentionCleanup, ensureConversationRow } from './manager-helpers.js';
+import { safeCost, safeDuration } from '../../utils/safe-value.js';
 
 const log = getLog('ClawManager');
 

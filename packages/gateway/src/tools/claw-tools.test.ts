@@ -18,7 +18,7 @@ const { mockGetClawContext, mockGetClawManager, mockGetArtifactService, mockGetC
     };
   });
 
-vi.mock('../services/claw-context.js', () => ({
+vi.mock('../services/claw/context.js', () => ({
   getClawContext: mockGetClawContext,
 }));
 
@@ -30,7 +30,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   };
 });
 
-vi.mock('../services/claw-manager.js', () => ({
+vi.mock('../services/claw/manager.js', () => ({
   getClawManager: mockGetClawManager,
 }));
 

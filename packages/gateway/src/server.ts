@@ -967,7 +967,7 @@ async function main() {
 
     // 8.2. Stop claw manager (H-C20: persist & retention timers)
     try {
-      const { resetClawManager } = await import('./services/claw-manager.js');
+      const { resetClawManager } = await import('./services/claw/manager.js');
       resetClawManager();
     } catch (e) {
       log.warn('Claw manager stop error', { error: String(e) });

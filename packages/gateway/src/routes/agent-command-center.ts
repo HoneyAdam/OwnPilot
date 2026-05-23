@@ -19,7 +19,7 @@ import {
 import { getSoulsRepository } from '../db/repositories/souls.js';
 import { getCrewsRepository } from '../db/repositories/crews.js';
 import { getHeartbeatLogRepository } from '../db/repositories/heartbeat-log.js';
-import { getClawService } from '../services/claw-service.js';
+import { getClawService } from '../services/claw/service.js';
 import {
   validateBody,
   agentCommandSchema,

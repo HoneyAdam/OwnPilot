@@ -9,7 +9,7 @@
  */
 
 import { getErrorMessage } from '@ownpilot/core';
-import { getClawContext } from '../../services/claw-context.js';
+import { getClawContext } from '../../services/claw/context.js';
 
 type ExecResult = { success: boolean; result?: unknown; error?: string };
 
@@ -32,7 +32,7 @@ export async function executeSetContext(args: Record<string, unknown>): Promise<
   const KEY_RE = /^[a-zA-Z0-9_.\-]+$/;
 
   try {
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     const manager = getClawManager();
     const session = manager.getSession(ctx.clawId);
     if (!session) return { success: false, error: 'Claw session not found' };
@@ -131,7 +131,7 @@ export async function executeGetContext(): Promise<ExecResult> {
   if (!ctx) return { success: false, error: 'Not running inside a Claw context' };
 
   try {
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     const session = getClawManager().getSession(ctx.clawId);
     if (!session) return { success: false, error: 'Claw session not found' };
 
@@ -255,7 +255,7 @@ export async function executeUpdateConfig(
     // Hot-reload in-memory config so changes take effect this cycle
     if (updated) {
       try {
-        const { getClawManager } = await import('../../services/claw-manager.js');
+        const { getClawManager } = await import('../../services/claw/manager.js');
         getClawManager().updateClawConfig(ctx.clawId, updated);
       } catch {
         // Best-effort — manager may not have this claw loaded

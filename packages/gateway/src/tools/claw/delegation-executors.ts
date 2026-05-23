@@ -9,7 +9,7 @@
  */
 
 import { getErrorMessage, generateId, MAX_CLAW_DEPTH, type ClawSandboxMode } from '@ownpilot/core';
-import { getClawContext } from '../../services/claw-context.js';
+import { getClawContext } from '../../services/claw/context.js';
 
 type ExecResult = { success: boolean; result?: unknown; error?: string };
 
@@ -38,7 +38,7 @@ export async function executeSpawnSubclaw(
   }
 
   // Lazy import to avoid circular dependency
-  const { getClawManager } = await import('../../services/claw-manager.js');
+  const { getClawManager } = await import('../../services/claw/manager.js');
   const manager = getClawManager();
 
   const { getClawsRepository } = await import('../../db/repositories/claws.js');
@@ -140,7 +140,7 @@ export async function executeListSubclaws(_userId: string): Promise<ExecResult> 
     const repo = getClawsRepository();
     const children = await repo.getChildClaws(ctx.clawId);
 
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     const manager = getClawManager();
 
     const subclaws = children.map((c) => {
@@ -180,7 +180,7 @@ export async function executeStopSubclaw(
       return { success: false, error: 'Subclaw not found or not a child of this claw' };
     }
 
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     const stopped = await getClawManager().stopClaw(subclawId, userId);
     return {
       success: true,
@@ -239,7 +239,7 @@ export async function executeSendAgentMessage(
     }
 
     // Try to deliver to running claw's inbox
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     const manager = getClawManager();
 
     const formattedMsg = `[${messageType.toUpperCase()}] From claw:${ctx.clawId} — ${subject}\n\n${content}`;

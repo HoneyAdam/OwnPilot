@@ -13,14 +13,14 @@ const { mockGetClawService } = vi.hoisted(() => {
   return { mockGetClawService: vi.fn() };
 });
 
-vi.mock('../services/claw-service.js', () => ({
+vi.mock('../services/claw/service.js', () => ({
   getClawService: mockGetClawService,
 }));
 
 const mockGetClawManager = vi.fn().mockReturnValue({
   updateClawConfig: vi.fn(),
 });
-vi.mock('../services/claw-manager.js', () => ({
+vi.mock('../services/claw/manager.js', () => ({
   getClawManager: mockGetClawManager,
 }));
 

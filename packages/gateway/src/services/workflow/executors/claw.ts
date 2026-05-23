@@ -22,7 +22,7 @@ export async function executeClawNode(
 ): Promise<NodeResult> {
   const startTime = Date.now();
   let createdClawId: string | null = null;
-  let getClawServiceRef: (typeof import('../../claw-service.js'))['getClawService'] | null = null;
+  let getClawServiceRef: (typeof import('../../claw/service.js'))['getClawService'] | null = null;
   try {
     const data = node.data as unknown as Record<string, unknown>;
 
@@ -53,7 +53,7 @@ export async function executeClawNode(
       };
     }
 
-    const { getClawService } = await import('../../claw-service.js');
+    const { getClawService } = await import('../../claw/service.js');
     getClawServiceRef = getClawService;
     const service = getClawService();
 

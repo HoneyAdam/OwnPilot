@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { runInClawContext, getClawContext, type ClawExecutionContext } from './claw-context.js';
+import { runInClawContext, getClawContext, type ClawExecutionContext } from './context.js';
 
 function makeCtx(overrides: Partial<ClawExecutionContext> = {}): ClawExecutionContext {
   return {

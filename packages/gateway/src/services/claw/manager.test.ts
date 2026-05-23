@@ -22,7 +22,7 @@ const { mockRunCycle, mockGetClawsRepo, mockGetOrCreateSessionWorkspace, mockGet
     };
   });
 
-vi.mock('./claw-runner.js', () => ({
+vi.mock('./runner.js', () => ({
   ClawRunner: vi.fn().mockImplementation(function () {
     return {
       runCycle: mockRunCycle,
@@ -31,11 +31,11 @@ vi.mock('./claw-runner.js', () => ({
   }),
 }));
 
-vi.mock('../db/repositories/claws.js', () => ({
+vi.mock('../../db/repositories/claws.js', () => ({
   getClawsRepository: mockGetClawsRepo,
 }));
 
-vi.mock('../workspace/file-workspace.js', () => ({
+vi.mock('../../workspace/file-workspace.js', () => ({
   getOrCreateSessionWorkspace: mockGetOrCreateSessionWorkspace,
   updateSessionWorkspaceMeta: vi.fn(),
   readSessionWorkspaceFile: vi.fn().mockReturnValue(null),
@@ -52,7 +52,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   };
 });
 
-vi.mock('./log.js', () => ({
+vi.mock('../log.js', () => ({
   getLog: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -61,7 +61,7 @@ vi.mock('./log.js', () => ({
   }),
 }));
 
-const { ClawManager } = await import('./claw-manager.js');
+const { ClawManager } = await import('./manager.js');
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -137,7 +137,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   };
 });
 
-vi.mock('./agent-cache.js', () => ({
+vi.mock('../agent-cache.js', () => ({
   getProviderApiKey: vi.fn().mockResolvedValue('sk-test-key'),
   loadProviderConfig: vi.fn().mockReturnValue(null),
   NATIVE_PROVIDERS: new Set(['openai', 'anthropic']),
@@ -146,11 +146,11 @@ vi.mock('./agent-cache.js', () => ({
   computeMemoryMaxTokens: vi.fn().mockReturnValue(96000),
 }));
 
-vi.mock('./model-routing.js', () => ({
+vi.mock('../model-routing.js', () => ({
   resolveForProcess: vi.fn().mockResolvedValue({ provider: 'openai', model: 'gpt-4o-mini' }),
 }));
 
-vi.mock('../routes/agent-tools.js', () => ({
+vi.mock('../../routes/agent-tools.js', () => ({
   registerGatewayTools: mockRegisterGatewayTools,
   registerDynamicTools: mockRegisterDynamicTools,
   registerPluginTools: mockRegisterPluginTools,
@@ -158,7 +158,7 @@ vi.mock('../routes/agent-tools.js', () => ({
   registerMcpTools: mockRegisterMcpTools,
 }));
 
-vi.mock('../config/defaults.js', async (importOriginal) => {
+vi.mock('../../config/defaults.js', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -172,22 +172,22 @@ const mockBuildEnhancedSystemPrompt = vi.fn().mockResolvedValue({
   stats: { memoriesUsed: 3, goalsUsed: 2 },
 });
 
-vi.mock('../assistant/orchestrator.js', () => ({
+vi.mock('../../assistant/orchestrator.js', () => ({
   buildEnhancedSystemPrompt: mockBuildEnhancedSystemPrompt,
 }));
 
-vi.mock('../workspace/file-workspace.js', () => ({
+vi.mock('../../workspace/file-workspace.js', () => ({
   getSessionWorkspaceFiles: mockGetSessionWorkspaceFiles,
 }));
 
 const mockSoulsGetById = vi.fn();
-vi.mock('../db/repositories/souls.js', () => ({
+vi.mock('../../db/repositories/souls.js', () => ({
   getSoulsRepository: () => ({
     getById: mockSoulsGetById,
   }),
 }));
 
-vi.mock('./log.js', () => ({
+vi.mock('../log.js', () => ({
   getLog: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -196,7 +196,7 @@ vi.mock('./log.js', () => ({
   }),
 }));
 
-const { ClawRunner } = await import('./claw-runner.js');
+const { ClawRunner } = await import('./runner.js');
 
 // ---------------------------------------------------------------------------
 // Sample data

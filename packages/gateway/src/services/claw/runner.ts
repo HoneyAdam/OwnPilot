@@ -19,20 +19,20 @@ import { getErrorMessage, type Agent } from '@ownpilot/core';
 import type { ClawConfig, ClawSession, ClawCycleResult, ClawToolCall } from '@ownpilot/core';
 import type { RuntimeContext } from '@ownpilot/core';
 import { getRuntimeContext } from '@ownpilot/core';
-import { getLog } from './log.js';
-import { buildEnhancedSystemPrompt } from '../assistant/orchestrator.js';
+import { getLog } from '../log.js';
+import { buildEnhancedSystemPrompt } from '../../assistant/orchestrator.js';
 import {
   createConfiguredAgent,
   resolveToolFilter,
   executeAgentPipeline,
   buildDateTimeContext,
-} from './agent-runner-utils.js';
-import { runInClawContext } from './claw-context.js';
+} from '../agent-runner-utils.js';
+import { runInClawContext } from './context.js';
 import {
   getSessionWorkspaceFiles,
   readSessionWorkspaceFile,
   type WorkspaceFileInfo,
-} from '../workspace/file-workspace.js';
+} from '../../workspace/file-workspace.js';
 
 const log = getLog('ClawRunner');
 
@@ -256,7 +256,7 @@ export class ClawRunner {
   private async buildSoulSection(): Promise<string> {
     if (!this.config.soulId) return '';
     try {
-      const { getSoulsRepository } = await import('../db/repositories/souls.js');
+      const { getSoulsRepository } = await import('../../db/repositories/souls.js');
       const soul = await getSoulsRepository().getById(this.config.soulId);
       if (!soul) return '';
 
@@ -526,7 +526,7 @@ export class ClawRunner {
 
   private async saveAuditLog(cycleNumber: number, toolCalls: ClawToolCall[]): Promise<void> {
     if (toolCalls.length === 0) return;
-    const { getClawsRepository } = await import('../db/repositories/claws.js');
+    const { getClawsRepository } = await import('../../db/repositories/claws.js');
     const repo = getClawsRepository();
     await repo.saveAuditBatch(
       toolCalls.map((tc) => ({

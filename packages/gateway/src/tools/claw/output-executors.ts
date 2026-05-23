@@ -10,7 +10,7 @@
  */
 
 import { getErrorMessage, generateId, getEventSystem } from '@ownpilot/core';
-import { getClawContext } from '../../services/claw-context.js';
+import { getClawContext } from '../../services/claw/context.js';
 
 type ExecResult = { success: boolean; result?: unknown; error?: string };
 
@@ -57,7 +57,7 @@ export async function executePublishArtifact(
   // reports for years still fit. Beyond that, almost certainly a bug.
   const MAX_ARTIFACTS_PER_CLAW = 1000;
   try {
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     const session = getClawManager().getSession(ctx.clawId);
     if (session && session.artifacts.length >= MAX_ARTIFACTS_PER_CLAW) {
       return {
@@ -81,7 +81,7 @@ export async function executePublishArtifact(
 
   // Track artifact in session so UI Overview tab can show it
   try {
-    const { getClawManager } = await import('../../services/claw-manager.js');
+    const { getClawManager } = await import('../../services/claw/manager.js');
     getClawManager().addArtifact(ctx.clawId, artifact.id);
   } catch {
     // Manager may not be available in test environments
@@ -119,7 +119,7 @@ export async function executeRequestEscalation(args: Record<string, unknown>): P
 
   const escalationId = generateId('esc');
 
-  const { getClawManager } = await import('../../services/claw-manager.js');
+  const { getClawManager } = await import('../../services/claw/manager.js');
   const manager = getClawManager();
 
   await manager.requestEscalation(ctx.clawId, {
@@ -258,7 +258,7 @@ export async function executeCompleteReport(
 
     // Track artifact in session
     try {
-      const { getClawManager } = await import('../../services/claw-manager.js');
+      const { getClawManager } = await import('../../services/claw/manager.js');
       getClawManager().addArtifact(ctx.clawId, artifact.id);
     } catch {
       // Best-effort

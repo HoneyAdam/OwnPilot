@@ -15,8 +15,8 @@ import type {
   UpdateClawInput,
 } from '@ownpilot/core';
 import { generateId, DEFAULT_CLAW_LIMITS, MAX_CLAW_DEPTH } from '@ownpilot/core';
-import { getClawManager } from './claw-manager.js';
-import { getClawsRepository } from '../db/repositories/claws.js';
+import { getClawManager } from './manager.js';
+import { getClawsRepository } from '../../db/repositories/claws.js';
 
 /**
  * Validate user-provided claw limits/intervals before they reach the runtime.
@@ -166,7 +166,7 @@ export class ClawServiceImpl implements IClawService {
 
     if (workspaceId) {
       try {
-        const { deleteSessionWorkspace } = await import('../workspace/file-workspace.js');
+        const { deleteSessionWorkspace } = await import('../../workspace/file-workspace.js');
         deleteSessionWorkspace(workspaceId);
       } catch {
         // Best-effort — workspace may already be gone or path invalid.

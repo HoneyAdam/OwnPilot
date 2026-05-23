@@ -10,7 +10,7 @@
  */
 
 import { getErrorMessage, validateToolCode } from '@ownpilot/core';
-import { getClawContext } from '../../services/claw-context.js';
+import { getClawContext } from '../../services/claw/context.js';
 import { validatePackageName, validateToolName, truncateScriptOutput } from './validation.js';
 import { buildSandboxEnv } from './sandbox-env.js';
 

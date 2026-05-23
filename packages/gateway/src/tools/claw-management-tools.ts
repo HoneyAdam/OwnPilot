@@ -8,7 +8,7 @@
 
 import type { ToolDefinition } from '@ownpilot/core';
 import { getErrorMessage } from '@ownpilot/core';
-import { getClawService } from '../services/claw-service.js';
+import { getClawService } from '../services/claw/service.js';
 
 // =============================================================================
 // Tool Definitions
