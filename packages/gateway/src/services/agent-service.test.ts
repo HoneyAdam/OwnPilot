@@ -139,7 +139,7 @@ const mockGetDefaultModel = vi.fn();
 const mockGetConfiguredProviderIds = vi.fn(async () => new Set<string>());
 const mockGetEnabledToolGroupIds = vi.fn(() => [] as string[]);
 
-vi.mock('./settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   resolveDefaultProviderAndModel: (...args: unknown[]) =>
     mockResolveProviderAndModel(...(args as [string, string])),
   getDefaultProvider: (...args: unknown[]) => mockGetDefaultProvider(...args),
@@ -148,20 +148,20 @@ vi.mock('./settings.js', () => ({
   getEnabledToolGroupIds: (...args: unknown[]) => mockGetEnabledToolGroupIds(...args),
 }));
 
-vi.mock('../services/cli-chat-provider.js', () => ({
+vi.mock('./cli-chat-provider.js', () => ({
   isCliChatProvider: vi.fn(() => false),
   getCliBinaryFromProviderId: vi.fn(() => '/usr/bin/test'),
   createCliChatProvider: vi.fn(() => ({})),
   getCliChatProviderDefinition: vi.fn(() => null),
 }));
 
-vi.mock('../services/extension-service.js', () => ({
+vi.mock('./extension-service.js', () => ({
   getExtensionService: vi.fn(() => ({
     getSystemPromptSections: vi.fn(() => []),
   })),
 }));
 
-vi.mock('./agent-prompt.js', () => ({
+vi.mock('../routes/agent-prompt.js', () => ({
   BASE_SYSTEM_PROMPT: 'Test system prompt',
 }));
 
@@ -205,7 +205,7 @@ const mockResolveToolGroups = vi.fn(() => []);
 const mockEvictAgentFromCache = vi.fn();
 const mockCreateApprovalCallback = vi.fn(() => vi.fn());
 
-vi.mock('../services/agent-cache.js', () => ({
+vi.mock('./agent-cache.js', () => ({
   NATIVE_PROVIDERS: new Set([
     'openai',
     'anthropic',

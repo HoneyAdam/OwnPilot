@@ -27,19 +27,19 @@ import {
 import type { SessionInfo } from '../types/index.js';
 import { agentsRepo, type AgentRecord } from '../db/repositories/index.js';
 import { ChatRepository } from '../db/repositories/chat.js';
-import { getErrorMessage } from './helpers.js';
+import { getErrorMessage } from '../utils/common.js';
 import {
   resolveDefaultProviderAndModel,
   getDefaultProvider,
   getDefaultModel,
   getConfiguredProviderIds,
   getEnabledToolGroupIds,
-} from './settings.js';
+} from './app-settings.js';
 import { localProvidersRepo } from '../db/repositories/local-providers.js';
 import { getSoulsRepository } from '../db/repositories/souls.js';
 import { getAgentMessagesRepository } from '../db/repositories/agent-messages.js';
-import { getLog } from '../services/log.js';
-import { BASE_SYSTEM_PROMPT, CLI_SYSTEM_PROMPT } from './agent-prompt.js';
+import { getLog } from './log.js';
+import { BASE_SYSTEM_PROMPT, CLI_SYSTEM_PROMPT } from '../routes/agent-prompt.js';
 import {
   registerGatewayTools,
   registerDynamicTools,
@@ -79,7 +79,7 @@ import {
   evictAgentFromCache,
   MAX_AGENT_CACHE_SIZE,
   MAX_CHAT_AGENT_CACHE_SIZE,
-} from '../services/agent-cache.js';
+} from './agent-cache.js';
 import { getLLMRouter, getConfigCenter } from '@ownpilot/core';
 import {
   AGENT_DEFAULT_MAX_TOKENS,
@@ -93,7 +93,7 @@ import {
   getCliBinaryFromProviderId,
   createCliChatProvider,
   getCliChatProviderDefinition,
-} from '../services/cli-chat-provider.js';
+} from './cli-chat-provider.js';
 
 const log = getLog('AgentService');
 

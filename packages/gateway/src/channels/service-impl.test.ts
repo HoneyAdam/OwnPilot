@@ -198,7 +198,7 @@ vi.mock('../routes/helpers.js', () => ({
   getErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
 }));
 
-vi.mock('../routes/agents.js', () => ({
+vi.mock('../services/agent-service.js', () => ({
   getOrCreateChatAgent: mockGetOrCreateChatAgent,
   isDemoMode: mockIsDemoMode,
 }));
