@@ -12,15 +12,21 @@ const mockSend = vi.fn();
 const mockBroadcast = vi.fn();
 const mockBroadcastAll = vi.fn();
 const mockListChannels = vi.fn();
+const mockHasChannelService = vi.fn(() => true);
 
-vi.mock('../channels/service-impl.js', () => ({
-  getChannelServiceImpl: () => ({
-    send: mockSend,
-    broadcast: mockBroadcast,
-    broadcastAll: mockBroadcastAll,
-    listChannels: mockListChannels,
-  }),
-}));
+vi.mock('@ownpilot/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@ownpilot/core')>();
+  return {
+    ...actual,
+    hasChannelService: () => mockHasChannelService(),
+    getChannelService: () => ({
+      send: mockSend,
+      broadcast: mockBroadcast,
+      broadcastAll: mockBroadcastAll,
+      listChannels: mockListChannels,
+    }),
+  };
+});
 
 const mockGetByChannel = vi.fn();
 const mockGetInbox = vi.fn();

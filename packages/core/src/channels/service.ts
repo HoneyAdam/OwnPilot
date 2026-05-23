@@ -12,6 +12,7 @@
  */
 
 import type {
+  ChannelIncomingMessage,
   ChannelOutgoingMessage,
   ChannelPlatform,
   ChannelPluginAPI,
@@ -83,6 +84,17 @@ export interface IChannelService {
    * Returns null if the user is not verified.
    */
   resolveUser(platform: ChannelPlatform, platformUserId: string): Promise<string | null>;
+
+  /**
+   * Push an incoming message through the channel pipeline (verification,
+   * dedup, normalization, agent dispatch, WS fanout). Called by webhook
+   * handlers and synthetic-message paths (e.g. WebUI replay).
+   *
+   * Was previously gateway-internal; promoted to the contract so route
+   * handlers and webhook plugins no longer need to import ChannelServiceImpl
+   * directly.
+   */
+  processIncomingMessage(message: ChannelIncomingMessage): Promise<void>;
 }
 
 // ============================================================================

@@ -8,9 +8,8 @@
 
 import { randomUUID } from 'node:crypto';
 import type { ChannelIncomingMessage } from '@ownpilot/core';
-import { getChannelService } from '@ownpilot/core';
+import { getChannelService, hasChannelService } from '@ownpilot/core';
 import type { WebChatChannelAPI } from '../channels/plugins/webchat/webchat-api.js';
-import { getChannelServiceImpl } from '../channels/service-impl.js';
 import { sessionManager } from './session.js';
 // Lazy-imported to break circular dependency: ws/webchat-handler.ts ↔ ws/server.ts
 import { getLog } from '../services/log.js';
@@ -107,11 +106,10 @@ export async function handleWebChatMessage(
   };
 
   try {
-    const serviceImpl = getChannelServiceImpl();
-    if (serviceImpl) {
-      await serviceImpl.processIncomingMessage(incomingMessage);
+    if (hasChannelService()) {
+      await getChannelService().processIncomingMessage(incomingMessage);
     } else {
-      log.error('ChannelServiceImpl not available, cannot process webchat message');
+      log.error('ChannelService not available, cannot process webchat message');
     }
   } catch (error) {
     log.error('Failed to process webchat message', { error, sessionId: effectiveSessionId });

@@ -13,8 +13,7 @@
 import { Hono } from 'hono';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import type { ChannelIncomingMessage } from '@ownpilot/core';
-import { getChannelService } from '@ownpilot/core';
-import { getChannelServiceImpl } from '../../service-impl.js';
+import { getChannelService, hasChannelService } from '@ownpilot/core';
 import type { SmsChannelAPI } from './sms-api.js';
 import { getLog } from '../../../services/log.js';
 import { getRequestUrl } from '../../../utils/trusted-proxy.js';
@@ -139,14 +138,15 @@ export function createSmsWebhookRoute(): Hono {
       };
 
       // Process through channel service pipeline
-      const serviceImpl = getChannelServiceImpl();
-      if (serviceImpl) {
+      if (hasChannelService()) {
         // Fire and forget — Twilio expects a quick response
-        serviceImpl.processIncomingMessage(incomingMessage).catch((error) => {
-          log.error('Failed to process SMS', { error: String(error), from });
-        });
+        getChannelService()
+          .processIncomingMessage(incomingMessage)
+          .catch((error) => {
+            log.error('Failed to process SMS', { error: String(error), from });
+          });
       } else {
-        log.error('ChannelServiceImpl not available');
+        log.error('ChannelService not available');
       }
 
       // Return empty TwiML (response goes outbound via sendMessage)

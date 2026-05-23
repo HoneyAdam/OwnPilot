@@ -14,9 +14,8 @@
  */
 
 import type { ToolDefinition } from '@ownpilot/core';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage, getChannelService, hasChannelService } from '@ownpilot/core';
 import type { ChannelOutgoingMessage } from '@ownpilot/core';
-import { getChannelServiceImpl } from '../channels/service-impl.js';
 import { channelMessagesRepo } from '../db/repositories/channel-messages.js';
 import type { ToolExecutionResult } from '../services/tool-executor.js';
 import { getLog } from '../services/log.js';
@@ -170,10 +169,10 @@ async function handleSend(
     return { success: false, error: 'channel, chat_id, and text are required' };
   }
 
-  const svc = getChannelServiceImpl();
-  if (!svc) {
+  if (!hasChannelService()) {
     return { success: false, error: 'Channel service is not initialized' };
   }
+  const svc = getChannelService();
 
   const message: ChannelOutgoingMessage = {
     platformChatId: chatId,
@@ -206,10 +205,10 @@ async function handleBroadcast(
     return { success: false, error: 'chat_id and text are required' };
   }
 
-  const svc = getChannelServiceImpl();
-  if (!svc) {
+  if (!hasChannelService()) {
     return { success: false, error: 'Channel service is not initialized' };
   }
+  const svc = getChannelService();
 
   const message: ChannelOutgoingMessage = {
     platformChatId: chatId,
@@ -237,10 +236,10 @@ async function handleBroadcast(
 async function handleList(args: Record<string, unknown>): Promise<ToolExecutionResult> {
   const connectedOnly = Boolean(args.connected_only);
 
-  const svc = getChannelServiceImpl();
-  if (!svc) {
+  if (!hasChannelService()) {
     return { success: false, error: 'Channel service is not initialized' };
   }
+  const svc = getChannelService();
 
   let channels = svc.listChannels();
   if (connectedOnly) {

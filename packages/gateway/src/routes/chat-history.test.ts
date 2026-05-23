@@ -168,6 +168,11 @@ const mockGetChannelServiceImpl = vi.fn(() => ({
   processIncomingMessage: mockProcessIncomingMessage,
 }));
 
+// Mirrors hasChannelService() — flip to false to simulate "channel service
+// not initialized" without having to clear the registry. Tests that returned
+// null from mockGetChannelServiceImpl now toggle this instead.
+const mockHasChannelService = vi.fn(() => true);
+
 const mockGetOwnerUserId = vi.fn(async () => 'owner-user-123' as string | null);
 const mockGetOwnerChatId = vi.fn(async () => 'owner-chat-456' as string | null);
 
@@ -270,6 +275,20 @@ vi.mock('../db/repositories/channel-users.js', () => ({
 vi.mock('../channels/service-impl.js', () => ({
   getChannelServiceImpl: (...args: unknown[]) => mockGetChannelServiceImpl(...args),
 }));
+
+// chat-history.ts now consumes getChannelService / hasChannelService from
+// @ownpilot/core (the public contract) rather than the gateway-internal
+// getChannelServiceImpl. Mirror both onto the same underlying mock so the
+// existing per-test setup (mockGetChannelServiceImpl.mockReturnValue) still
+// drives the route's view of "what does channelService.send() return?".
+vi.mock('@ownpilot/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@ownpilot/core')>();
+  return {
+    ...actual,
+    getChannelService: () => mockGetChannelServiceImpl() as never,
+    hasChannelService: () => mockHasChannelService(),
+  };
+});
 
 vi.mock('../services/pairing-service.js', () => ({
   getOwnerUserId: (...args: unknown[]) => mockGetOwnerUserId(...args),
@@ -1793,7 +1812,7 @@ describe('Chat History & Logs Routes', () => {
     });
 
     it('returns 503 when channel service is not available', async () => {
-      mockGetChannelServiceImpl.mockReturnValueOnce(null);
+      mockHasChannelService.mockReturnValueOnce(false);
 
       const res = await app.request('/api/history/conv-ch-1/channel-reply', {
         method: 'POST',
@@ -2065,7 +2084,7 @@ describe('Chat History & Logs Routes', () => {
     });
 
     it('returns 503 when channel service is not available', async () => {
-      mockGetChannelServiceImpl.mockReturnValueOnce(null);
+      mockHasChannelService.mockReturnValueOnce(false);
 
       const res = await app.request('/api/channel-send', {
         method: 'POST',

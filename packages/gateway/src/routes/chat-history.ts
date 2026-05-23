@@ -34,7 +34,7 @@ import { modelConfigsRepo } from '../db/repositories/model-configs.js';
 import { channelSessionsRepo } from '../db/repositories/channel-sessions.js';
 import { channelMessagesRepo } from '../db/repositories/channel-messages.js';
 import { channelUsersRepo } from '../db/repositories/channel-users.js';
-import { getChannelServiceImpl } from '../channels/service-impl.js';
+import { getChannelService, hasChannelService } from '@ownpilot/core';
 import { wsGateway } from '../ws/server.js';
 import { randomUUID } from 'node:crypto';
 import { getOwnerUserId, getOwnerChatId } from '../services/pairing-service.js';
@@ -506,14 +506,14 @@ chatHistoryRoutes.post('/history/:conversationId/channel-reply', async (c) => {
     }
 
     // Send via channel service
-    const channelService = getChannelServiceImpl();
-    if (!channelService) {
+    if (!hasChannelService()) {
       return apiError(
         c,
         { code: ERROR_CODES.INTERNAL_ERROR, message: 'Channel service not available' },
         503
       );
     }
+    const channelService = getChannelService();
 
     const sentMessageId = await channelService.send(session.channelPluginId, {
       platformChatId: session.platformChatId,
@@ -631,14 +631,14 @@ chatHistoryRoutes.post('/channel-send', async (c) => {
       );
     }
 
-    const channelService = getChannelServiceImpl();
-    if (!channelService) {
+    if (!hasChannelService()) {
       return apiError(
         c,
         { code: ERROR_CODES.INTERNAL_ERROR, message: 'Channel service not available' },
         503
       );
     }
+    const channelService = getChannelService();
 
     const platform = (meta.platform as string) ?? session.platformChatId;
     const ownerPlatformUserId = await getOwnerUserId(platform);

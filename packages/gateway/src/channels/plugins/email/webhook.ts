@@ -12,7 +12,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { ChannelIncomingMessage } from '@ownpilot/core';
-import { getChannelServiceImpl } from '../../service-impl.js';
+import { getChannelService, hasChannelService } from '@ownpilot/core';
 import { getLog } from '../../../services/log.js';
 
 const log = getLog('Email-Webhook');
@@ -72,10 +72,9 @@ export async function processInboundEmail(payload: {
     },
   };
 
-  const serviceImpl = getChannelServiceImpl();
-  if (serviceImpl) {
-    await serviceImpl.processIncomingMessage(incomingMessage);
+  if (hasChannelService()) {
+    await getChannelService().processIncomingMessage(incomingMessage);
   } else {
-    log.error('ChannelServiceImpl not available');
+    log.error('ChannelService not available');
   }
 }
