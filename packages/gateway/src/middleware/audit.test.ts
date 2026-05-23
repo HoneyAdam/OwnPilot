@@ -9,18 +9,18 @@ import { Hono } from 'hono';
 // Mocks
 // ---------------------------------------------------------------------------
 
-const { mockLogAudit, mockHasServiceRegistry, mockGetServiceRegistry } = vi.hoisted(() => ({
+const { mockLogAudit, mockHasAuditService, mockGetAuditService } = vi.hoisted(() => ({
   mockLogAudit: vi.fn(),
-  mockHasServiceRegistry: vi.fn(),
-  mockGetServiceRegistry: vi.fn(),
+  mockHasAuditService: vi.fn(),
+  mockGetAuditService: vi.fn(),
 }));
 
 vi.mock('@ownpilot/core', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    hasServiceRegistry: mockHasServiceRegistry,
-    getServiceRegistry: mockGetServiceRegistry,
+    hasAuditService: mockHasAuditService,
+    getAuditService: mockGetAuditService,
   };
 });
 
@@ -56,11 +56,9 @@ describe('auditMiddleware', () => {
     vi.clearAllMocks();
     delete process.env.TRUSTED_PROXY;
 
-    // Default: registry IS available with audit service
-    mockHasServiceRegistry.mockReturnValue(true);
-    mockGetServiceRegistry.mockReturnValue({
-      tryGet: vi.fn(() => ({ logAudit: mockLogAudit })),
-    });
+    // Default: audit service IS registered
+    mockHasAuditService.mockReturnValue(true);
+    mockGetAuditService.mockReturnValue({ logAudit: mockLogAudit });
   });
 
   afterEach(() => {
@@ -82,17 +80,8 @@ describe('auditMiddleware', () => {
     );
   });
 
-  it('skips audit when ServiceRegistry is not initialized', async () => {
-    mockHasServiceRegistry.mockReturnValue(false);
-    const app = createApp();
-    await app.request('/test');
-    expect(mockLogAudit).not.toHaveBeenCalled();
-  });
-
-  it('skips audit when audit service is not registered', async () => {
-    mockGetServiceRegistry.mockReturnValue({
-      tryGet: vi.fn(() => null),
-    });
+  it('skips audit when audit service is not yet registered', async () => {
+    mockHasAuditService.mockReturnValue(false);
     const app = createApp();
     await app.request('/test');
     expect(mockLogAudit).not.toHaveBeenCalled();

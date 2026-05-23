@@ -6,25 +6,21 @@
  */
 
 import type { MiddlewareHandler } from 'hono';
-import { hasServiceRegistry, getServiceRegistry, Services } from '@ownpilot/core';
-import type { IAuditService } from '@ownpilot/core';
+import { hasAuditService, getAuditService } from '@ownpilot/core';
 import { recordHttpRequest } from '../services/metrics-service.js';
 
 /**
  * Hono middleware that logs each request via AuditService.logAudit().
- * Skipped when ServiceRegistry is not yet initialized (e.g. during tests).
+ * Skipped when AuditService is not yet initialized (e.g. during tests).
  */
 export const auditMiddleware: MiddlewareHandler = async (c, next) => {
   const start = Date.now();
 
   await next();
 
-  // Skip if registry not available (early startup, tests)
-  if (!hasServiceRegistry()) return;
-
-  const registry = getServiceRegistry();
-  const audit = registry.tryGet<IAuditService>(Services.Audit);
-  if (!audit) return;
+  // Skip if audit service not yet registered (early startup, tests)
+  if (!hasAuditService()) return;
+  const audit = getAuditService();
 
   const method = c.req.method;
   const path = c.req.path;
