@@ -1,4 +1,4 @@
-import { getPageCopilotPrompt } from '../../routes/page-prompts/index.js';
+import { getPageCopilotPrompt } from '../page-prompts/index.js';
 
 export interface PageContext {
   pageType: string;

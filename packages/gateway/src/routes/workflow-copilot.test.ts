@@ -47,7 +47,7 @@ vi.mock('@ownpilot/core', () => ({
   })),
 }));
 
-vi.mock('./workflow-copilot-prompt.js', () => ({
+vi.mock('../services/workflow-copilot-prompt.js', () => ({
   buildCopilotSystemPrompt: vi.fn(() => 'You are a Workflow Copilot.'),
 }));
 
