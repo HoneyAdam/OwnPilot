@@ -12,6 +12,7 @@ import {
   createPlugin,
   buildCorePlugin,
   getDatabaseService,
+  getConfigCenter,
   type PluginManifest,
   type PluginCapability,
   type PluginPermission,
@@ -21,7 +22,6 @@ import {
 import type { Plugin, PluginPublicAPI } from '@ownpilot/core';
 import { pluginsRepo } from '../db/repositories/plugins.js';
 import { pomodoroRepo } from '../db/repositories/pomodoro.js';
-import { configServicesRepo } from '../db/repositories/config-services.js';
 import { registerToolConfigRequirements } from '../services/api-service-registrar.js';
 import { buildTelegramChannelPlugin } from '../channels/plugins/telegram/index.js';
 import { buildDiscordChannelPlugin } from '../channels/plugins/discord/index.js';
@@ -685,7 +685,7 @@ export async function refreshChannelApi(pluginId: string): Promise<void> {
   const requiredServices = plugin.manifest.requiredServices as Array<{ name: string }> | undefined;
   if (requiredServices?.length) {
     const serviceName = requiredServices[0]!.name;
-    const entry = configServicesRepo.getDefaultEntry(serviceName);
+    const entry = getConfigCenter().getConfigEntry(serviceName);
     if (entry?.data) {
       Object.assign(configData, entry.data);
     }
@@ -764,7 +764,7 @@ export async function initializePlugins(): Promise<void> {
         const configData: Record<string, unknown> = {};
         if (manifest.requiredServices?.length) {
           const serviceName = (manifest.requiredServices[0] as { name: string }).name;
-          const entry = configServicesRepo.getDefaultEntry(serviceName);
+          const entry = getConfigCenter().getConfigEntry(serviceName);
           if (entry?.data) {
             Object.assign(configData, entry.data);
           }

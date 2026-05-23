@@ -29,6 +29,7 @@ import {
   getSessionService,
   hasMessageBus,
   getMessageBus,
+  getConfigCenter,
   type ISessionService,
   type IMessageBus,
 } from '@ownpilot/core';
@@ -40,7 +41,6 @@ import {
 } from '../db/repositories/channel-sessions.js';
 import { ChannelMessagesRepository } from '../db/repositories/channel-messages.js';
 import { channelsRepo } from '../db/repositories/channels.js';
-import { configServicesRepo } from '../db/repositories/config-services.js';
 import {
   getChannelVerificationService,
   type ChannelVerificationService,
@@ -487,7 +487,7 @@ export class ChannelServiceImpl implements IChannelService {
 
       const serviceName = requiredServices[0]!.name;
 
-      if (!configServicesRepo.isAvailable(serviceName)) {
+      if (!getConfigCenter().isServiceAvailable(serviceName)) {
         log.debug('Skipping auto-connect (service not configured)', {
           pluginId: manifest.id,
           service: serviceName,
@@ -1192,7 +1192,7 @@ export class ChannelServiceImpl implements IChannelService {
     if (!requiredServices || requiredServices.length === 0) return [];
 
     const serviceName = requiredServices[0]!.name;
-    const entry = configServicesRepo.getDefaultEntry(serviceName);
+    const entry = getConfigCenter().getConfigEntry(serviceName);
     const raw = entry?.data?.allowed_users;
     if (typeof raw !== 'string' || !raw.trim()) return [];
 
@@ -1213,7 +1213,7 @@ export class ChannelServiceImpl implements IChannelService {
     if (!requiredServices || requiredServices.length === 0) return null;
 
     const serviceName = requiredServices[0]!.name;
-    const entry = configServicesRepo.getDefaultEntry(serviceName);
+    const entry = getConfigCenter().getConfigEntry(serviceName);
     const raw = entry?.data?.approval_code;
     if (typeof raw !== 'string' || !raw.trim()) return null;
     return raw.trim();

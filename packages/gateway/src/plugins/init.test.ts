@@ -356,6 +356,14 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
     buildCorePlugin: mockBuildCorePlugin,
     getServiceRegistry: mockGetServiceRegistry,
     getDatabaseService: vi.fn(() => mockDatabaseRepo),
+    // init.ts migrated channel-api config lookups from
+    // `configServicesRepo.getDefaultEntry` to `getConfigCenter().getConfigEntry`.
+    // Route through the same mockConfigServicesRepo so existing tests' setup
+    // still drives the channel API factory hydration path.
+    getConfigCenter: vi.fn(() => ({
+      getConfigEntry: (name: string) =>
+        (mockConfigServicesRepo.getDefaultEntry as (n: string) => unknown)(name),
+    })),
     Services: { Database: 'Database' },
   };
 });

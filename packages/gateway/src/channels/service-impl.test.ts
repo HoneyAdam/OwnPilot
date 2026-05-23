@@ -48,6 +48,7 @@ const mockMessagesRepo = vi.hoisted(() => ({
 const mockConfigServicesRepo = vi.hoisted(() => ({
   isAvailable: vi.fn(),
   getDefaultEntry: vi.fn(),
+  getFieldValue: vi.fn(),
 }));
 
 const mockVerificationService = vi.hoisted(() => ({
@@ -147,6 +148,18 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
         return null;
       }
     },
+    // service-impl.ts migrated `configServicesRepo.isAvailable` /
+    // `.getDefaultEntry` to ConfigCenter accessors. Route through the same
+    // mockConfigServicesRepo so existing tests' DB-shaped setup still drives
+    // both code paths.
+    getConfigCenter: () => ({
+      isServiceAvailable: (name: string) =>
+        (mockConfigServicesRepo.isAvailable as (n: string) => boolean)(name),
+      getConfigEntry: (name: string) =>
+        (mockConfigServicesRepo.getDefaultEntry as (n: string) => unknown)(name),
+      getFieldValue: (name: string, field: string) =>
+        (mockConfigServicesRepo.getFieldValue as (n: string, f: string) => unknown)(name, field),
+    }),
   };
 });
 
