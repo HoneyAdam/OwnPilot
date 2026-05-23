@@ -106,6 +106,47 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
       computeMemoryMaxTokens: vi.fn(() => 8192),
       calculateCost: vi.fn(() => 0),
     }),
+    // channels/service-impl.ts migrated `tryGetService(Services.Message)`
+    // and `tryGetService(Services.Session)` to the dedicated capability
+    // accessors. Route both through the existing registry mock so per-test
+    // overrides that drive `mockGetServiceRegistry.mockReturnValue({ get })`
+    // see their fake instances through the new paths too. Mirror the real
+    // semantics: when registry.get throws or returns null, has* returns
+    // false and get* returns null.
+    hasMessageBus: () => {
+      if (!mockHasServiceRegistry()) return false;
+      const registry = mockGetServiceRegistry();
+      try {
+        return registry?.get?.({ name: 'message' }) != null;
+      } catch {
+        return false;
+      }
+    },
+    getMessageBus: () => {
+      const registry = mockGetServiceRegistry();
+      try {
+        return registry?.get?.({ name: 'message' }) ?? null;
+      } catch {
+        return null;
+      }
+    },
+    hasSessionService: () => {
+      if (!mockHasServiceRegistry()) return false;
+      const registry = mockGetServiceRegistry();
+      try {
+        return registry?.get?.({ name: 'session' }) != null;
+      } catch {
+        return false;
+      }
+    },
+    getSessionService: () => {
+      const registry = mockGetServiceRegistry();
+      try {
+        return registry?.get?.({ name: 'session' }) ?? null;
+      } catch {
+        return null;
+      }
+    },
   };
 });
 

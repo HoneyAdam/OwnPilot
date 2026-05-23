@@ -66,7 +66,7 @@ import {
   setChannelService,
   setModuleResolver,
 } from '@ownpilot/core';
-import type { NormalizedMessage, IMessageBus } from '@ownpilot/core';
+import type { NormalizedMessage } from '@ownpilot/core';
 import { createLogService } from './services/log-service-impl.js';
 import { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS } from './config/defaults.js';
 import { createSessionService } from './services/session-service-impl.js';
@@ -181,10 +181,14 @@ async function main() {
     setSessionService(session);
   }
 
-  // 4. Message bus (unified message processing pipeline)
+  // 4. Message bus (unified message processing pipeline) — also installed on the core capability singleton
   const messageBus = createMessageBus();
   registerPipelineMiddleware(messageBus);
   registry.register(Services.Message, messageBus);
+  {
+    const { setMessageBus } = await import('@ownpilot/core');
+    setMessageBus(messageBus);
+  }
 
   log.info('ServiceRegistry initialized', { services: registry.list() });
 
@@ -635,7 +639,8 @@ async function main() {
       // previous executions causing "Empty conversation context" errors.
       agent.reset();
 
-      const bus = registry.get<IMessageBus>(Services.Message);
+      const { getMessageBus } = await import('@ownpilot/core');
+      const bus = getMessageBus();
       const conversationId = agent.getConversation().id;
       const normalized: NormalizedMessage = {
         id: randomUUID(),

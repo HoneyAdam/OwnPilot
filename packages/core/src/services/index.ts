@@ -101,6 +101,7 @@ export type {
   StreamCallbacks,
   ToolEndResult,
 } from './message-bus.js';
+export { getMessageBus, setMessageBus, hasMessageBus, MessageToken } from './message-bus.js';
 
 // Plugin Service
 export type { IPluginService, PluginInfo, PluginToolEntry } from './plugin-service.js';

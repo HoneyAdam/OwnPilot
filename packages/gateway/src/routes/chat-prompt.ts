@@ -6,15 +6,15 @@
  */
 
 import {
-  Services,
   getBaseName,
   hasDatabaseService,
   getDatabaseService,
+  hasMessageBus,
+  getMessageBus,
   type ToolDefinition,
   type ExecutionPermissions,
   type IMessageBus,
 } from '@ownpilot/core';
-import { tryGetService } from '../services/service-helpers.js';
 import { AI_META_TOOL_NAMES } from '../config/defaults.js';
 
 export const PERM_LABELS: Record<string, string> = {
@@ -161,5 +161,5 @@ export function generateDemoResponse(message: string, provider: string, model: s
  * Returns null if not available (graceful fallback to direct path).
  */
 export function tryGetMessageBus(): IMessageBus | null {
-  return tryGetService(Services.Message);
+  return hasMessageBus() ? getMessageBus() : null;
 }

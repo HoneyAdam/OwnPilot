@@ -25,7 +25,10 @@ import {
   createEvent,
   type PluginRegistry,
   type Plugin,
-  Services,
+  hasSessionService,
+  getSessionService,
+  hasMessageBus,
+  getMessageBus,
   type ISessionService,
   type IMessageBus,
 } from '@ownpilot/core';
@@ -45,7 +48,6 @@ import {
 import { wsGateway } from '../ws/server.js';
 import { getErrorMessage } from '../routes/helpers.js';
 import { getLog } from '../services/log.js';
-import { tryGetService } from '../services/service-helpers.js';
 import {
   claimOwnership,
   getOwnerUserId,
@@ -61,14 +63,14 @@ import { channelAssetStore } from '../services/channel-asset-store.js';
 
 const log = getLog('ChannelService');
 
-/** Try to get ISessionService from the registry. */
+/** Try to get ISessionService via the core capability accessor. */
 function tryGetSessionService(): ISessionService | null {
-  return tryGetService(Services.Session);
+  return hasSessionService() ? getSessionService() : null;
 }
 
-/** Try to get IMessageBus from the registry. */
+/** Try to get IMessageBus via the core capability accessor. */
 function tryGetMessageBus(): IMessageBus | null {
-  return tryGetService(Services.Message);
+  return hasMessageBus() ? getMessageBus() : null;
 }
 
 // ============================================================================

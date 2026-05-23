@@ -20,6 +20,34 @@ vi.mock('@ownpilot/core', () => ({
     const registry = mockGetServiceRegistry();
     return registry?.get?.({ name: 'database' });
   },
+  // chat-prompt.ts now resolves the MessageBus through
+  // getMessageBus()/hasMessageBus() directly. Route both accessors
+  // through the existing registry mock so tests that drive
+  // `mockGetServiceRegistry.mockReturnValue({ get: ... })` see their fake
+  // bus surface on both paths.
+  // Mirror the real getMessageBus/hasMessageBus semantics: when the
+  // ServiceRegistry is present, both accessors route through it; if the
+  // registry's get/has throws, both fall back to null/false (the real
+  // implementation falls back to a module-level singleton that is null
+  // here in tests).
+  hasMessageBus: () => {
+    if (!mockHasServiceRegistry()) return false;
+    const registry = mockGetServiceRegistry();
+    try {
+      const bus = registry?.get?.({ name: 'message' });
+      return bus != null;
+    } catch {
+      return false;
+    }
+  },
+  getMessageBus: () => {
+    const registry = mockGetServiceRegistry();
+    try {
+      return registry?.get?.({ name: 'message' }) ?? null;
+    } catch {
+      return null;
+    }
+  },
   Services: { Message: 'message', Database: 'database' },
   getBaseName: (name: string) =>
     name.includes('.') ? name.substring(name.lastIndexOf('.') + 1) : name,

@@ -163,3 +163,53 @@ export interface IMessageBus {
    */
   getMiddlewareNames(): string[];
 }
+
+// ============================================================================
+// Singleton access — same pattern as MemoryService / GoalService / etc.
+// ============================================================================
+
+import { hasServiceRegistry, getServiceRegistry } from './registry.js';
+import { ServiceToken } from './registry.js';
+
+export const MessageToken = new ServiceToken<IMessageBus>('message');
+
+let _messageBus: IMessageBus | null = null;
+
+export function setMessageBus(bus: IMessageBus): void {
+  _messageBus = bus;
+  if (hasServiceRegistry()) {
+    try {
+      const registry = getServiceRegistry();
+      if (!registry.has(MessageToken)) {
+        registry.register(MessageToken, bus);
+      }
+    } catch {
+      // Registry not ready
+    }
+  }
+}
+
+export function getMessageBus(): IMessageBus {
+  if (hasServiceRegistry()) {
+    try {
+      return getServiceRegistry().get(MessageToken);
+    } catch {
+      // Fall through
+    }
+  }
+  if (!_messageBus) {
+    throw new Error('MessageBus not initialized. Call setMessageBus() during gateway startup.');
+  }
+  return _messageBus;
+}
+
+export function hasMessageBus(): boolean {
+  if (hasServiceRegistry()) {
+    try {
+      return getServiceRegistry().has(MessageToken);
+    } catch {
+      // Fall through
+    }
+  }
+  return _messageBus !== null;
+}
