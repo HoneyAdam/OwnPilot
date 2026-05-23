@@ -48,6 +48,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
     // MemoryService is now resolved through the capability accessor
     // directly instead of via the service registry indirection.
     getMemoryService: vi.fn(() => mockMemoryService),
+    getGoalService: vi.fn(() => mockGoalService),
     Services: { Memory: 'memory', Goal: 'goal', Trigger: 'trigger' },
     getBaseName: vi.fn((name: string) => name.split('.').pop() ?? name),
   };

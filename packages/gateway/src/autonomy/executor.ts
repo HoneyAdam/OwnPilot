@@ -6,7 +6,7 @@
  * under the current AutonomyConfig.
  */
 
-import { getServiceRegistry, Services, getErrorMessage, getMemoryService } from '@ownpilot/core';
+import { getErrorMessage, getMemoryService, getGoalService } from '@ownpilot/core';
 import type { PulseActionResult } from '@ownpilot/core';
 import { assessRisk, DEFAULT_AUTONOMY_CONFIG, type AutonomyConfig } from './index.js';
 import { PULSE_MAX_ACTIONS } from '../config/defaults.js';
@@ -213,14 +213,11 @@ async function executeUpdateGoalProgress(
   params: Record<string, unknown>,
   userId: string
 ): Promise<PulseActionResult> {
-  const registry = getServiceRegistry();
-  const goalService = registry.get(Services.Goal);
-
   const goalId = params.goalId as string;
   const progress = params.progress as number;
   const note = params.note as string | undefined;
 
-  const updated = await goalService.updateGoal(userId, goalId, {
+  const updated = await getGoalService().updateGoal(userId, goalId, {
     progress,
     description: note,
   });

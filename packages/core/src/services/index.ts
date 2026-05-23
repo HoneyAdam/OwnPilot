@@ -142,6 +142,7 @@ export type {
   UpdateStepInput as UpdateGoalStepInput,
   DecomposeStepInput as GoalDecomposeInput,
 } from './goal-service.js';
+export { getGoalService, setGoalService, hasGoalService, GoalToken } from './goal-service.js';
 
 // Trigger Service
 export type {

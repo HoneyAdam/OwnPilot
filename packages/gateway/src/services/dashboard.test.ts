@@ -102,8 +102,9 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
         return services[token.name];
       }),
     })),
-    // Memory now resolves through the capability accessor.
+    // Memory and Goal now resolve through the capability accessor.
     getMemoryService: vi.fn(() => mockMemoryService),
+    getGoalService: vi.fn(() => mockGoalService),
   };
 });
 

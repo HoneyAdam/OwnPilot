@@ -421,8 +421,15 @@ async function main() {
     setMemoryService(memory);
   }
 
-  // 11. Goal Service
-  registry.register(Services.Goal, getGoalService());
+  // 11. Goal Service — also installed on the core capability singleton so
+  // runtimes can consume it via `getGoalService()` from @ownpilot/core
+  // without going through the registry.
+  {
+    const goal = getGoalService();
+    registry.register(Services.Goal, goal);
+    const { setGoalService } = await import('@ownpilot/core');
+    setGoalService(goal);
+  }
 
   // 12. Trigger Service
   registry.register(Services.Trigger, getTriggerService());

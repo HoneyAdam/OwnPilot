@@ -20,6 +20,7 @@ import {
   getServiceRegistry,
   getEventSystem,
   getMemoryService,
+  getGoalService,
   Services,
   type ITriggerService,
   type IGoalService,
@@ -98,7 +99,7 @@ export class TriggerEngine {
 
     const registry = getServiceRegistry();
     this.triggerService = registry.get(Services.Trigger);
-    this.goalService = registry.get(Services.Goal);
+    this.goalService = getGoalService();
     this.memoryService = getMemoryService();
 
     // Register default action handlers

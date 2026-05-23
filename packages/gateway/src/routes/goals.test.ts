@@ -52,6 +52,8 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   return {
     ...original,
     getServiceRegistry: vi.fn(() => createMockServiceRegistry({ goal: mockGoalService })),
+    // Goal now resolves through the capability accessor.
+    getGoalService: vi.fn(() => mockGoalService),
   };
 });
 

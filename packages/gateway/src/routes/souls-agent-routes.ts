@@ -140,11 +140,8 @@ soulAgentRoutes.get('/:agentId/goals', async (c) => {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Soul not found' }, 404);
     }
 
-    const { getServiceRegistry, Services } = await import('@ownpilot/core');
-    const registry = getServiceRegistry();
-    const goalSvc = registry.get(Services.Goal);
-
-    const goals = await goalSvc.listGoals(agentId);
+    const { getGoalService } = await import('@ownpilot/core');
+    const goals = await getGoalService().listGoals(agentId);
 
     return apiResponse(c, {
       agentId,

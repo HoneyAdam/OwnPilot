@@ -15,6 +15,7 @@ import {
   getServiceRegistry,
   getEventSystem,
   getMemoryService,
+  getGoalService,
   Services,
   getBaseName,
 } from '@ownpilot/core';
@@ -64,7 +65,7 @@ export async function buildEnhancedSystemPrompt(
   options: OrchestratorOptions
 ): Promise<{ prompt: string; stats: { memoriesUsed: number; goalsUsed: number } }> {
   const memoryService = getMemoryService();
-  const goalService = getServiceRegistry().get(Services.Goal);
+  const goalService = getGoalService();
 
   const maxMemories = options.maxMemories ?? 10;
   const maxGoals = options.maxGoals ?? 5;
@@ -475,7 +476,7 @@ export async function updateGoalProgress(
   response: string,
   _toolCalls?: readonly ToolCall[]
 ): Promise<void> {
-  const goalService = getServiceRegistry().get(Services.Goal);
+  const goalService = getGoalService();
   const activeGoals = await goalService.getActive(userId);
 
   for (const goal of activeGoals) {
@@ -524,7 +525,7 @@ export async function getOrchestratorStats(userId: string): Promise<{
   autonomyLevel: number;
 }> {
   const memoryService = getMemoryService();
-  const goalService = getServiceRegistry().get(Services.Goal);
+  const goalService = getGoalService();
   const triggerService = getServiceRegistry().get(Services.Trigger);
   const approvalManager = getApprovalManager();
 

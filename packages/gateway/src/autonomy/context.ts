@@ -6,7 +6,7 @@
  * zero-values rather than aborting the entire gather.
  */
 
-import { getServiceRegistry, Services, getMemoryService } from '@ownpilot/core';
+import { getMemoryService, getGoalService } from '@ownpilot/core';
 import { MS_PER_DAY } from '../config/defaults.js';
 import { getLog } from '../services/log.js';
 
@@ -72,8 +72,6 @@ export interface PulseContext {
 
 export async function gatherPulseContext(userId: string): Promise<PulseContext> {
   const now = new Date();
-  const registry = getServiceRegistry();
-
   const ctx: PulseContext = {
     userId,
     gatheredAt: now,
@@ -94,15 +92,15 @@ export async function gatherPulseContext(userId: string): Promise<PulseContext> 
 
   // Gather all data sources in parallel, each wrapped in try/catch
   await Promise.all([
-    gatherGoals(registry, userId, now, ctx),
-    gatherMemories(registry, userId, ctx),
-    gatherActivity(registry, userId, now, ctx),
-    gatherSystemHealth(registry, userId, ctx),
-    gatherHabits(registry, userId, ctx),
+    gatherGoals(userId, now, ctx),
+    gatherMemories(userId, ctx),
+    gatherActivity(userId, now, ctx),
+    gatherSystemHealth(userId, ctx),
+    gatherHabits(userId, ctx),
     gatherTasks(userId, now, ctx),
     gatherCalendar(userId, now, ctx),
-    gatherRecentMemories(registry, userId, ctx),
-    gatherUserLocation(registry, userId, ctx),
+    gatherRecentMemories(userId, ctx),
+    gatherUserLocation(userId, ctx),
   ]);
 
   return ctx;
@@ -112,15 +110,9 @@ export async function gatherPulseContext(userId: string): Promise<PulseContext> 
 // Data Source Gatherers
 // ============================================================================
 
-async function gatherGoals(
-  registry: ReturnType<typeof getServiceRegistry>,
-  userId: string,
-  now: Date,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherGoals(userId: string, now: Date, ctx: PulseContext): Promise<void> {
   try {
-    const goalService = registry.get(Services.Goal);
-    const activeGoals = await goalService.listGoals(userId, { status: 'active', limit: 50 });
+    const activeGoals = await getGoalService().listGoals(userId, { status: 'active', limit: 50 });
 
     ctx.goals.active = activeGoals.map((g) => ({
       id: g.id,
@@ -158,11 +150,7 @@ async function gatherGoals(
   }
 }
 
-async function gatherMemories(
-  _registry: ReturnType<typeof getServiceRegistry>,
-  userId: string,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherMemories(userId: string, ctx: PulseContext): Promise<void> {
   try {
     const stats = await getMemoryService().getStats(userId);
     ctx.memories.total = stats.total;
@@ -173,12 +161,7 @@ async function gatherMemories(
   }
 }
 
-async function gatherActivity(
-  _registry: ReturnType<typeof getServiceRegistry>,
-  userId: string,
-  now: Date,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherActivity(userId: string, now: Date, ctx: PulseContext): Promise<void> {
   try {
     // Check last conversation activity via DB
     const { createConversationsRepository } = await import('../db/repositories/conversations.js');
@@ -201,11 +184,7 @@ async function gatherActivity(
   }
 }
 
-async function gatherSystemHealth(
-  _registry: ReturnType<typeof getServiceRegistry>,
-  _userId: string,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherSystemHealth(_userId: string, ctx: PulseContext): Promise<void> {
   try {
     // Check pending approvals
     const { getApprovalManager } = await import('./approvals.js');
@@ -232,11 +211,7 @@ async function gatherSystemHealth(
   }
 }
 
-async function gatherHabits(
-  _registry: ReturnType<typeof getServiceRegistry>,
-  userId: string,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherHabits(userId: string, ctx: PulseContext): Promise<void> {
   try {
     const { createHabitsRepository } = await import('../db/repositories/habits.js');
     const habitsRepo = createHabitsRepository(userId);
@@ -317,11 +292,7 @@ async function gatherCalendar(userId: string, _now: Date, ctx: PulseContext): Pr
   }
 }
 
-async function gatherRecentMemories(
-  _registry: ReturnType<typeof getServiceRegistry>,
-  userId: string,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherRecentMemories(userId: string, ctx: PulseContext): Promise<void> {
   try {
     const memories = await getMemoryService().getImportantMemories(userId, {
       threshold: 0.5,
@@ -338,11 +309,7 @@ async function gatherRecentMemories(
   }
 }
 
-async function gatherUserLocation(
-  _registry: ReturnType<typeof getServiceRegistry>,
-  userId: string,
-  ctx: PulseContext
-): Promise<void> {
+async function gatherUserLocation(userId: string, ctx: PulseContext): Promise<void> {
   try {
     const memories = await getMemoryService().searchMemories(userId, 'location city', {
       limit: 3,

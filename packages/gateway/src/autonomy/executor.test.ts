@@ -35,8 +35,9 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
         throw new Error(`No mock for token: ${token.name}`);
       },
     }),
-    // Memory now resolves through the capability accessor.
+    // Memory and Goal now resolve through the capability accessor.
     getMemoryService: () => mockMemoryService,
+    getGoalService: () => mockGoalService,
   };
 });
 

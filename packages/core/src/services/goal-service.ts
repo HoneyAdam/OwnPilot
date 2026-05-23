@@ -142,3 +142,73 @@ export interface IGoalService {
   completeStep(userId: string, stepId: string, result?: string): Promise<GoalStep | null>;
   deleteStep(userId: string, stepId: string): Promise<boolean>;
 }
+
+// ============================================================================
+// Singleton access — matches the MemoryService / LLMRouter / ChannelService /
+// ConfigCenter / PermissionGate / AuditService pattern. Goal is the 8th
+// horizontal capability with a direct accessor; runtimes consume it through
+// `getGoalService()` instead of resolving from the registry per-call.
+// ============================================================================
+
+import { hasServiceRegistry, getServiceRegistry } from './registry.js';
+import { ServiceToken } from './registry.js';
+
+/**
+ * Service registry token for the GoalService. The same token instance is
+ * exposed as `Services.Goal` in tokens.ts so legacy registry lookups still
+ * resolve to the same instance.
+ */
+export const GoalToken = new ServiceToken<IGoalService>('goal');
+
+let _goalService: IGoalService | null = null;
+
+/**
+ * Register the GoalService implementation. Called once at gateway startup.
+ * Also mirrors into the service registry so existing
+ * `registry.get(Services.Goal)` callers keep working.
+ */
+export function setGoalService(service: IGoalService): void {
+  _goalService = service;
+
+  if (hasServiceRegistry()) {
+    try {
+      const registry = getServiceRegistry();
+      if (!registry.has(GoalToken)) {
+        registry.register(GoalToken, service);
+      }
+    } catch {
+      // Registry not ready
+    }
+  }
+}
+
+/**
+ * Get the GoalService. Tries the service registry first, falls back to the
+ * direct singleton. Throws if neither is initialized.
+ */
+export function getGoalService(): IGoalService {
+  if (hasServiceRegistry()) {
+    try {
+      return getServiceRegistry().get(GoalToken);
+    } catch {
+      // Not registered yet — fall through to direct singleton
+    }
+  }
+
+  if (!_goalService) {
+    throw new Error('GoalService not initialized. Call setGoalService() during gateway startup.');
+  }
+  return _goalService;
+}
+
+/** Check whether the GoalService has been initialized. */
+export function hasGoalService(): boolean {
+  if (hasServiceRegistry()) {
+    try {
+      return getServiceRegistry().has(GoalToken);
+    } catch {
+      // fall through
+    }
+  }
+  return _goalService !== null;
+}

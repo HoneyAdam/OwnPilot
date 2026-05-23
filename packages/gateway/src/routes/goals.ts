@@ -16,7 +16,7 @@ import type {
   CreateStepInput,
 } from '../db/repositories/goals.js';
 import { GoalServiceError } from '../services/goal-service.js';
-import { getServiceRegistry, Services } from '@ownpilot/core';
+import { getGoalService, Services } from '@ownpilot/core';
 import {
   getUserId,
   apiResponse,
@@ -56,7 +56,7 @@ goalsRoutes.get('/', async (c) => {
   const limit = getIntParam(c, 'limit', 20, 1, 100);
   const parentId = c.req.query('parentId');
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const goals = await service.listGoals(userId, {
     status,
     limit,
@@ -80,7 +80,7 @@ goalsRoutes.post('/', async (c) => {
   const body = validateBody(createGoalSchema, rawBody) as unknown as CreateGoalInput;
 
   try {
-    const service = getServiceRegistry().get(Services.Goal);
+    const service = getGoalService();
     const goal = await service.createGoal(userId, body);
 
     log.info('Goal created', {
@@ -113,7 +113,7 @@ goalsRoutes.post('/', async (c) => {
  */
 goalsRoutes.get('/stats', async (c) => {
   const userId = getUserId(c);
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const stats = await service.getStats(userId);
 
   return apiResponse(c, stats);
@@ -126,7 +126,7 @@ goalsRoutes.get('/next-actions', async (c) => {
   const userId = getUserId(c);
   const limit = getIntParam(c, 'limit', 5, 1, 20);
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const actions = await service.getNextActions(userId, limit);
 
   return apiResponse(c, {
@@ -142,7 +142,7 @@ goalsRoutes.get('/upcoming', async (c) => {
   const userId = getUserId(c);
   const days = getIntParam(c, 'days', 7, 1, MAX_DAYS_LOOKBACK);
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const goals = await service.getUpcoming(userId, days);
 
   return apiResponse(c, {
@@ -158,7 +158,7 @@ goalsRoutes.get('/:id', async (c) => {
   const userId = getUserId(c);
   const id = c.req.param('id');
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const goalWithSteps = await service.getGoalWithSteps(userId, id);
 
   if (!goalWithSteps) {
@@ -178,7 +178,7 @@ goalsRoutes.patch('/:id', async (c) => {
   const { validateBody, updateGoalSchema } = await import('../middleware/validation.js');
   const body = validateBody(updateGoalSchema, rawBody) as unknown as UpdateGoalInput;
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const updated = await service.updateGoal(userId, id, body);
 
   if (!updated) {
@@ -215,7 +215,7 @@ goalsRoutes.post('/:id/steps', async (c) => {
     | CreateStepInput;
 
   try {
-    const service = getServiceRegistry().get(Services.Goal);
+    const service = getGoalService();
 
     // Handle single step or array of steps
     const stepsToAdd = 'steps' in body ? body.steps : [body];
@@ -250,7 +250,7 @@ goalsRoutes.get('/:id/steps', async (c) => {
   const userId = getUserId(c);
   const goalId = c.req.param('id');
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const steps = await service.getSteps(userId, goalId);
 
   return apiResponse(c, {
@@ -275,7 +275,7 @@ goalsRoutes.patch('/:goalId/steps/:stepId', async (c) => {
     result?: string;
   };
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const updated = await service.updateStep(userId, stepId, body);
 
   if (!updated) {
@@ -301,7 +301,7 @@ goalsRoutes.post('/:goalId/steps/:stepId/complete', async (c) => {
   const { validateBody, completeGoalStepSchema } = await import('../middleware/validation.js');
   const body = validateBody(completeGoalStepSchema, rawBody) as { result?: string };
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const updated = await service.completeStep(userId, stepId, body.result);
 
   if (!updated) {
@@ -327,7 +327,7 @@ goalsRoutes.delete('/:goalId/steps/:stepId', async (c) => {
   const userId = getUserId(c);
   const stepId = c.req.param('stepId');
 
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
   const deleted = await service.deleteStep(userId, stepId);
 
   if (!deleted) {
@@ -358,7 +358,7 @@ export async function executeGoalTool(
   params: Record<string, unknown>,
   userId = 'default'
 ): Promise<ToolExecutionResult> {
-  const service = getServiceRegistry().get(Services.Goal);
+  const service = getGoalService();
 
   try {
     switch (toolId) {
