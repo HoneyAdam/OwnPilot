@@ -26,14 +26,8 @@ import {
 import type { AIProvider, ToolCall, ToolId } from '@ownpilot/core';
 import { getLog } from './log.js';
 import { resolveForProcess } from './model-routing.js';
-import {
-  getProviderApiKey,
-  loadProviderConfig,
-  NATIVE_PROVIDERS,
-  resolveContextWindow,
-  resolveMaxOutput,
-  computeMemoryMaxTokens,
-} from '../routes/agent-cache.js';
+import { getProviderApiKey, loadProviderConfig, NATIVE_PROVIDERS } from '../routes/agent-cache.js';
+import { getLLMRouter } from '@ownpilot/core';
 import {
   registerGatewayTools,
   registerDynamicTools,
@@ -201,12 +195,13 @@ export async function createConfiguredAgent(opts: CreateAgentOptions): Promise<A
   // (claws, etc.) stay inside the model's context window
   // on small models too. Pass `dynamicInjectionReserve: 0` because autonomous
   // runners don't go through the chat context-injection middleware.
-  const ctxWindow = resolveContextWindow(opts.provider, opts.model);
-  const modelMaxOutput = resolveMaxOutput(opts.provider, opts.model);
+  const router = getLLMRouter();
+  const ctxWindow = router.getContextWindow(opts.provider, opts.model);
+  const modelMaxOutput = router.getMaxOutput(opts.provider, opts.model);
   const desiredOutput = opts.maxTokens ?? AGENT_DEFAULT_MAX_TOKENS;
   const outputBuffer = Math.min(desiredOutput, modelMaxOutput);
   const systemPromptTokens = Math.ceil(opts.systemPrompt.length / 4);
-  const memoryMaxTokens = computeMemoryMaxTokens({
+  const memoryMaxTokens = router.computeMemoryMaxTokens({
     ctxWindow,
     systemPromptTokens,
     outputBuffer,

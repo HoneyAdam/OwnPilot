@@ -55,6 +55,33 @@ vi.mock('@ownpilot/core', async (importOriginal) => ({
   qualifyToolName: mockQualifyToolName,
   calculateCost: mockCalculateCost,
   getErrorMessage: (e: unknown) => (e instanceof Error ? e.message : String(e)),
+  // Cap helpers now live on the LLMRouter capability. Mirror production
+  // behavior so the Agent constructor still sees a sensible memory/output
+  // budget regardless of which route a runner takes.
+  getLLMRouter: () => ({
+    pick: vi.fn(),
+    getContextWindow: vi.fn(() => 128000),
+    getMaxOutput: vi.fn(() => 8192),
+    computeMemoryMaxTokens: vi.fn(
+      (opts: {
+        ctxWindow: number;
+        systemPromptTokens: number;
+        outputBuffer: number;
+        dynamicInjectionReserve?: number;
+      }) => {
+        const reserve =
+          opts.dynamicInjectionReserve ?? Math.min(8192, Math.floor(opts.ctxWindow * 0.25));
+        return Math.max(
+          1024,
+          Math.min(
+            Math.floor(opts.ctxWindow * 0.75),
+            opts.ctxWindow - opts.systemPromptTokens - reserve - opts.outputBuffer - 1024
+          )
+        );
+      }
+    ),
+    calculateCost: vi.fn(),
+  }),
 }));
 
 vi.mock('./model-routing.js', () => ({
@@ -65,28 +92,6 @@ vi.mock('../routes/agent-cache.js', () => ({
   getProviderApiKey: mockGetProviderApiKey,
   loadProviderConfig: mockLoadProviderConfig,
   NATIVE_PROVIDERS: mockNativeProviders,
-  // New cap helpers — keep production-equivalent behavior in tests so the
-  // Agent constructor sees a sensible memory/output budget.
-  resolveContextWindow: vi.fn(() => 128000),
-  resolveMaxOutput: vi.fn(() => 8192),
-  computeMemoryMaxTokens: vi.fn(
-    (opts: {
-      ctxWindow: number;
-      systemPromptTokens: number;
-      outputBuffer: number;
-      dynamicInjectionReserve?: number;
-    }) => {
-      const reserve =
-        opts.dynamicInjectionReserve ?? Math.min(8192, Math.floor(opts.ctxWindow * 0.25));
-      return Math.max(
-        1024,
-        Math.min(
-          Math.floor(opts.ctxWindow * 0.75),
-          opts.ctxWindow - opts.systemPromptTokens - reserve - opts.outputBuffer - 1024
-        )
-      );
-    }
-  ),
 }));
 
 vi.mock('../tools/agent-tool-registry.js', () => ({
