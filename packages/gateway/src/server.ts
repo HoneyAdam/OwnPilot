@@ -39,7 +39,7 @@ import type { GatewayConfig } from './types/index.js';
 import { wsGateway } from './ws/index.js';
 import { initializeAdapter } from './db/adapters/index.js';
 import { getDatabaseConfig, DEFAULT_POSTGRES_PASSWORD } from './db/adapters/types.js';
-import { loadApiKeysToEnvironment } from './routes/settings.js';
+import { loadApiKeysToEnvironment } from './services/app-settings.js';
 import { initializeFileWorkspace } from './workspace/index.js';
 import { settingsRepo, initializeSettingsRepo } from './db/repositories/settings.js';
 import { initializeDataDirectories, getDataDirectoryInfo } from './paths/index.js';

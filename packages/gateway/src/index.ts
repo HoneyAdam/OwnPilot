@@ -67,7 +67,7 @@ export {
   loadApiKeysToEnvironment,
   resolveDefaultProviderAndModel,
   isDemoModeFromSettings,
-} from './routes/settings.js';
+} from './services/app-settings.js';
 
 // Database
 export { initializeAdapter, closeAdapter, getAdapter } from './db/adapters/index.js';
