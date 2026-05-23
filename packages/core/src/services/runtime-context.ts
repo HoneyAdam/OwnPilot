@@ -27,10 +27,12 @@ import type { ILLMRouter } from './llm-router.js';
 import type { IChannelService } from '../channels/service.js';
 import type { ConfigCenter } from './config-center.js';
 import type { IEventSystem } from '../events/event-system.js';
+import type { IPermissionGate } from './permission-gate.js';
 import { getLLMRouter, hasLLMRouter } from './llm-router.js';
 import { getChannelService, hasChannelService } from '../channels/service.js';
 import { getConfigCenter, hasConfigCenter } from './config-center.js';
 import { getEventSystem } from '../events/event-system.js';
+import { getPermissionGate, hasPermissionGate } from './permission-gate.js';
 
 /**
  * The horizontal capabilities every runtime gets. Add new capabilities here
@@ -46,6 +48,8 @@ export interface RuntimeContext {
   readonly config: ConfigCenter;
   /** Event bus + hook bus for cross-cutting pub/sub. */
   readonly events: IEventSystem;
+  /** Tool-call authorization (allow / deny / require_approval). */
+  readonly permissions: IPermissionGate;
 }
 
 /**
@@ -66,6 +70,7 @@ export function getRuntimeContext(): RuntimeContext {
     channels: getChannelService(),
     config: getConfigCenter(),
     events: getEventSystem(),
+    permissions: getPermissionGate(),
   };
 }
 
@@ -79,5 +84,5 @@ export function getRuntimeContext(): RuntimeContext {
  * checked here.
  */
 export function hasRuntimeContext(): boolean {
-  return hasLLMRouter() && hasChannelService() && hasConfigCenter();
+  return hasLLMRouter() && hasChannelService() && hasConfigCenter() && hasPermissionGate();
 }

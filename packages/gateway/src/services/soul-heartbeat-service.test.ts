@@ -22,6 +22,7 @@ const {
   mockGetOrCreateChatAgent,
   mockResolveForProcess,
   mockSendTelegramMessage,
+  mockPermissionGate,
 } = vi.hoisted(() => {
   /** Mutable container shared between mock factory and test assertions. */
   const captured: {
@@ -78,6 +79,43 @@ const {
   });
   const mockSendTelegramMessage = vi.fn();
 
+  // Inline DefaultPermissionGate-equivalent: the heartbeat now delegates tool
+  // authorization to the PermissionGate capability. Mirror the production
+  // filters so existing allowedTools / skillAccess assertions still pass.
+  type Ctx = {
+    allowedTools?: string[];
+    skillAccessAllowed?: string[];
+    skillAccessBlocked?: string[];
+  };
+  const mockPermissionGate = {
+    check: vi.fn(async ({ tool, context }: { tool: string; context?: Ctx }) => {
+      if (!context) return { type: 'allow' as const };
+      const { skillAccessBlocked, skillAccessAllowed, allowedTools } = context;
+      if (skillAccessBlocked?.length) {
+        const isBlocked = skillAccessBlocked.some(
+          (id) => tool.startsWith(`ext.${id}.`) || tool.startsWith(`skill.${id}.`)
+        );
+        if (isBlocked) {
+          return { type: 'deny' as const, reason: `Extension ${tool} is blocked` };
+        }
+      }
+      if (skillAccessAllowed?.length) {
+        const isExtTool = tool.startsWith('ext.') || tool.startsWith('skill.');
+        if (isExtTool) {
+          const ok = skillAccessAllowed.some(
+            (id) => tool.startsWith(`ext.${id}.`) || tool.startsWith(`skill.${id}.`)
+          );
+          if (!ok) return { type: 'deny' as const, reason: `Extension ${tool} not allowed` };
+        }
+      }
+      if (allowedTools?.length) {
+        const ok = allowedTools.some((t) => tool === t || tool.endsWith(`.${t}`));
+        if (!ok) return { type: 'deny' as const, reason: `Tool ${tool} not allowed` };
+      }
+      return { type: 'allow' as const };
+    }),
+  };
+
   return {
     captured,
     MockHeartbeatRunner,
@@ -96,6 +134,7 @@ const {
     mockGetOrCreateChatAgent,
     mockResolveForProcess,
     mockSendTelegramMessage,
+    mockPermissionGate,
   };
 });
 
@@ -137,6 +176,12 @@ vi.mock('@ownpilot/core', async (importOriginal) => ({
     computeMemoryMaxTokens: vi.fn(),
     calculateCost: vi.fn(),
   }),
+  // PermissionGate is consulted on every tool call when the heartbeat runs
+  // with a tool filter. Use the real DefaultPermissionGate so existing
+  // allowedTools / skillAccess assertions still cover end-to-end behavior.
+  getPermissionGate: () => {
+    return mockPermissionGate;
+  },
 }));
 
 vi.mock('../db/adapters/index.js', () => ({

@@ -16,11 +16,13 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { setLLMRouter } from './llm-router.js';
 import { setChannelService } from '../channels/service.js';
 import { setConfigCenter } from './config-center.js';
+import { setPermissionGate } from './permission-gate.js';
 import { getRuntimeContext, hasRuntimeContext } from './runtime-context.js';
 
 import type { ILLMRouter } from './llm-router.js';
 import type { IChannelService } from '../channels/service.js';
 import type { ConfigCenter } from './config-center.js';
+import type { IPermissionGate } from './permission-gate.js';
 
 const stubLLMRouter: ILLMRouter = {
   pick: async () => ({ provider: 'p', model: 'm' }),
@@ -40,14 +42,19 @@ const stubConfigCenter: Partial<ConfigCenter> = {
   getFieldValue: () => undefined,
 };
 
+const stubPermissionGate: IPermissionGate = {
+  check: async () => ({ type: 'allow' }),
+};
+
 describe('RuntimeContext', () => {
   beforeAll(() => {
     setLLMRouter(stubLLMRouter);
     setChannelService(stubChannelService as IChannelService);
     setConfigCenter(stubConfigCenter as ConfigCenter);
+    setPermissionGate(stubPermissionGate);
   });
 
-  it('hasRuntimeContext() is true once all three explicit capabilities are set', () => {
+  it('hasRuntimeContext() is true once all four explicit capabilities are set', () => {
     expect(hasRuntimeContext()).toBe(true);
   });
 
@@ -61,6 +68,10 @@ describe('RuntimeContext', () => {
 
   it('getRuntimeContext() returns the registered config center by reference', () => {
     expect(getRuntimeContext().config).toBe(stubConfigCenter);
+  });
+
+  it('getRuntimeContext() returns the registered permission gate by reference', () => {
+    expect(getRuntimeContext().permissions).toBe(stubPermissionGate);
   });
 
   it('getRuntimeContext() returns a working event system', () => {
@@ -79,5 +90,6 @@ describe('RuntimeContext', () => {
     expect(a.channels).toBe(b.channels);
     expect(a.config).toBe(b.config);
     expect(a.events).toBe(b.events);
+    expect(a.permissions).toBe(b.permissions);
   });
 });

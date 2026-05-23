@@ -278,6 +278,12 @@ async function main() {
   const { installLLMRouter } = await import('./services/llm-router.js');
   installLLMRouter();
 
+  // 5c. Permission Gate (unified tool-call authorization — covers the
+  // per-call filters previously inlined in soul-heartbeat's onBeforeToolCall;
+  // approval middleware + claw autonomy policy migrate in a later phase)
+  const { installPermissionGate } = await import('./services/permission-gate-impl.js');
+  installPermissionGate();
+
   // Start embedding queue (background embedding generation for memories)
   const { getEmbeddingQueue } = await import('./services/embedding-queue.js');
   getEmbeddingQueue().start();

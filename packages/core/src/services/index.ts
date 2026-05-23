@@ -54,6 +54,20 @@ export type {
   LLMTokenUsage,
 } from './llm-router.js';
 export { getLLMRouter, setLLMRouter, hasLLMRouter } from './llm-router.js';
+export type {
+  IPermissionGate,
+  PermissionRequest,
+  PermissionDecision,
+  PermissionContext,
+  PermissionActorType,
+  PermissionSandbox,
+} from './permission-gate.js';
+export {
+  getPermissionGate,
+  setPermissionGate,
+  hasPermissionGate,
+  PermissionToken,
+} from './permission-gate.js';
 export type { RuntimeContext } from './runtime-context.js';
 export { getRuntimeContext, hasRuntimeContext } from './runtime-context.js';
 export type {

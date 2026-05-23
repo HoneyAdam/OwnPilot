@@ -101,11 +101,15 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
     // want to assert on specific calls can pass their own runtime arg to
     // `new ClawRunner(config, runtime)`.
     getLLMRouter: () => mockLLMRouter,
+    getPermissionGate: () => ({
+      check: vi.fn().mockResolvedValue({ type: 'allow' }),
+    }),
     getRuntimeContext: () => ({
       llm: mockLLMRouter,
       channels: { send: vi.fn(), listChannels: vi.fn(() => []) },
       config: { getApiKey: vi.fn(), getFieldValue: vi.fn() },
       events: mockGetEventSystem(),
+      permissions: { check: vi.fn().mockResolvedValue({ type: 'allow' }) },
     }),
   };
 });

@@ -19,6 +19,7 @@ import {
   BudgetTracker,
   getEventSystem,
   calculateCost,
+  getPermissionGate,
 } from '@ownpilot/core';
 import type {
   AIProvider,
@@ -221,50 +222,38 @@ function createHeartbeatAgentEngine(): IHeartbeatAgentEngine {
 
       // Wrap agent.chat() in the heartbeat context so communication/crew tools
       // can resolve the correct soul agent ID via AsyncLocalStorage.
+      //
+      // Tool authorization is delegated to the unified PermissionGate, which
+      // applies the same skillAccess* / allowedTools logic across every
+      // runtime that participates in the two-layer architecture.
+      const gate = hasToolFilter ? getPermissionGate() : null;
       const result = await runInHeartbeatContext({ agentId: request.agentId, crewId }, () =>
         agent.chat(taskMessage, {
-          onBeforeToolCall: hasToolFilter
+          onBeforeToolCall: gate
             ? async (toolCall) => {
-                const name = toolCall.name;
-
-                // 1. Blocked skill check — extensionId embedded in namespaced tool name (ext.{id}.{tool} / skill.{id}.{tool})
-                if (skillAccessBlocked?.length) {
-                  const isBlocked = skillAccessBlocked.some(
-                    (id) => name.startsWith(`ext.${id}.`) || name.startsWith(`skill.${id}.`)
-                  );
-                  if (isBlocked) {
-                    return {
-                      approved: false,
-                      reason: `Extension ${name} is blocked for this soul`,
-                    };
+                let parsedArgs: Record<string, unknown> | undefined;
+                if (toolCall.arguments) {
+                  try {
+                    parsedArgs = JSON.parse(toolCall.arguments) as Record<string, unknown>;
+                  } catch {
+                    parsedArgs = undefined;
                   }
                 }
-
-                // 2. Allowed skills check — if set, extension tools must belong to an allowed extension
-                if (skillAccessAllowed?.length) {
-                  const isExtTool = name.startsWith('ext.') || name.startsWith('skill.');
-                  if (isExtTool) {
-                    const isAllowed = skillAccessAllowed.some(
-                      (id) => name.startsWith(`ext.${id}.`) || name.startsWith(`skill.${id}.`)
-                    );
-                    if (!isAllowed) {
-                      return {
-                        approved: false,
-                        reason: `Extension ${name} not in soul's allowed skills`,
-                      };
-                    }
-                  }
+                const decision = await gate.check({
+                  actorId: request.agentId,
+                  tool: toolCall.name,
+                  context: {
+                    actorType: 'soul-heartbeat',
+                    allowedTools,
+                    skillAccessAllowed,
+                    skillAccessBlocked,
+                    args: parsedArgs,
+                  },
+                });
+                if (decision.type === 'allow') {
+                  return { approved: true };
                 }
-
-                // 3. Task-level allowedTools check
-                if (allowedTools?.length) {
-                  const allowed = allowedTools.some((t) => name === t || name.endsWith(`.${t}`));
-                  if (!allowed) {
-                    return { approved: false, reason: `Tool ${name} not in task allowedTools` };
-                  }
-                }
-
-                return { approved: true };
+                return { approved: false, reason: decision.reason };
               }
             : undefined,
         })
