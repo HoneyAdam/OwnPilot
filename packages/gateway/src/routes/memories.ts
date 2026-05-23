@@ -10,7 +10,7 @@
 import { Hono } from 'hono';
 import type { MemoryType, CreateMemoryInput } from '../db/repositories/memories.js';
 import { MemoryServiceError } from '../services/memory-service.js';
-import { getServiceRegistry, Services } from '@ownpilot/core';
+import { getMemoryService } from '@ownpilot/core';
 import {
   getUserId,
   apiResponse,
@@ -54,7 +54,7 @@ memoriesRoutes.get('/', async (c) => {
       ? Math.max(0, Math.min(1, parseFloat(rawMinImportance) || 0))
       : undefined;
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const memories = await service.listMemories(userId, {
     type,
     limit,
@@ -78,7 +78,7 @@ memoriesRoutes.post('/', async (c) => {
   const body = validateBody(createMemorySchema, rawBody) as unknown as CreateMemoryInput;
 
   try {
-    const service = getServiceRegistry().get(Services.Memory);
+    const service = getMemoryService();
     const { memory, deduplicated } = await service.rememberMemory(userId, body);
 
     if (deduplicated) {
@@ -140,7 +140,7 @@ memoriesRoutes.get('/search', async (c) => {
     );
   }
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
 
   if (mode === 'hybrid' || mode === 'vector') {
     const memories = await service.hybridSearch(userId, query, { type, limit });
@@ -159,7 +159,7 @@ memoriesRoutes.get('/search', async (c) => {
  */
 memoriesRoutes.get('/stats', async (c) => {
   const userId = getUserId(c);
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const stats = await service.getStats(userId);
 
   return apiResponse(c, stats);
@@ -172,7 +172,7 @@ memoriesRoutes.get('/:id', async (c) => {
   const userId = getUserId(c);
   const id = c.req.param('id');
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const memory = await service.getMemory(userId, id);
 
   if (!memory) {
@@ -213,7 +213,7 @@ memoriesRoutes.patch('/:id', async (c) => {
     );
   }
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const updated = await service.updateMemory(userId, id, body);
 
   if (!updated) {
@@ -244,7 +244,7 @@ memoriesRoutes.post('/:id/boost', async (c) => {
     );
   }
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const boosted = await service.boostMemory(userId, id, amount);
 
   if (!boosted) {
@@ -266,7 +266,7 @@ memoriesRoutes.delete('/:id', async (c) => {
   const userId = getUserId(c);
   const id = c.req.param('id');
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const deleted = await service.deleteMemory(userId, id);
 
   if (!deleted) {
@@ -293,7 +293,7 @@ memoriesRoutes.post('/decay', async (c) => {
     decayFactor?: number;
   };
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const affected = await service.decayMemories(userId, body);
 
   if (affected > 0) wsGateway.broadcast('data:changed', { entity: 'memory', action: 'updated' });
@@ -316,7 +316,7 @@ memoriesRoutes.post('/cleanup', async (c) => {
     minImportance?: number;
   };
 
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
   const deleted = await service.cleanupMemories(userId, body);
 
   if (deleted > 0) wsGateway.broadcast('data:changed', { entity: 'memory', action: 'deleted' });
@@ -376,7 +376,7 @@ export async function executeMemoryTool(
   params: Record<string, unknown>,
   userId = 'default'
 ): Promise<ToolExecutionResult> {
-  const service = getServiceRegistry().get(Services.Memory);
+  const service = getMemoryService();
 
   try {
     switch (toolId) {

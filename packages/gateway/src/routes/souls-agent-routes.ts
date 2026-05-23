@@ -104,11 +104,8 @@ soulAgentRoutes.get('/:agentId/memories', async (c) => {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Soul not found' }, 404);
     }
 
-    const { getServiceRegistry, Services } = await import('@ownpilot/core');
-    const registry = getServiceRegistry();
-    const memorySvc = registry.get(Services.Memory);
-
-    const memories = await memorySvc.listMemories(agentId, { limit, offset });
+    const { getMemoryService } = await import('@ownpilot/core');
+    const memories = await getMemoryService().listMemories(agentId, { limit, offset });
 
     return apiResponse(c, {
       agentId,

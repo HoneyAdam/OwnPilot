@@ -182,6 +182,9 @@ vi.mock('@ownpilot/core', async (importOriginal) => ({
   getPermissionGate: () => {
     return mockPermissionGate;
   },
+  // Memory now resolves through the capability accessor; route saveMemory
+  // and createNote at the same mock the registry mock already points to.
+  getMemoryService: () => mockMemoryService,
 }));
 
 vi.mock('../db/adapters/index.js', () => ({

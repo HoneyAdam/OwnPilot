@@ -6,7 +6,7 @@
  * zero-values rather than aborting the entire gather.
  */
 
-import { getServiceRegistry, Services } from '@ownpilot/core';
+import { getServiceRegistry, Services, getMemoryService } from '@ownpilot/core';
 import { MS_PER_DAY } from '../config/defaults.js';
 import { getLog } from '../services/log.js';
 
@@ -159,13 +159,12 @@ async function gatherGoals(
 }
 
 async function gatherMemories(
-  registry: ReturnType<typeof getServiceRegistry>,
+  _registry: ReturnType<typeof getServiceRegistry>,
   userId: string,
   ctx: PulseContext
 ): Promise<void> {
   try {
-    const memoryService = registry.get(Services.Memory);
-    const stats = await memoryService.getStats(userId);
+    const stats = await getMemoryService().getStats(userId);
     ctx.memories.total = stats.total;
     ctx.memories.recentCount = stats.recentCount ?? 0;
     ctx.memories.avgImportance = stats.avgImportance ?? 0;
@@ -319,13 +318,12 @@ async function gatherCalendar(userId: string, _now: Date, ctx: PulseContext): Pr
 }
 
 async function gatherRecentMemories(
-  registry: ReturnType<typeof getServiceRegistry>,
+  _registry: ReturnType<typeof getServiceRegistry>,
   userId: string,
   ctx: PulseContext
 ): Promise<void> {
   try {
-    const memoryService = registry.get(Services.Memory);
-    const memories = await memoryService.getImportantMemories(userId, {
+    const memories = await getMemoryService().getImportantMemories(userId, {
       threshold: 0.5,
       limit: 10,
     });
@@ -341,13 +339,14 @@ async function gatherRecentMemories(
 }
 
 async function gatherUserLocation(
-  registry: ReturnType<typeof getServiceRegistry>,
+  _registry: ReturnType<typeof getServiceRegistry>,
   userId: string,
   ctx: PulseContext
 ): Promise<void> {
   try {
-    const memoryService = registry.get(Services.Memory);
-    const memories = await memoryService.searchMemories(userId, 'location city', { limit: 3 });
+    const memories = await getMemoryService().searchMemories(userId, 'location city', {
+      limit: 3,
+    });
     const locationMemory = memories.find(
       (m) => m.type === 'preference' || m.content.toLowerCase().includes('location')
     );

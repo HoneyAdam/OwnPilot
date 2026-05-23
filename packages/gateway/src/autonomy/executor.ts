@@ -6,7 +6,7 @@
  * under the current AutonomyConfig.
  */
 
-import { getServiceRegistry, Services, getErrorMessage } from '@ownpilot/core';
+import { getServiceRegistry, Services, getErrorMessage, getMemoryService } from '@ownpilot/core';
 import type { PulseActionResult } from '@ownpilot/core';
 import { assessRisk, DEFAULT_AUTONOMY_CONFIG, type AutonomyConfig } from './index.js';
 import { PULSE_MAX_ACTIONS } from '../config/defaults.js';
@@ -195,10 +195,7 @@ async function executeCreateMemory(
   params: Record<string, unknown>,
   userId: string
 ): Promise<PulseActionResult> {
-  const registry = getServiceRegistry();
-  const memoryService = registry.get(Services.Memory);
-
-  const memory = await memoryService.createMemory(userId, {
+  const memory = await getMemoryService().createMemory(userId, {
     content: params.content as string,
     type: (params.type as 'fact' | 'preference' | 'event') ?? 'fact',
     importance: (params.importance as number) ?? 0.5,
@@ -243,8 +240,7 @@ async function executeMemoryCleanup(
   params: Record<string, unknown>,
   userId: string
 ): Promise<PulseActionResult> {
-  const registry = getServiceRegistry();
-  const memoryService = registry.get(Services.Memory);
+  const memoryService = getMemoryService();
 
   const minImportance = (params.minImportance as number) ?? 0.2;
 

@@ -30,6 +30,7 @@ import { type CustomTableSchema } from '../db/repositories/custom-data.js';
 import {
   getServiceRegistry,
   Services,
+  getMemoryService,
   type IDatabaseService,
   type ServiceMemoryEntry,
 } from '@ownpilot/core';
@@ -100,7 +101,7 @@ export class DashboardService {
     const registry = getServiceRegistry();
     const goalService = registry.get(Services.Goal);
     const triggerService = registry.get(Services.Trigger);
-    const memoryService = registry.get(Services.Memory);
+    const memoryService = getMemoryService();
     const habitsRepo = new HabitsRepository(this.userId);
     const costsRepo = new CostsRepository();
     const notesRepo = new NotesRepository(this.userId);

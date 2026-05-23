@@ -51,6 +51,8 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   return {
     ...original,
     getServiceRegistry: vi.fn(() => createMockServiceRegistry({ memory: mockMemoryService })),
+    // Routes now resolve memory through the capability accessor.
+    getMemoryService: vi.fn(() => mockMemoryService),
   };
 });
 

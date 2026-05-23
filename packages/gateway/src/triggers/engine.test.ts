@@ -85,6 +85,8 @@ vi.mock('@ownpilot/core', async () => {
         return services[token.name];
       }),
     })),
+    // Memory now resolves through the capability accessor.
+    getMemoryService: vi.fn(() => mockMemoryService),
     getNextRunTime: vi.fn(() => new Date('2025-01-01T09:00:00Z')),
   };
 });

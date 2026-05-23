@@ -14,6 +14,7 @@ import {
   type ToolCall,
   getServiceRegistry,
   getEventSystem,
+  getMemoryService,
   Services,
   getBaseName,
 } from '@ownpilot/core';
@@ -62,7 +63,7 @@ export async function buildEnhancedSystemPrompt(
   basePrompt: string,
   options: OrchestratorOptions
 ): Promise<{ prompt: string; stats: { memoriesUsed: number; goalsUsed: number } }> {
-  const memoryService = getServiceRegistry().get(Services.Memory);
+  const memoryService = getMemoryService();
   const goalService = getServiceRegistry().get(Services.Goal);
 
   const maxMemories = options.maxMemories ?? 10;
@@ -451,7 +452,7 @@ export async function extractMemories(
 
   if (memories.length === 0) return 0;
 
-  const memoryService = getServiceRegistry().get(Services.Memory);
+  const memoryService = getMemoryService();
   const result = await memoryService.batchRemember(
     userId,
     memories.map((m) => ({
@@ -522,7 +523,7 @@ export async function getOrchestratorStats(userId: string): Promise<{
   pendingApprovals: number;
   autonomyLevel: number;
 }> {
-  const memoryService = getServiceRegistry().get(Services.Memory);
+  const memoryService = getMemoryService();
   const goalService = getServiceRegistry().get(Services.Goal);
   const triggerService = getServiceRegistry().get(Services.Trigger);
   const approvalManager = getApprovalManager();

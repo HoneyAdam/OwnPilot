@@ -57,6 +57,9 @@ vi.mock('@ownpilot/core', () => ({
       return services[service.name];
     }),
   })),
+  // Memory is resolved through the capability accessor now; mirror the
+  // registry mock so existing assertions still pass.
+  getMemoryService: vi.fn(() => mockMemoryService),
   Services: {
     Goal: { name: 'goal' },
     Memory: { name: 'memory' },

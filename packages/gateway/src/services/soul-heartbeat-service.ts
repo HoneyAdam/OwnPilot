@@ -20,6 +20,7 @@ import {
   getEventSystem,
   calculateCost,
   getPermissionGate,
+  getMemoryService,
 } from '@ownpilot/core';
 import type {
   AIProvider,
@@ -284,10 +285,7 @@ function createHeartbeatAgentEngine(): IHeartbeatAgentEngine {
 
     async saveMemory(agentId, content, source) {
       try {
-        const { getServiceRegistry, Services } = await import('@ownpilot/core');
-        const registry = getServiceRegistry();
-        const memorySvc = registry.get(Services.Memory);
-        await memorySvc.createMemory(agentId, {
+        await getMemoryService().createMemory(agentId, {
           content,
           source,
           type: 'fact',
@@ -300,10 +298,7 @@ function createHeartbeatAgentEngine(): IHeartbeatAgentEngine {
     // H4: Implemented — was missing, causing silent output loss for note-type tasks
     async createNote(note) {
       try {
-        const { getServiceRegistry, Services } = await import('@ownpilot/core');
-        const registry = getServiceRegistry();
-        const memorySvc = registry.get(Services.Memory);
-        await memorySvc.createMemory('system', {
+        await getMemoryService().createMemory('system', {
           content: note.content,
           source: note.source,
           type: 'fact',

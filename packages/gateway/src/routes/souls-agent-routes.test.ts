@@ -98,6 +98,8 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
         return null;
       }),
     }),
+    // Routes now resolve memory through the capability accessor.
+    getMemoryService: vi.fn(() => ({ listMemories: mockListMemories })),
     Services: {
       Memory: MockMemorySymbol,
       Goal: MockGoalSymbol,

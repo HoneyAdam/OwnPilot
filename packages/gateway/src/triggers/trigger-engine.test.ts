@@ -59,6 +59,8 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   return {
     ...actual,
     getServiceRegistry: () => ({ get: (token: { name: string }) => mockServices[token.name] }),
+    // Memory now resolves through the capability accessor.
+    getMemoryService: () => mockMemoryService,
     Services: {
       Trigger: { name: 'trigger' },
       Goal: { name: 'goal' },
