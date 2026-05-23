@@ -35,7 +35,7 @@ import {
   validateQueryEnum,
   parseJsonBody,
 } from '../helpers.js';
-import { TOOL_TEMPLATES } from '../tool-templates.js';
+import { TOOL_TEMPLATES } from '../../services/tool-templates.js';
 import { wsGateway } from '../../ws/server.js';
 
 export const crudRoutes = new Hono();
