@@ -71,7 +71,7 @@ vi.mock('../routes/helpers.js', () => ({
   getErrorMessage: (e: unknown) => (e instanceof Error ? e.message : String(e)),
 }));
 
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   resolveDefaultProviderAndModel: (...args: unknown[]) => mockResolveProviderAndModel(...args),
 }));
 

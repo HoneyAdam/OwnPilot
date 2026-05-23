@@ -15,7 +15,7 @@ import {
   TOOL_GROUPS,
 } from '@ownpilot/core';
 import { localProvidersRepo } from '../db/repositories/index.js';
-import { getApiKey } from '../routes/settings.js';
+import { getApiKey } from './app-settings.js';
 import { toHostPath } from '../utils/host-path.js';
 import { getApprovalManager, checkAutonomy, AutonomyLevel } from '../autonomy/index.js';
 import type { ActionCategory } from '../autonomy/index.js';

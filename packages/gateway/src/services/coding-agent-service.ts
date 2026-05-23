@@ -39,7 +39,7 @@ import {
   createSanitizedEnv,
 } from './binary-utils.js';
 import { getLog } from './log.js';
-import { getAllowedDirs } from '../routes/settings.js';
+import { getAllowedDirs } from './app-settings.js';
 import {
   DEFAULT_TIMEOUT_MS,
   MAX_TIMEOUT_MS,

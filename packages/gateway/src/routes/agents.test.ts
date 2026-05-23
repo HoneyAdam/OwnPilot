@@ -107,7 +107,7 @@ vi.mock('../db/repositories/index.js', () => ({
   },
 }));
 
-vi.mock('./settings.js', () => ({
+vi.mock('../services/app-settings.js', () => ({
   hasApiKey: vi.fn(() => true),
   getApiKey: vi.fn(() => 'test-api-key'),
   resolveDefaultProviderAndModel: vi.fn(async (p: string, m: string) => ({
@@ -756,7 +756,7 @@ describe('Agent Routes', () => {
 
       // getProviderApiKey checks localProvidersRepo.getProvider first (returns null),
       // then falls back to getApiKey from settings. Mock getApiKey to return undefined once.
-      const { getApiKey } = await import('./settings.js');
+      const { getApiKey } = await import('../services/app-settings.js');
       vi.mocked(getApiKey).mockResolvedValueOnce(undefined);
 
       const res = await app.request('/agents/agent-1', {

@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   resolveDefaultProviderAndModel: vi.fn(async (provider: string, model: string) => ({
     provider: provider === 'default' ? 'openai' : provider,
     model: model === 'default' ? 'gpt-4o-mini' : model,
@@ -30,7 +30,7 @@ import {
   getDefaultProvider,
   setDefaultProvider,
   setDefaultModel,
-} from '../routes/settings.js';
+} from './app-settings.js';
 
 // ---------------------------------------------------------------------------
 // Tests

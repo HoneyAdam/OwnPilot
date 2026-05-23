@@ -64,7 +64,7 @@ vi.mock('./log.js', () => ({
 }));
 
 // Mock the AI analysis (resolveDefaultProviderAndModel + createProvider)
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   resolveDefaultProviderAndModel: vi.fn(async () => ({ provider: 'openai', model: 'gpt-4o' })),
 }));
 

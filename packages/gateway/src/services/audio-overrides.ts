@@ -13,7 +13,7 @@
 import type { ToolRegistry, ToolExecutor, ToolExecutionResult } from '@ownpilot/core';
 import { getConfigCenter } from '@ownpilot/core';
 import { configServicesRepo } from '../db/repositories/config-services.js';
-import { resolveDefaultProviderAndModel } from '../routes/settings.js';
+import { resolveDefaultProviderAndModel } from './app-settings.js';
 import { getProviderApiKey, loadProviderConfig } from './agent-cache.js';
 import { getLog } from './log.js';
 import { getErrorMessage } from '../routes/helpers.js';

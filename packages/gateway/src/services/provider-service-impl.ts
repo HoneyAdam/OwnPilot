@@ -12,7 +12,7 @@ import {
   getDefaultModel,
   setDefaultProvider,
   setDefaultModel,
-} from '../routes/settings.js';
+} from './app-settings.js';
 import { loadProviderConfig } from '@ownpilot/core';
 
 // ============================================================================

@@ -11,7 +11,7 @@
  */
 
 import { settingsRepo } from '../db/repositories/index.js';
-import { getDefaultProvider, getDefaultModel } from '../routes/settings.js';
+import { getDefaultProvider, getDefaultModel } from './app-settings.js';
 import { getLog } from './log.js';
 
 const log = getLog('ModelRouting');

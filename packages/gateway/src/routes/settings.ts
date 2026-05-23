@@ -1,8 +1,9 @@
 /**
- * Settings routes
+ * Settings routes — HTTP handlers only.
  *
- * Provides API for managing application settings including API keys
- * Settings are persisted to the database (PostgreSQL)
+ * The pure helpers that read/write settings live in
+ * `services/app-settings.ts` so non-route consumers don't reach back into
+ * the routes/ layer. Route handlers import them from there.
  */
 
 import { Hono } from 'hono';
@@ -24,8 +25,6 @@ import {
 import { settingsRepo, localProvidersRepo } from '../db/repositories/index.js';
 import {
   getAvailableProviders,
-  getDefaultModelForProvider,
-  DEFAULT_SANDBOX_SETTINGS,
   type SandboxSettings,
   isDockerAvailable,
   TOOL_GROUPS,
@@ -35,40 +34,59 @@ import { getDataDirectoryInfo } from '../paths/index.js';
 import { getMigrationStatus } from '../paths/migration.js';
 import { getLlmSemaphore } from '../services/llm-semaphore.js';
 import { DEFAULT_MAX_LLM_CONCURRENCY } from '../config/defaults.js';
+import {
+  API_KEY_PREFIX,
+  DEFAULT_PROVIDER_KEY,
+  DEFAULT_MODEL_KEY,
+  TOOL_GROUPS_KEY,
+  getAllowedDirs,
+  setAllowedDirs,
+  getSandboxSettings,
+  setSandboxSetting,
+} from '../services/app-settings.js';
 
 export const settingsRoutes = new Hono();
 
-// Key prefix for API keys in the settings store
-const API_KEY_PREFIX = 'api_key:';
-
-// Keys for default AI provider and model settings (forward declaration)
-const DEFAULT_PROVIDER_KEY = 'default_ai_provider';
-const DEFAULT_MODEL_KEY = 'default_ai_model';
+// Re-exports for backward compatibility with existing route consumers.
+// New code MUST import these directly from '../services/app-settings.js'.
+export {
+  hasApiKey,
+  getApiKey,
+  getConfiguredProviderIds,
+  loadApiKeysToEnvironment,
+  getDefaultProvider,
+  setDefaultProvider,
+  getDefaultModel,
+  setDefaultModel,
+  resolveDefaultProviderAndModel,
+  isDemoModeFromSettings,
+  getApiKeySource,
+  getAllowedDirs,
+  setAllowedDirs,
+  getSandboxSettings,
+  setSandboxSetting,
+  isSandboxEnabled,
+  getEnabledToolGroupIds,
+} from '../services/app-settings.js';
 
 /**
  * Get current settings (without exposing actual keys)
- * All settings come from database - no ENV fallbacks
  */
 settingsRoutes.get('/', async (c) => {
-  // Get all API key settings from database only
   const apiKeySettings = await settingsRepo.getByPrefix(API_KEY_PREFIX);
   const configuredProviders = apiKeySettings.map((s) => s.key.replace(API_KEY_PREFIX, ''));
 
-  // Include enabled local providers as configured (they don't need API keys)
   const localProviders = await localProvidersRepo.listProviders();
   const enabledLocalProviders = localProviders
     .filter((lp) => lp.isEnabled)
     .map((lp) => ({ id: lp.id, name: lp.name, type: 'local' as const }));
   const localProviderIds = enabledLocalProviders.map((lp) => lp.id);
 
-  // Merge: remote configured + local enabled
   const allConfiguredProviders = [...configuredProviders, ...localProviderIds];
 
-  // Get default provider/model settings
   const defaultProvider = await settingsRepo.get<string>(DEFAULT_PROVIDER_KEY);
   const defaultModel = await settingsRepo.get<string>(DEFAULT_MODEL_KEY);
 
-  // Available providers from config
   const availableProviders = getAvailableProviders();
 
   return apiResponse(c, {
@@ -148,12 +166,9 @@ settingsRoutes.post('/api-keys', async (c) => {
   try {
     const body = validateBody(setApiKeySchema, await c.req.json());
 
-    // Store API key in database
     const key = `${API_KEY_PREFIX}${body.provider}`;
     await settingsRepo.set(key, body.apiKey);
 
-    // Also set as environment variable for the current process
-    // This allows providers to work immediately without restart
     const sanitizedProvider = sanitizeProviderName(body.provider);
     if (sanitizedProvider) {
       const envVarName = `${sanitizedProvider}_API_KEY`;
@@ -177,11 +192,9 @@ settingsRoutes.post('/api-keys', async (c) => {
 settingsRoutes.delete('/api-keys/:provider', async (c) => {
   const provider = c.req.param('provider');
 
-  // Delete from database
   const key = `${API_KEY_PREFIX}${provider}`;
   await settingsRepo.delete(key);
 
-  // Remove from environment
   const sanitizedProvider = sanitizeProviderName(provider);
   if (sanitizedProvider) {
     const envVarName = `${sanitizedProvider}_API_KEY`;
@@ -193,192 +206,6 @@ settingsRoutes.delete('/api-keys/:provider', async (c) => {
     configured: false,
   });
 });
-
-/**
- * Check if a provider has an API key configured (database only)
- */
-export async function hasApiKey(provider: string): Promise<boolean> {
-  const key = `${API_KEY_PREFIX}${provider}`;
-  return await settingsRepo.has(key);
-}
-
-/**
- * Get API key for a provider (database only)
- */
-export async function getApiKey(provider: string): Promise<string | undefined> {
-  const key = `${API_KEY_PREFIX}${provider}`;
-  return (await settingsRepo.get<string>(key)) ?? undefined;
-}
-
-/**
- * Get all configured provider IDs in one query (batch version of hasApiKey).
- * Returns a Set of provider IDs that have API keys configured.
- */
-export async function getConfiguredProviderIds(): Promise<Set<string>> {
-  const apiKeySettings = await settingsRepo.getByPrefix(API_KEY_PREFIX);
-  return new Set(apiKeySettings.map((s) => s.key.replace(API_KEY_PREFIX, '')));
-}
-
-/**
- * Load all API keys from database into process.env for provider SDKs
- * Called at startup - this allows SDKs that read from env to work
- */
-export async function loadApiKeysToEnvironment(): Promise<void> {
-  const apiKeySettings = await settingsRepo.getByPrefix(API_KEY_PREFIX);
-
-  for (const setting of apiKeySettings) {
-    const provider = setting.key.replace(API_KEY_PREFIX, '');
-    const sanitizedProvider = sanitizeProviderName(provider);
-    if (sanitizedProvider) {
-      const envVarName = `${sanitizedProvider}_API_KEY`;
-      process.env[envVarName] = setting.value as string;
-    }
-  }
-}
-
-/**
- * Get the default AI provider (database only, no hardcoded fallback)
- * Returns null if no provider is configured
- */
-export async function getDefaultProvider(): Promise<string | null> {
-  // Check database setting — if the user explicitly chose a default, respect it
-  const savedProvider = await settingsRepo.get<string>(DEFAULT_PROVIDER_KEY);
-  if (savedProvider) {
-    // For local providers, check they're enabled
-    const localProv = await localProvidersRepo.getProvider(savedProvider);
-    if (localProv) {
-      if (localProv.isEnabled) return savedProvider;
-      // Local provider is disabled — fall through to fallbacks
-    } else {
-      // Remote provider — always respect the user's explicit choice.
-      // If the API key is missing/invalid, the caller gets a clear error
-      // instead of silently switching to a different provider.
-      return savedProvider;
-    }
-  }
-
-  // Check if a local provider is marked as default
-  const localDefault = await localProvidersRepo.getDefault('default');
-  if (localDefault?.isEnabled) return localDefault.id;
-
-  // Fall back to first configured remote provider
-  const apiKeySettings = await settingsRepo.getByPrefix(API_KEY_PREFIX);
-  const firstSetting = apiKeySettings[0];
-  if (firstSetting) {
-    return firstSetting.key.replace(API_KEY_PREFIX, '');
-  }
-
-  // No providers configured
-  return null;
-}
-
-/**
- * Set the default AI provider
- */
-export async function setDefaultProvider(provider: string): Promise<void> {
-  await settingsRepo.set(DEFAULT_PROVIDER_KEY, provider);
-}
-
-/**
- * Get the default model for a provider (database + config, no hardcoded fallback)
- * Returns null if no model can be determined
- */
-export async function getDefaultModel(provider?: string): Promise<string | null> {
-  // Check database setting for specific default model
-  const savedModel = await settingsRepo.get<string>(DEFAULT_MODEL_KEY);
-  if (savedModel) {
-    return savedModel;
-  }
-
-  // Fall back to provider-specific defaults from config
-  const actualProvider = provider ?? (await getDefaultProvider());
-  if (!actualProvider) {
-    return null;
-  }
-
-  const defaultModel = getDefaultModelForProvider(actualProvider);
-  return defaultModel?.id ?? null;
-}
-
-/**
- * Set the default AI model
- */
-export async function setDefaultModel(model: string): Promise<void> {
-  await settingsRepo.set(DEFAULT_MODEL_KEY, model);
-}
-
-/**
- * Resolve "default" provider/model to actual values.
- * Returns null values if no defaults are configured.
- *
- * NOTE: This uses the global default provider, NOT the per-process model-routing
- * waterfall. For process-aware routing (chat, pulse, channel), use
- * `resolveProviderAndModel()` from `agent-runner-utils.ts` or
- * `resolveForProcess()` from `model-routing.ts` instead.
- *
- * Renamed from `resolveProviderAndModel` to disambiguate from the
- * waterfall variant (refactor.md §4.5).
- */
-export async function resolveDefaultProviderAndModel(
-  provider: string,
-  model: string
-): Promise<{ provider: string | null; model: string | null }> {
-  const resolvedProvider = provider === 'default' ? await getDefaultProvider() : provider;
-  const resolvedModel =
-    model === 'default' ? await getDefaultModel(resolvedProvider ?? undefined) : model;
-  return { provider: resolvedProvider, model: resolvedModel };
-}
-
-/**
- * Check if demo mode (no providers configured)
- */
-export async function isDemoModeFromSettings(): Promise<boolean> {
-  const apiKeySettings = await settingsRepo.getByPrefix(API_KEY_PREFIX);
-  if (apiKeySettings.length > 0) return false;
-
-  // Check local providers (Ollama, LM Studio, etc.)
-  const localProviders = await localProvidersRepo.listProviders();
-  if (localProviders.some((p) => p.isEnabled)) return false;
-
-  return true;
-}
-
-/**
- * Get the source of an API key (database only now)
- * Returns 'database' if key exists, null otherwise
- */
-export async function getApiKeySource(provider: string): Promise<'database' | null> {
-  const key = `${API_KEY_PREFIX}${provider}`;
-  return (await settingsRepo.has(key)) ? 'database' : null;
-}
-
-// ============================================
-// Coding Agents — Allowed Working Directories
-// ============================================
-
-const ALLOWED_DIRS_KEY = 'coding_agents:allowed_dirs';
-
-/**
- * Get the list of directories that coding agents are allowed to work in.
- * Empty array means no restriction (any directory allowed).
- */
-export async function getAllowedDirs(): Promise<string[]> {
-  const saved = await settingsRepo.get<string>(ALLOWED_DIRS_KEY);
-  if (!saved) return [];
-  try {
-    const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Set the list of allowed working directories for coding agents.
- */
-export async function setAllowedDirs(dirs: string[]): Promise<void> {
-  await settingsRepo.set(ALLOWED_DIRS_KEY, JSON.stringify(dirs));
-}
 
 /**
  * GET /coding-agents/allowed-dirs
@@ -403,73 +230,6 @@ settingsRoutes.put('/coding-agents/allowed-dirs', async (c) => {
     return apiError(c, { code: ERROR_CODES.INTERNAL_ERROR, message: getErrorMessage(err) }, 500);
   }
 });
-
-// ============================================
-// Sandbox Settings
-// ============================================
-
-const SANDBOX_SETTINGS_PREFIX = 'sandbox:';
-
-/**
- * Get sandbox settings
- */
-export async function getSandboxSettings(): Promise<SandboxSettings> {
-  const settings = { ...DEFAULT_SANDBOX_SETTINGS } as {
-    [K in keyof SandboxSettings]: SandboxSettings[K];
-  };
-
-  // Override with saved settings
-  const savedSettings = await settingsRepo.getByPrefix(SANDBOX_SETTINGS_PREFIX);
-  for (const setting of savedSettings) {
-    const key = setting.key.replace(SANDBOX_SETTINGS_PREFIX, '') as keyof SandboxSettings;
-    if (key in settings) {
-      const defaultValue = DEFAULT_SANDBOX_SETTINGS[key];
-      // Handle array types (allowedImages)
-      if (Array.isArray(defaultValue)) {
-        try {
-          const parsed = JSON.parse(setting.value as string);
-          if (Array.isArray(parsed)) {
-            // Use type assertion with intermediate cast
-            (settings[key] as unknown) = parsed;
-          }
-        } catch {
-          // Keep default if JSON parse fails
-        }
-      } else if (typeof defaultValue === 'boolean') {
-        (settings[key] as unknown) = setting.value === 'true' || setting.value === true;
-      } else if (typeof defaultValue === 'number') {
-        (settings[key] as unknown) = Number(setting.value);
-      } else {
-        (settings[key] as unknown) = setting.value;
-      }
-    }
-  }
-
-  return settings;
-}
-
-/**
- * Set a sandbox setting
- */
-export async function setSandboxSetting<K extends keyof SandboxSettings>(
-  key: K,
-  value: SandboxSettings[K]
-): Promise<void> {
-  const settingKey = `${SANDBOX_SETTINGS_PREFIX}${key}`;
-  if (Array.isArray(value)) {
-    await settingsRepo.set(settingKey, JSON.stringify(value));
-  } else {
-    await settingsRepo.set(settingKey, String(value));
-  }
-}
-
-/**
- * Check if sandbox is enabled
- */
-export async function isSandboxEnabled(): Promise<boolean> {
-  const enabledSetting = await settingsRepo.get<string>(`${SANDBOX_SETTINGS_PREFIX}enabled`);
-  return enabledSetting === 'true';
-}
 
 /**
  * GET /sandbox - Get sandbox settings
@@ -511,7 +271,6 @@ settingsRoutes.post('/sandbox', async (c) => {
   try {
     const body = await c.req.json<Partial<SandboxSettings>>();
 
-    // Validate and apply each setting
     const validKeys: (keyof SandboxSettings)[] = [
       'enabled',
       'basePath',
@@ -533,7 +292,6 @@ settingsRoutes.post('/sandbox', async (c) => {
       if (key in body) {
         const value = body[key];
 
-        // Validation
         if (key === 'enabled' && typeof value !== 'boolean') {
           return apiError(
             c,
@@ -664,12 +422,6 @@ settingsRoutes.post('/sandbox/disable', async (c) => {
   }
 });
 
-// ============================================
-// Tool Group Settings
-// ============================================
-
-const TOOL_GROUPS_KEY = 'tool_groups';
-
 /**
  * GET /tool-groups - Get all tool groups with enabled/disabled state
  */
@@ -698,7 +450,6 @@ settingsRoutes.put('/tool-groups', async (c) => {
   try {
     const body = validateBody(setToolGroupsSchema, await c.req.json());
 
-    // Validate all IDs reference real groups
     const invalidIds = body.enabledGroupIds.filter((id) => !TOOL_GROUPS[id]);
     if (invalidIds.length > 0) {
       return apiError(
@@ -711,7 +462,6 @@ settingsRoutes.put('/tool-groups', async (c) => {
       );
     }
 
-    // Ensure always-on groups are included
     const enabledSet = new Set(body.enabledGroupIds);
     for (const group of Object.values(TOOL_GROUPS)) {
       if (group.alwaysOn) {
@@ -730,13 +480,6 @@ settingsRoutes.put('/tool-groups', async (c) => {
   }
 });
 
-/**
- * Get enabled tool group IDs (for use by other modules)
- */
-export function getEnabledToolGroupIds(): string[] {
-  return settingsRepo.get<string[]>(TOOL_GROUPS_KEY) ?? DEFAULT_ENABLED_GROUPS;
-}
-
 // ============================================
 // LLM Concurrency Settings
 // ============================================
@@ -745,7 +488,6 @@ const MAX_LLM_CONCURRENCY_KEY = 'gateway.max_llm_concurrency';
 
 /**
  * GET /settings/max-llm-concurrency
- * Returns the current max concurrent LLM calls setting.
  */
 settingsRoutes.get('/max-llm-concurrency', async (c) => {
   const stored = settingsRepo.get<number>(MAX_LLM_CONCURRENCY_KEY);
@@ -759,7 +501,6 @@ settingsRoutes.get('/max-llm-concurrency', async (c) => {
 
 /**
  * PUT /settings/max-llm-concurrency
- * Updates the max concurrent LLM calls at runtime.
  */
 settingsRoutes.put('/max-llm-concurrency', async (c) => {
   try {

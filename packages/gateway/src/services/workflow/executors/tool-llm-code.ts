@@ -19,7 +19,7 @@ import type {
 import { createProvider, type ProviderConfig, type IToolService } from '@ownpilot/core';
 import { getErrorMessage } from '../../../routes/helpers.js';
 import { NATIVE_PROVIDERS, loadProviderConfig, getProviderApiKey } from '../../agent-cache.js';
-import { resolveDefaultProviderAndModel } from '../../../routes/settings.js';
+import { resolveDefaultProviderAndModel } from '../../app-settings.js';
 import { resolveTemplates } from '../template-resolver.js';
 import type { ToolExecutionResult } from '../types.js';
 import { log, safeVmEval, toToolExecResult, resolveWorkflowToolName } from './utils.js';

@@ -17,7 +17,7 @@ import {
 import { tryImport, getConfigCenter } from '@ownpilot/core';
 import { type CliProviderRecord } from '../db/repositories/cli-providers.js';
 import { validateCwd, createSanitizedEnv, spawnCliProcess } from './binary-utils.js';
-import { getAllowedDirs } from '../routes/settings.js';
+import { getAllowedDirs } from './app-settings.js';
 
 // =============================================================================
 // CONSTANTS

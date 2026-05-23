@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ExecutionPermissions } from '@ownpilot/core';
 
 // Mock dependencies before importing the module under test
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   getEnabledToolGroupIds: vi.fn(() => [
     'core',
     'filesystem',
@@ -43,7 +43,7 @@ import {
 } from './tool-permission-service.js';
 
 // Access mocks
-const { getEnabledToolGroupIds } = await import('../routes/settings.js');
+const { getEnabledToolGroupIds } = await import('./app-settings.js');
 const { cliToolPoliciesRepo } = await import('../db/repositories/cli-tool-policies.js');
 const { getCustomToolDynamicRegistry } = await import('./custom-tool-registry.js');
 

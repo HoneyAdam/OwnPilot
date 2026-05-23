@@ -25,7 +25,7 @@ import * as repoModule from '../db/repositories/index.js';
 const mockGetDefaultProvider = vi.fn(async () => 'openai' as string | null);
 const mockGetDefaultModel = vi.fn(async (_provider?: string) => 'gpt-4o' as string | null);
 
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   getDefaultProvider: () => mockGetDefaultProvider(),
   getDefaultModel: (provider?: string) => mockGetDefaultModel(provider),
 }));

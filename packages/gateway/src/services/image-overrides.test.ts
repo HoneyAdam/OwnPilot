@@ -46,7 +46,7 @@ vi.mock('../db/repositories/config-services.js', () => ({
   },
 }));
 
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   resolveDefaultProviderAndModel: (...args: unknown[]) => mockResolveProviderAndModel(...args),
 }));
 

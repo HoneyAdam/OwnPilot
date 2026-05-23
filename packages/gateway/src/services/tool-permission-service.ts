@@ -61,7 +61,7 @@ let _dynamicRegistryGetter: (() => { tools: Map<string, { requiresApproval?: boo
 
 async function loadEnabledToolGroupIds(): Promise<string[]> {
   if (!_getEnabledToolGroupIds) {
-    const mod = await import('../routes/settings.js');
+    const mod = await import('./app-settings.js');
     _getEnabledToolGroupIds = mod.getEnabledToolGroupIds;
   }
   return _getEnabledToolGroupIds();

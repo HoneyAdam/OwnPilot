@@ -45,7 +45,7 @@ vi.mock('../db/repositories/index.js', () => ({
   localProvidersRepo: mockLocalProvidersRepo,
 }));
 
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   getApiKey: (...args: unknown[]) => mockGetApiKey(...args),
 }));
 

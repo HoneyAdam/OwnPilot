@@ -119,7 +119,7 @@ vi.mock('../routes/agents.js', () => ({
   getOrCreateChatAgent: (...args: unknown[]) => mockGetOrCreateChatAgent(...args),
 }));
 
-vi.mock('../routes/settings.js', () => ({
+vi.mock('./app-settings.js', () => ({
   getDefaultProvider: (...args: unknown[]) => mockGetDefaultProvider(...args),
   getDefaultModel: (...args: unknown[]) => mockGetDefaultModel(...args),
 }));
