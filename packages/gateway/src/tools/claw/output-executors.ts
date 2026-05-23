@@ -9,7 +9,7 @@
  *  - claw_emit_event          — emit a custom event onto the EventBus
  */
 
-import { getErrorMessage, generateId } from '@ownpilot/core';
+import { getErrorMessage, generateId, getEventSystem } from '@ownpilot/core';
 import { getClawContext } from '../../services/claw-context.js';
 
 type ExecResult = { success: boolean; result?: unknown; error?: string };
@@ -180,7 +180,6 @@ export async function executeSendOutput(
 
   // 2. Emit WS event for live UI feed
   try {
-    const { getEventSystem } = await import('@ownpilot/core');
     getEventSystem().emit('claw.output', 'claw-tools', {
       clawId: ctx.clawId,
       message,
@@ -280,7 +279,6 @@ export async function executeCompleteReport(
 
   // 3. Emit WS notification
   try {
-    const { getEventSystem } = await import('@ownpilot/core');
     getEventSystem().emit('claw.output', 'claw-tools', {
       clawId: ctx.clawId,
       type: 'report',
@@ -359,7 +357,6 @@ export async function executeEmitEvent(args: Record<string, unknown>): Promise<E
   }
 
   try {
-    const { getEventSystem } = await import('@ownpilot/core');
     getEventSystem().emit(eventType as never, `claw:${ctx.clawId}`, {
       ...payload,
       _clawId: ctx.clawId,

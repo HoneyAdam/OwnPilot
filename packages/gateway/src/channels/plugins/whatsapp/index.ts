@@ -9,6 +9,7 @@
 import {
   createChannelPlugin,
   getConfigCenter,
+  getChannelService,
   type PluginCapability,
   type PluginPermission,
 } from '@ownpilot/core';
@@ -79,7 +80,6 @@ export function buildWhatsAppChannelPlugin() {
         },
       },
       async (params) => {
-        const { getChannelService } = await import('@ownpilot/core');
         const service = getChannelService();
         const api = service.getChannel('channel.whatsapp');
         if (!api || api.getStatus() !== 'connected') {

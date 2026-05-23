@@ -16,6 +16,7 @@
  * All queries are scoped to the user_id set in the constructor.
  */
 
+import { getEventSystem } from '@ownpilot/core';
 import { BaseRepository } from './base.js';
 import { buildUpdateStatement, type UpdateField } from './query-helpers.js';
 
@@ -131,7 +132,6 @@ export abstract class CrudRepository<
     if (!result) throw new Error(`Failed to create ${this.entityName}`);
 
     if (this.emitEvents) {
-      const { getEventSystem } = await import('@ownpilot/core');
       getEventSystem().emit('resource.created', `${this.tableName}-repository`, {
         resourceType: this.resourceType,
         id,
@@ -183,7 +183,6 @@ export abstract class CrudRepository<
     const updated = await this.getById(id);
 
     if (updated && this.emitEvents) {
-      const { getEventSystem } = await import('@ownpilot/core');
       getEventSystem().emit('resource.updated', `${this.tableName}-repository`, {
         resourceType: this.resourceType,
         id,
@@ -206,7 +205,6 @@ export abstract class CrudRepository<
     const deleted = result.changes > 0;
 
     if (deleted && this.emitEvents) {
-      const { getEventSystem } = await import('@ownpilot/core');
       getEventSystem().emit('resource.deleted', `${this.tableName}-repository`, {
         resourceType: this.resourceType,
         id,

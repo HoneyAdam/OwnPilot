@@ -9,6 +9,7 @@
 import {
   createChannelPlugin,
   getConfigCenter,
+  getChannelService,
   type PluginCapability,
   type PluginPermission,
 } from '@ownpilot/core';
@@ -110,7 +111,6 @@ export function buildSmsChannelPlugin() {
         },
       },
       async (params) => {
-        const { getChannelService } = await import('@ownpilot/core');
         const service = getChannelService();
         const api = service.getChannel('channel.sms');
         if (!api || api.getStatus() !== 'connected') {

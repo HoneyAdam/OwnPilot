@@ -16,7 +16,7 @@
  * current agent's ID and crew ID without requiring interface changes.
  */
 
-import { generateId, getErrorMessage } from '@ownpilot/core';
+import { generateId, getErrorMessage, getEventSystem } from '@ownpilot/core';
 import type { ToolDefinition, AgentMessage } from '@ownpilot/core';
 import { getCrewsRepository } from '../db/repositories/crews.js';
 import { getSoulsRepository } from '../db/repositories/souls.js';
@@ -418,7 +418,6 @@ async function handleDelegateTask(
 
   // Emit crew.task.created event for WS forwarding
   if (crewId) {
-    const { getEventSystem } = await import('@ownpilot/core');
     getEventSystem().emit('crew.task.created', 'crew-tools', {
       crewId,
       taskId: msgId,
@@ -516,7 +515,6 @@ async function handleClaimTask(
   }
 
   // Emit crew.task.claimed event for WS forwarding
-  const { getEventSystem } = await import('@ownpilot/core');
   getEventSystem().emit('crew.task.claimed', 'crew-tools', {
     crewId,
     taskId: task.id,
@@ -564,7 +562,6 @@ async function handleSubmitResult(
   }
 
   // Emit crew.task.completed event for WS forwarding
-  const { getEventSystem } = await import('@ownpilot/core');
   getEventSystem().emit(
     status === 'failed' ? 'crew.task.failed' : 'crew.task.completed',
     'crew-tools',

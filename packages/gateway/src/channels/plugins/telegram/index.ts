@@ -9,6 +9,7 @@
 import {
   createChannelPlugin,
   getConfigCenter,
+  getChannelService,
   type PluginCapability,
   type PluginPermission,
 } from '@ownpilot/core';
@@ -170,7 +171,6 @@ export function buildTelegramChannelPlugin() {
         },
       },
       async (params) => {
-        const { getChannelService } = await import('@ownpilot/core');
         const service = getChannelService();
         const api = service.getChannel('channel.telegram');
         if (!api || api.getStatus() !== 'connected') {
@@ -216,7 +216,6 @@ export function buildTelegramChannelPlugin() {
         },
       },
       async (params) => {
-        const { getChannelService } = await import('@ownpilot/core');
         const { getVoiceService } = await import('../../../services/voice-service.js');
 
         const service = getChannelService();

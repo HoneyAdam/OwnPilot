@@ -10,6 +10,7 @@
 import {
   createChannelPlugin,
   getConfigCenter,
+  getChannelService,
   type PluginCapability,
   type PluginPermission,
 } from '@ownpilot/core';
@@ -109,7 +110,6 @@ export function buildSlackChannelPlugin() {
         },
       },
       async (params) => {
-        const { getChannelService } = await import('@ownpilot/core');
         const service = getChannelService();
         const api = service.getChannel('channel.slack');
         if (!api || api.getStatus() !== 'connected') {

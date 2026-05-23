@@ -9,6 +9,7 @@
 import {
   createChannelPlugin,
   getConfigCenter,
+  getChannelService,
   type PluginCapability,
   type PluginPermission,
 } from '@ownpilot/core';
@@ -161,7 +162,6 @@ export function buildEmailChannelPlugin() {
         },
       },
       async (params) => {
-        const { getChannelService } = await import('@ownpilot/core');
         const service = getChannelService();
         const api = service.getChannel('channel.email');
         if (!api || api.getStatus() !== 'connected') {
