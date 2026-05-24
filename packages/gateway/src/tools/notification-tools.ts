@@ -58,7 +58,7 @@ export async function sendTelegramMessage(userId: string, text: string): Promise
   try {
     const channelService = getChannelService();
 
-    const { createChannelUsersRepository } = await import('../db/repositories/channel-users.js');
+    const { createChannelUsersRepository } = await import('../db/repositories/channels/users.js');
     const channelUsersRepo = createChannelUsersRepository();
     const channelUsers = await channelUsersRepo.findByOwnpilotUser(userId);
     const telegramUser = channelUsers.find((cu) => cu.platform === 'telegram');
@@ -69,7 +69,7 @@ export async function sendTelegramMessage(userId: string, text: string): Promise
     }
 
     const { createChannelSessionsRepository } =
-      await import('../db/repositories/channel-sessions.js');
+      await import('../db/repositories/channels/sessions.js');
     const sessionsRepo = createChannelSessionsRepository();
     const sessions = await sessionsRepo.listByUser(telegramUser.id);
     const activeSession = sessions.find((s) => s.isActive);

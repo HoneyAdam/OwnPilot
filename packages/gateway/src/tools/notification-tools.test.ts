@@ -31,14 +31,14 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
 const mockChannelUsersRepo = {
   findByOwnpilotUser: vi.fn().mockResolvedValue([]),
 };
-vi.mock('../db/repositories/channel-users.js', () => ({
+vi.mock('../db/repositories/channels/users.js', () => ({
   createChannelUsersRepository: () => mockChannelUsersRepo,
 }));
 
 const mockSessionsRepo = {
   listByUser: vi.fn().mockResolvedValue([]),
 };
-vi.mock('../db/repositories/channel-sessions.js', () => ({
+vi.mock('../db/repositories/channels/sessions.js', () => ({
   createChannelSessionsRepository: () => mockSessionsRepo,
 }));
 

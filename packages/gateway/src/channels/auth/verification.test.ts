@@ -5,20 +5,20 @@ vi.mock('@ownpilot/core', () => ({
   createEvent: vi.fn((...args: unknown[]) => args),
 }));
 
-vi.mock('../../db/repositories/channel-verification.js', () => ({
+vi.mock('../../db/repositories/channels/verification.js', () => ({
   ChannelVerificationRepository: vi.fn(),
   channelVerificationRepo: {},
 }));
 
-vi.mock('../../db/repositories/channel-users.js', () => ({
+vi.mock('../../db/repositories/channels/users.js', () => ({
   ChannelUsersRepository: vi.fn(),
   channelUsersRepo: {},
 }));
 
 import { getEventBus } from '@ownpilot/core';
 import { ChannelVerificationService, getChannelVerificationService } from './verification.js';
-import type { ChannelVerificationRepository } from '../../db/repositories/channel-verification.js';
-import type { ChannelUsersRepository } from '../../db/repositories/channel-users.js';
+import type { ChannelVerificationRepository } from '../../db/repositories/channels/verification.js';
+import type { ChannelUsersRepository } from '../../db/repositories/channels/users.js';
 
 // ---------------------------------------------------------------------------
 // Mock repos

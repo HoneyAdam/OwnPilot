@@ -5,7 +5,7 @@
  */
 
 import { Hono } from 'hono';
-import { ChannelMessagesRepository } from '../../db/repositories/channel-messages.js';
+import { ChannelMessagesRepository } from '../../db/repositories/channels/messages.js';
 import { apiResponse, apiError, ERROR_CODES, getErrorMessage } from '../helpers.js';
 import { pagination } from '../../middleware/pagination.js';
 import { wsGateway } from '../../ws/server.js';

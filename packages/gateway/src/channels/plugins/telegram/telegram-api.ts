@@ -202,9 +202,9 @@ export class TelegramChannelAPI implements ChannelPluginAPI {
         const userId = String(ctx.from?.id ?? '');
 
         try {
-          const { channelUsersRepo } = await import('../../../db/repositories/channel-users.js');
+          const { channelUsersRepo } = await import('../../../db/repositories/channels/users.js');
           const { channelSessionsRepo } =
-            await import('../../../db/repositories/channel-sessions.js');
+            await import('../../../db/repositories/channels/sessions.js');
 
           const user = await channelUsersRepo.findByPlatform('telegram', userId);
           if (!user) {
@@ -248,9 +248,9 @@ export class TelegramChannelAPI implements ChannelPluginAPI {
         const chatId = String(ctx.chat.id);
         const userId = String(ctx.from?.id ?? '');
         try {
-          const { channelUsersRepo } = await import('../../../db/repositories/channel-users.js');
+          const { channelUsersRepo } = await import('../../../db/repositories/channels/users.js');
           const { channelSessionsRepo } =
-            await import('../../../db/repositories/channel-sessions.js');
+            await import('../../../db/repositories/channels/sessions.js');
           const user = await channelUsersRepo.findByPlatform('telegram', userId);
           if (!user) {
             await ctx.reply('Please verify first with /connect YOUR_TOKEN');
@@ -274,9 +274,9 @@ export class TelegramChannelAPI implements ChannelPluginAPI {
         const chatId = String(ctx.chat.id);
         const userId = String(ctx.from?.id ?? '');
         try {
-          const { channelUsersRepo } = await import('../../../db/repositories/channel-users.js');
+          const { channelUsersRepo } = await import('../../../db/repositories/channels/users.js');
           const { channelSessionsRepo } =
-            await import('../../../db/repositories/channel-sessions.js');
+            await import('../../../db/repositories/channels/sessions.js');
           const user = await channelUsersRepo.findByPlatform('telegram', userId);
           if (!user) {
             await ctx.reply('Please verify first with /connect YOUR_TOKEN');
@@ -303,9 +303,9 @@ export class TelegramChannelAPI implements ChannelPluginAPI {
         const chatId = String(ctx.chat.id);
         const userId = String(ctx.from?.id ?? '');
         try {
-          const { channelUsersRepo } = await import('../../../db/repositories/channel-users.js');
+          const { channelUsersRepo } = await import('../../../db/repositories/channels/users.js');
           const { channelSessionsRepo } =
-            await import('../../../db/repositories/channel-sessions.js');
+            await import('../../../db/repositories/channels/sessions.js');
           const user = await channelUsersRepo.findByPlatform('telegram', userId);
           if (!user) {
             await ctx.reply('Please verify first with /connect YOUR_TOKEN');
@@ -346,9 +346,9 @@ export class TelegramChannelAPI implements ChannelPluginAPI {
         const chatId = String(ctx.chat.id);
         const userId = String(ctx.from?.id ?? '');
         try {
-          const { channelUsersRepo } = await import('../../../db/repositories/channel-users.js');
+          const { channelUsersRepo } = await import('../../../db/repositories/channels/users.js');
           const { channelSessionsRepo } =
-            await import('../../../db/repositories/channel-sessions.js');
+            await import('../../../db/repositories/channels/sessions.js');
           const user = await channelUsersRepo.findByPlatform('telegram', userId);
 
           const session = user

@@ -7,7 +7,7 @@
  */
 
 import { randomUUID, randomInt } from 'node:crypto';
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 // ============================================================================
 // Entity Types

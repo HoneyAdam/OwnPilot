@@ -5,7 +5,7 @@ import type { ChannelAttachment } from '@ownpilot/core';
 import {
   channelAssetsRepo,
   type ChannelAssetsRepository,
-} from '../db/repositories/channel-assets.js';
+} from '../db/repositories/channels/assets.js';
 import { getLog } from './log.js';
 
 const log = getLog('ChannelAssetStore');

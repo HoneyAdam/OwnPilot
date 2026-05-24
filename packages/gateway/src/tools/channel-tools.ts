@@ -16,7 +16,7 @@
 import type { ToolDefinition } from '@ownpilot/core';
 import { getErrorMessage, getChannelService, hasChannelService } from '@ownpilot/core';
 import type { ChannelOutgoingMessage } from '@ownpilot/core';
-import { channelMessagesRepo } from '../db/repositories/channel-messages.js';
+import { channelMessagesRepo } from '../db/repositories/channels/messages.js';
 import type { ToolExecutionResult } from '../services/tool/executor.js';
 import { getLog } from '../services/log.js';
 

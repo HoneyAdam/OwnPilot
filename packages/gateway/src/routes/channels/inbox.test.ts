@@ -18,7 +18,7 @@ const mockCount = vi.fn();
 const mockDeleteByChannel = vi.fn();
 const mockDeleteAll = vi.fn();
 
-vi.mock('../../db/repositories/channel-messages.js', () => ({
+vi.mock('../../db/repositories/channels/messages.js', () => ({
   ChannelMessagesRepository: vi.fn().mockImplementation(function () {
     return {
       getAll: mockGetAll,

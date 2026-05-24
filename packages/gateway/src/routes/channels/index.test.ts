@@ -97,7 +97,7 @@ const mockChannelMessagesRepo = {
   deleteByChannel: vi.fn(async () => ({ count: 3, ids: [] })),
 };
 
-vi.mock('../../db/repositories/channel-messages.js', () => ({
+vi.mock('../../db/repositories/channels/messages.js', () => ({
   ChannelMessagesRepository: vi.fn(function () {
     return mockChannelMessagesRepo;
   }),

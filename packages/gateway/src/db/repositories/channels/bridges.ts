@@ -7,7 +7,7 @@
 
 import { generateId } from '@ownpilot/core';
 import type { UCPBridgeConfig, BridgeDirection, BridgeStore } from '@ownpilot/core';
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 // ============================================================================
 // Row Type

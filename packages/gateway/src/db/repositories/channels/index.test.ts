@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { DatabaseAdapter } from '../adapters/types.js';
+import type { DatabaseAdapter } from '../../adapters/types.js';
 
 // ---------------------------------------------------------------------------
 // Mock setup
@@ -31,12 +31,12 @@ const mockAdapter: {
   close: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: vi.fn().mockResolvedValue(mockAdapter),
   getAdapterSync: vi.fn().mockReturnValue(mockAdapter),
 }));
 
-const { ChannelsRepository, channelsRepo } = await import('./channels.js');
+const { ChannelsRepository, channelsRepo } = await import('./index.js');
 
 // ---------------------------------------------------------------------------
 // Tests

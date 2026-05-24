@@ -255,18 +255,18 @@ vi.mock('../../config/defaults.js', async (importOriginal) => {
   };
 });
 
-vi.mock('../../db/repositories/channel-sessions.js', () => ({
+vi.mock('../../db/repositories/channels/sessions.js', () => ({
   channelSessionsRepo: mockChannelSessionsRepo,
 }));
 
-vi.mock('../../db/repositories/channel-messages.js', () => ({
+vi.mock('../../db/repositories/channels/messages.js', () => ({
   channelMessagesRepo: {
     getByConversation: vi.fn(async () => []),
     create: vi.fn(async () => ({})),
   },
 }));
 
-vi.mock('../../db/repositories/channel-users.js', () => ({
+vi.mock('../../db/repositories/channels/users.js', () => ({
   channelUsersRepo: {
     getById: vi.fn(async () => null),
   },
@@ -1498,7 +1498,7 @@ describe('Chat History & Logs Routes', () => {
     const t = (offset: number) => new Date(new Date('2026-01-01T10:00:00.000Z').getTime() + offset);
 
     it('populates channelUserInfo from channelUsersRepo when user found (line 336)', async () => {
-      const { channelUsersRepo } = await import('../../db/repositories/channel-users.js');
+      const { channelUsersRepo } = await import('../../db/repositories/channels/users.js');
       vi.mocked(channelUsersRepo.getById).mockResolvedValueOnce(channelUser as never);
 
       mockChatRepo.getConversationWithMessages.mockResolvedValueOnce({
@@ -1515,7 +1515,7 @@ describe('Chat History & Logs Routes', () => {
     });
 
     it('adds channel messages to unified timeline (lines 364-374)', async () => {
-      const { channelMessagesRepo } = await import('../../db/repositories/channel-messages.js');
+      const { channelMessagesRepo } = await import('../../db/repositories/channels/messages.js');
       vi.mocked(channelMessagesRepo.getByConversation).mockResolvedValueOnce([
         {
           id: 'cm-1',
@@ -1564,7 +1564,7 @@ describe('Chat History & Logs Routes', () => {
 
     it('deduplicates AI messages that overlap with channel messages by time (lines 379-391)', async () => {
       const baseTime = t(0);
-      const { channelMessagesRepo } = await import('../../db/repositories/channel-messages.js');
+      const { channelMessagesRepo } = await import('../../db/repositories/channels/messages.js');
       vi.mocked(channelMessagesRepo.getByConversation).mockResolvedValueOnce([
         {
           id: 'cm-inbound',
@@ -1623,7 +1623,7 @@ describe('Chat History & Logs Routes', () => {
     });
 
     it('includes AI tool messages that have no channel equivalent (lines 394-409)', async () => {
-      const { channelMessagesRepo } = await import('../../db/repositories/channel-messages.js');
+      const { channelMessagesRepo } = await import('../../db/repositories/channels/messages.js');
       vi.mocked(channelMessagesRepo.getByConversation).mockResolvedValueOnce([] as never);
 
       mockChatRepo.getConversationWithMessages.mockResolvedValueOnce({
@@ -1695,7 +1695,7 @@ describe('Chat History & Logs Routes', () => {
     });
 
     it('persists to channel_messages and messages table', async () => {
-      const { channelMessagesRepo } = await import('../../db/repositories/channel-messages.js');
+      const { channelMessagesRepo } = await import('../../db/repositories/channels/messages.js');
 
       await app.request('/api/history/conv-ch-1/channel-reply', {
         method: 'POST',
@@ -1826,7 +1826,7 @@ describe('Chat History & Logs Routes', () => {
     });
 
     it('continues (non-fatal) when channelMessagesRepo.create throws', async () => {
-      const { channelMessagesRepo } = await import('../../db/repositories/channel-messages.js');
+      const { channelMessagesRepo } = await import('../../db/repositories/channels/messages.js');
       vi.mocked(channelMessagesRepo.create).mockRejectedValueOnce(new Error('DB write failed'));
 
       const res = await app.request('/api/history/conv-ch-1/channel-reply', {

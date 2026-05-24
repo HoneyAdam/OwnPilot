@@ -35,13 +35,16 @@ import {
   type IMessageBus,
 } from '@ownpilot/core';
 
-import { channelUsersRepo, type ChannelUsersRepository } from '../db/repositories/channel-users.js';
+import {
+  channelUsersRepo,
+  type ChannelUsersRepository,
+} from '../db/repositories/channels/users.js';
 import {
   channelSessionsRepo,
   type ChannelSessionsRepository,
-} from '../db/repositories/channel-sessions.js';
-import { ChannelMessagesRepository } from '../db/repositories/channel-messages.js';
-import { channelsRepo } from '../db/repositories/channels.js';
+} from '../db/repositories/channels/sessions.js';
+import { ChannelMessagesRepository } from '../db/repositories/channels/messages.js';
+import { channelsRepo } from '../db/repositories/channels/index.js';
 import {
   getChannelVerificationService,
   type ChannelVerificationService,

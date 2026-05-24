@@ -17,7 +17,7 @@ import type {
   StreamCallbacks,
   ToolCall,
 } from '@ownpilot/core';
-import type { ChannelSessionsRepository } from '../db/repositories/channel-sessions.js';
+import type { ChannelSessionsRepository } from '../db/repositories/channels/sessions.js';
 import { truncate } from '../utils/common.js';
 import { stripInternalTags } from './normalizers/base.js';
 

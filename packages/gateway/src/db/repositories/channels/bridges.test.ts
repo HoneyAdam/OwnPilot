@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
@@ -17,7 +17,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   return { ...actual, generateId: vi.fn(() => 'bridge-test-id') };
 });
 
-const { ChannelBridgesRepository } = await import('./channel-bridges.js');
+const { ChannelBridgesRepository } = await import('./bridges.js');
 
 // ---------------------------------------------------------------------------
 // Helpers

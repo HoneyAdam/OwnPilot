@@ -6,7 +6,7 @@
 
 import { Hono } from 'hono';
 import { getChannelService, getDefaultPluginRegistry, getConfigCenter } from '@ownpilot/core';
-import { ChannelMessagesRepository } from '../../db/repositories/channel-messages.js';
+import { ChannelMessagesRepository } from '../../db/repositories/channels/messages.js';
 import { apiResponse, apiError, ERROR_CODES, notFoundError, getErrorMessage } from '../helpers.js';
 import { wsGateway } from '../../ws/server.js';
 import { getLog } from '../../services/log.js';

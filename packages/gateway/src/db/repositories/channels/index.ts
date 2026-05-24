@@ -4,7 +4,7 @@
  * Stores channel metadata. Required for the channel_messages FK constraint.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 export interface ChannelRow {
   id: string;

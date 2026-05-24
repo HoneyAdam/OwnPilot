@@ -32,14 +32,14 @@ export {
   ChannelMessagesRepository,
   createChannelMessagesRepository,
   type ChannelMessage,
-} from './channel-messages.js';
+} from './channels/messages.js';
 
 export {
   ChannelAssetsRepository,
   createChannelAssetsRepository,
   channelAssetsRepo,
   type ChannelAssetRecord,
-} from './channel-assets.js';
+} from './channels/assets.js';
 
 export {
   CostsRepository,

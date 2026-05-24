@@ -31,9 +31,9 @@ import { clearInjectionCache } from '../../services/middleware/context-injection
 import { getDefaultProvider } from '../settings.js';
 import { ChatRepository, LogsRepository } from '../../db/repositories/index.js';
 import { modelConfigsRepo } from '../../db/repositories/model-configs.js';
-import { channelSessionsRepo } from '../../db/repositories/channel-sessions.js';
-import { channelMessagesRepo } from '../../db/repositories/channel-messages.js';
-import { channelUsersRepo } from '../../db/repositories/channel-users.js';
+import { channelSessionsRepo } from '../../db/repositories/channels/sessions.js';
+import { channelMessagesRepo } from '../../db/repositories/channels/messages.js';
+import { channelUsersRepo } from '../../db/repositories/channels/users.js';
 import { getChannelService, hasChannelService } from '@ownpilot/core';
 import { wsGateway } from '../../ws/server.js';
 import { randomUUID } from 'node:crypto';

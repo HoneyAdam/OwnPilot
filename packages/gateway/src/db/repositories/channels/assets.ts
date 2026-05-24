@@ -1,4 +1,4 @@
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 
 export interface ChannelAssetRecord {
   id: string;

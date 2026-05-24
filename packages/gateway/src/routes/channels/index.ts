@@ -13,8 +13,8 @@
 
 import { Hono } from 'hono';
 import { getChannelService, getDefaultPluginRegistry } from '@ownpilot/core';
-import { ChannelMessagesRepository } from '../../db/repositories/channel-messages.js';
-import { channelUsersRepo } from '../../db/repositories/channel-users.js';
+import { ChannelMessagesRepository } from '../../db/repositories/channels/messages.js';
+import { channelUsersRepo } from '../../db/repositories/channels/users.js';
 import { configServicesRepo } from '../../db/repositories/config-services.js';
 import {
   apiResponse,

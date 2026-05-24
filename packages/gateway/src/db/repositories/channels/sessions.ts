@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 
 // ============================================================================
 // Entity Types

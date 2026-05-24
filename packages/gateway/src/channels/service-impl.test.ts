@@ -163,17 +163,17 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   };
 });
 
-vi.mock('../db/repositories/channel-users.js', () => ({
+vi.mock('../db/repositories/channels/users.js', () => ({
   channelUsersRepo: mockUsersRepo,
   ChannelUsersRepository: vi.fn(),
 }));
 
-vi.mock('../db/repositories/channel-sessions.js', () => ({
+vi.mock('../db/repositories/channels/sessions.js', () => ({
   channelSessionsRepo: mockSessionsRepo,
   ChannelSessionsRepository: vi.fn(),
 }));
 
-vi.mock('../db/repositories/channel-messages.js', () => ({
+vi.mock('../db/repositories/channels/messages.js', () => ({
   ChannelMessagesRepository: class {
     create = mockMessagesRepo.create;
     linkConversation = mockMessagesRepo.linkConversation;

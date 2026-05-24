@@ -397,7 +397,7 @@ export class WhatsAppChannelAPI implements ChannelPluginAPI {
               }
 
               const { ChannelMessagesRepository } =
-                await import('../../../db/repositories/channel-messages.js');
+                await import('../../../db/repositories/channels/messages.js');
               const messagesRepo = new ChannelMessagesRepository();
 
               // Transform WAMessage[] to DB rows

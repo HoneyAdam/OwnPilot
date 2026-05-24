@@ -27,7 +27,7 @@ const mockRepo = {
   isOwnedByUser: vi.fn(),
 };
 
-vi.mock('../db/repositories/channel-bridges.js', () => ({
+vi.mock('../db/repositories/channels/bridges.js', () => ({
   ChannelBridgesRepository: vi.fn(function () {
     return mockRepo;
   }),

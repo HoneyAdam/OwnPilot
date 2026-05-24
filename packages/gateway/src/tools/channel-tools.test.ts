@@ -31,7 +31,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
 const mockGetByChannel = vi.fn();
 const mockGetInbox = vi.fn();
 
-vi.mock('../db/repositories/channel-messages.js', () => ({
+vi.mock('../db/repositories/channels/messages.js', () => ({
   channelMessagesRepo: {
     getByChannel: mockGetByChannel,
     getInbox: mockGetInbox,

@@ -13,10 +13,10 @@ import {
   createEvent,
 } from '@ownpilot/core';
 
-import type { ChannelVerificationRepository } from '../../db/repositories/channel-verification.js';
-import { channelVerificationRepo } from '../../db/repositories/channel-verification.js';
-import type { ChannelUsersRepository } from '../../db/repositories/channel-users.js';
-import { channelUsersRepo, type ChannelUserEntity } from '../../db/repositories/channel-users.js';
+import type { ChannelVerificationRepository } from '../../db/repositories/channels/verification.js';
+import { channelVerificationRepo } from '../../db/repositories/channels/verification.js';
+import type { ChannelUsersRepository } from '../../db/repositories/channels/users.js';
+import { channelUsersRepo, type ChannelUserEntity } from '../../db/repositories/channels/users.js';
 
 // ============================================================================
 // Service

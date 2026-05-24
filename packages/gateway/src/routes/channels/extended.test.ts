@@ -77,7 +77,7 @@ const mockChannelMessagesRepo = {
   getByChat: vi.fn(async () => ({ messages: [], total: 0 })),
 };
 
-vi.mock('../../db/repositories/channel-messages.js', () => ({
+vi.mock('../../db/repositories/channels/messages.js', () => ({
   ChannelMessagesRepository: vi.fn(function () {
     return mockChannelMessagesRepo;
   }),
@@ -87,7 +87,7 @@ const mockChannelUsersRepo = {
   list: vi.fn(async () => []),
 };
 
-vi.mock('../../db/repositories/channel-users.js', () => ({
+vi.mock('../../db/repositories/channels/users.js', () => ({
   channelUsersRepo: mockChannelUsersRepo,
 }));
 

@@ -5,7 +5,7 @@
  */
 
 import { Hono } from 'hono';
-import { ChannelBridgesRepository } from '../db/repositories/channel-bridges.js';
+import { ChannelBridgesRepository } from '../db/repositories/channels/bridges.js';
 import { apiResponse, apiError, ERROR_CODES, getErrorMessage, getUserId } from './helpers.js';
 import { validateBody, createBridgeSchema, updateBridgeSchema } from '../middleware/validation.js';
 

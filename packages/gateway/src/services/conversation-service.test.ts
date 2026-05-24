@@ -110,7 +110,7 @@ vi.mock('../db/repositories/index.js', () => ({
   LogsRepository: MockLogsRepository,
 }));
 
-vi.mock('../db/repositories/channel-sessions.js', () => ({
+vi.mock('../db/repositories/channels/sessions.js', () => ({
   channelSessionsRepo: mockChannelSessionsRepo,
 }));
 

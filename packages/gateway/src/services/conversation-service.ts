@@ -10,7 +10,7 @@
 
 import { debugLog } from '@ownpilot/core';
 import { ChatRepository, LogsRepository } from '../db/repositories/index.js';
-import { channelSessionsRepo } from '../db/repositories/channel-sessions.js';
+import { channelSessionsRepo } from '../db/repositories/channels/sessions.js';
 import { wsGateway } from '../ws/server.js';
 import { getLog } from './log.js';
 import { truncate } from '../utils/common.js';

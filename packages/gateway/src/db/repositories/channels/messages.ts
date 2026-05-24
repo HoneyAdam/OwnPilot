@@ -4,8 +4,8 @@
  * Stores incoming and outgoing messages from channels (inbox)
  */
 
-import { BaseRepository, parseJsonField, parseJsonFieldNullable } from './base.js';
-import { getLog } from '../../services/log.js';
+import { BaseRepository, parseJsonField, parseJsonFieldNullable } from '../base.js';
+import { getLog } from '../../../services/log.js';
 
 const log = getLog('ChannelMessagesRepo');
 

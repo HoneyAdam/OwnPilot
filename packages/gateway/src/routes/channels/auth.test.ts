@@ -36,7 +36,7 @@ vi.mock('../../channels/auth/verification.js', () => ({
   getChannelVerificationService: vi.fn(() => mockVerificationService),
 }));
 
-vi.mock('../../db/repositories/channel-users.js', () => ({
+vi.mock('../../db/repositories/channels/users.js', () => ({
   channelUsersRepo: mockChannelUsersRepo,
 }));
 

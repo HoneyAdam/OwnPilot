@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { DatabaseAdapter } from '../adapters/types.js';
+import type { DatabaseAdapter } from '../../adapters/types.js';
 
 // ---------------------------------------------------------------------------
 // Mock adapter
@@ -31,7 +31,7 @@ const mockAdapter: {
   close: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: vi.fn().mockResolvedValue(mockAdapter),
   getAdapterSync: vi.fn().mockReturnValue(mockAdapter),
 }));
@@ -46,7 +46,7 @@ vi.mock('node:crypto', async (importOriginal) => {
 });
 
 const { ChannelSessionsRepository, createChannelSessionsRepository } =
-  await import('./channel-sessions.js');
+  await import('./sessions.js');
 
 // ---------------------------------------------------------------------------
 // Helpers
