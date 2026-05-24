@@ -58,7 +58,7 @@ schemaRoutes.post('/migrate-schema', async (c) => {
     });
 
     // Import schema and run migrations
-    const { initializeSchema } = await import('../../db/schema.js');
+    const { initializeSchema } = await import('../../db/schema/index.js');
 
     operationStatus.output?.push('Running schema initialization and migrations...');
 

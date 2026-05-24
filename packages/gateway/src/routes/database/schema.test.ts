@@ -33,7 +33,7 @@ vi.mock('../../db/adapters/index.js', () => ({
 }));
 
 const mockInitializeSchema = vi.fn();
-vi.mock('../../db/schema.js', () => ({
+vi.mock('../../db/schema/index.js', () => ({
   initializeSchema: (...args: unknown[]) => mockInitializeSchema(...args),
 }));
 

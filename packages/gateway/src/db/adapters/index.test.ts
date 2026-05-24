@@ -93,7 +93,7 @@ vi.mock('./postgres-adapter.js', () => ({
   PostgresAdapter: MockPostgresAdapter,
 }));
 
-vi.mock('../schema.js', () => ({
+vi.mock('../schema/index.js', () => ({
   initializeSchema: mockInitializeSchema,
 }));
 

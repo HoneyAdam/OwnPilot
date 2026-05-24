@@ -92,8 +92,8 @@ vi.mock('child_process', async (importOriginal) => {
   };
 });
 
-// Mock db/schema.js for migrate-schema
-vi.mock('../db/schema.js', () => ({
+// Mock db/schema/index.js for migrate-schema
+vi.mock('../db/schema/index.js', () => ({
   initializeSchema: vi.fn(async (exec: (sql: string) => Promise<void>) => {
     await exec('CREATE TABLE IF NOT EXISTS test (id text)');
   }),

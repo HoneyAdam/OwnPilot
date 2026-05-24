@@ -10,7 +10,7 @@ export { PostgresAdapter } from './postgres-adapter.js';
 import type { DatabaseAdapter, DatabaseConfig } from './types.js';
 import { getDatabaseConfig } from './types.js';
 import { PostgresAdapter } from './postgres-adapter.js';
-import { initializeSchema } from '../schema.js';
+import { initializeSchema } from '../schema/index.js';
 import { getLog } from '../../services/log.js';
 
 const log = getLog('DbAdapter');
