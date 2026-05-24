@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SessionService } from './session-service-impl.js';
+import { SessionService } from './session-service.js';
 
 describe('SessionService', () => {
   let service: SessionService;

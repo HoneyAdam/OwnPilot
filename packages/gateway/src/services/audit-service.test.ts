@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AuditService, createAuditService } from './audit-service-impl.js';
+import { AuditService, createAuditService } from './audit-service.js';
 
 // Mock LogsRepository
 const mockLog = vi.fn().mockResolvedValue(undefined);

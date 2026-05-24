@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LogService, createLogService } from './log-service-impl.js';
+import { LogService, createLogService } from './log-service.js';
 
 describe('LogService', () => {
   let consoleSpy: {

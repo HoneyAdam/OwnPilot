@@ -44,8 +44,7 @@ vi.mock('../workspace/manager.js', () => ({
 // SUT — must be imported after vi.mock declarations
 // ---------------------------------------------------------------------------
 
-const { WorkspaceServiceImpl, createWorkspaceServiceImpl } =
-  await import('./workspace-service-impl.js');
+const { WorkspaceServiceImpl, createWorkspaceServiceImpl } = await import('./workspace-service.js');
 
 // ---------------------------------------------------------------------------
 // Helper factory

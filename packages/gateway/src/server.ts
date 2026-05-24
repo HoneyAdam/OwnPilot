@@ -67,18 +67,18 @@ import {
   setModuleResolver,
 } from '@ownpilot/core';
 import type { NormalizedMessage } from '@ownpilot/core';
-import { createLogService } from './services/log-service-impl.js';
+import { createLogService } from './services/log-service.js';
 import { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS } from './config/defaults.js';
-import { createSessionService } from './services/session-service-impl.js';
-import { createMessageBus } from './services/message-bus-impl.js';
+import { createSessionService } from './services/session-service.js';
+import { createMessageBus } from './services/message-bus.js';
 import { registerPipelineMiddleware } from './services/middleware/index.js';
 import { createToolService } from './services/tool/service.js';
 import { createProviderService } from './services/provider/service.js';
-import { createAuditService } from './services/audit-service-impl.js';
+import { createAuditService } from './services/audit-service.js';
 import { getCustomDataService } from './services/custom/data-service.js';
-import { createPluginService } from './services/plugin-service-impl.js';
+import { createPluginService } from './services/plugin-service.js';
 import { getMemoryService } from './services/memory-service.js';
-import { createWorkspaceServiceImpl } from './services/workspace-service-impl.js';
+import { createWorkspaceServiceImpl } from './services/workspace-service.js';
 import { getGoalService } from './services/goal-service.js';
 import { getTriggerService } from './services/trigger-service.js';
 import { getPlanService } from './services/plan-service.js';

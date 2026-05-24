@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { MessageBus, createMessageBus } from './message-bus-impl.js';
+import { MessageBus, createMessageBus } from './message-bus.js';
 import type {
   NormalizedMessage,
   MessageProcessingResult,

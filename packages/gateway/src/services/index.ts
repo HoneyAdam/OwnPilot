@@ -9,13 +9,13 @@
  */
 
 // Log Service
-export { LogService, createLogService, type LogServiceOptions } from './log-service-impl.js';
+export { LogService, createLogService, type LogServiceOptions } from './log-service.js';
 
 // Session Service
-export { SessionService, createSessionService } from './session-service-impl.js';
+export { SessionService, createSessionService } from './session-service.js';
 
 // Message Bus
-export { MessageBus, createMessageBus } from './message-bus-impl.js';
+export { MessageBus, createMessageBus } from './message-bus.js';
 
 // Config Center
 export { GatewayConfigCenter, gatewayConfigCenter } from './config/center.js';
@@ -27,10 +27,10 @@ export { ToolService, createToolService } from './tool/service.js';
 export { ProviderService, createProviderService } from './provider/service.js';
 
 // Audit Service
-export { AuditService, createAuditService } from './audit-service-impl.js';
+export { AuditService, createAuditService } from './audit-service.js';
 
 // Plugin Service
-export { PluginServiceImpl, createPluginService } from './plugin-service-impl.js';
+export { PluginServiceImpl, createPluginService } from './plugin-service.js';
 
 // Memory Service
 export { MemoryService, getMemoryService } from './memory-service.js';
@@ -39,7 +39,7 @@ export { MemoryService, getMemoryService } from './memory-service.js';
 export { CustomDataService, getCustomDataService } from './custom/data-service.js';
 
 // Workspace Service
-export { WorkspaceServiceImpl, createWorkspaceServiceImpl } from './workspace-service-impl.js';
+export { WorkspaceServiceImpl, createWorkspaceServiceImpl } from './workspace-service.js';
 
 // Goal Service
 export { GoalService, getGoalService } from './goal-service.js';

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PluginServiceImpl } from './plugin-service-impl.js';
+import { PluginServiceImpl } from './plugin-service.js';
 import type { Plugin, PluginManifest, PluginRegistry } from '@ownpilot/core';
 
 function createMockPlugin(overrides: Partial<Plugin> = {}): Plugin {
