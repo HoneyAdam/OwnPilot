@@ -5,28 +5,9 @@
  * Use the factory functions to create repository instances.
  */
 
-// Base repository
-export { BaseRepository } from './base.js';
-
-// CRUD base repository
-export { CrudRepository, type CreateFields } from './crud-base.js';
-
-// Query helpers
-export {
-  buildUpdateStatement,
-  type UpdateField,
-  type RawSetClause,
-  type UpdateStatement,
-} from './query-helpers.js';
-
-// Core repositories
-export {
-  ConversationsRepository,
-  createConversationsRepository,
-  type Conversation,
-} from './chat/conversations.js';
-
-export { MessagesRepository, createMessagesRepository, type Message } from './chat/messages.js';
+// Core repositories — chat
+export type { Conversation } from './chat/conversations.js';
+export type { Message } from './chat/messages.js';
 
 export {
   ChannelMessagesRepository,
