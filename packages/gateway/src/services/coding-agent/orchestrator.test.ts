@@ -42,7 +42,7 @@ vi.mock('../../db/repositories/orchestration-runs.js', () => ({
   orchestrationRunsRepo: mockRunsRepo,
 }));
 
-vi.mock('../../db/repositories/coding-agent-results.js', () => ({
+vi.mock('../../db/repositories/coding-agent/results.js', () => ({
   codingAgentResultsRepo: mockResultsRepo,
 }));
 

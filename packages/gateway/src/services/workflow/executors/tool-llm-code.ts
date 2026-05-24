@@ -15,7 +15,7 @@ import type {
   CodeNodeData,
   TransformerNodeData,
   NodeResult,
-} from '../../../db/repositories/workflows.js';
+} from '../../../db/repositories/workflows/index.js';
 import { createProvider, type ProviderConfig, type IToolService } from '@ownpilot/core';
 import { getErrorMessage } from '../../../utils/common.js';
 import { NATIVE_PROVIDERS, loadProviderConfig, getProviderApiKey } from '../../agent/cache.js';

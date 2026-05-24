@@ -213,7 +213,7 @@ vi.mock('../../db/repositories/souls.js', () => ({
   }),
 }));
 
-vi.mock('../../db/repositories/heartbeat-log.js', () => ({
+vi.mock('../../db/repositories/heartbeats/log.js', () => ({
   getHeartbeatLogRepository: vi.fn().mockReturnValue({
     getRecent: vi.fn(),
     getLatest: vi.fn(),
@@ -221,7 +221,7 @@ vi.mock('../../db/repositories/heartbeat-log.js', () => ({
   }),
 }));
 
-vi.mock('../../db/repositories/agent-messages.js', () => ({
+vi.mock('../../db/repositories/agents/messages.js', () => ({
   getAgentMessagesRepository: vi.fn().mockReturnValue(mockMsgRepo),
 }));
 

@@ -7,7 +7,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { Hono } from 'hono';
-import { cliProvidersRepo } from '../../db/repositories/cli-providers.js';
+import { cliProvidersRepo } from '../../db/repositories/cli/providers.js';
 import {
   getUserId,
   apiResponse,

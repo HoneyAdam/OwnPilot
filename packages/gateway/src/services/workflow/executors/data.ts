@@ -19,7 +19,7 @@ import type {
   MapNodeData,
   AggregateNodeData,
   NodeResult,
-} from '../../../db/repositories/workflows.js';
+} from '../../../db/repositories/workflows/index.js';
 import { getErrorMessage } from '../../../utils/common.js';
 import { resolveTemplates } from '../template-resolver.js';
 import { log, safeVmEval, MAX_ARRAY_EVAL_SIZE } from './utils.js';

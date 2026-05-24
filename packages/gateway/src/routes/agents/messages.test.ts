@@ -22,7 +22,7 @@ const mockRepo = {
   create: vi.fn(),
 };
 
-vi.mock('../../db/repositories/agent-messages.js', () => ({
+vi.mock('../../db/repositories/agents/messages.js', () => ({
   getAgentMessagesRepository: () => mockRepo,
 }));
 

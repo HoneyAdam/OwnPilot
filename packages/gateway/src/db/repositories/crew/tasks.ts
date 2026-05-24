@@ -4,7 +4,7 @@
  * Pull-based task queue where crew agents claim and complete tasks.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 // ── DB Row Type ─────────────────────────────────────
 

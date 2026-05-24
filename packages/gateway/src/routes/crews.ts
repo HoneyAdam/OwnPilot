@@ -8,10 +8,10 @@ import { getLog } from '../services/log.js';
 const log = getLog('CrewsRoute');
 import { randomUUID } from 'node:crypto';
 import { listCrewTemplates, getCrewTemplate } from '@ownpilot/core';
-import { getCrewsRepository } from '../db/repositories/crews.js';
+import { getCrewsRepository } from '../db/repositories/crew/index.js';
 import { getSoulsRepository } from '../db/repositories/souls.js';
-import { getHeartbeatLogRepository } from '../db/repositories/heartbeat-log.js';
-import { agentsRepo } from '../db/repositories/agents.js';
+import { getHeartbeatLogRepository } from '../db/repositories/heartbeats/log.js';
+import { agentsRepo } from '../db/repositories/agents/index.js';
 import { createTriggersRepository } from '../db/repositories/triggers.js';
 import {
   apiResponse,
@@ -478,7 +478,7 @@ crewRoutes.post('/:id/message', async (c) => {
 
     const members = await repo.getMembers(crewId);
     const soulRepo = getSoulsRepository();
-    const { getAgentMessagesRepository } = await import('../db/repositories/agent-messages.js');
+    const { getAgentMessagesRepository } = await import('../db/repositories/agents/messages.js');
     const msgRepo = getAgentMessagesRepository();
 
     // Send message to all crew members
@@ -547,7 +547,7 @@ crewRoutes.post('/:id/delegate', async (c) => {
     }
 
     // Send delegation message
-    const { getAgentMessagesRepository } = await import('../db/repositories/agent-messages.js');
+    const { getAgentMessagesRepository } = await import('../db/repositories/agents/messages.js');
     const msgRepo = getAgentMessagesRepository();
 
     await msgRepo.create({
@@ -594,7 +594,7 @@ crewRoutes.get('/:id/status', async (c) => {
     const members = await repo.getMembers(crewId);
     const soulRepo = getSoulsRepository();
     const hbRepo = getHeartbeatLogRepository();
-    const { getAgentMessagesRepository } = await import('../db/repositories/agent-messages.js');
+    const { getAgentMessagesRepository } = await import('../db/repositories/agents/messages.js');
     const msgRepo = getAgentMessagesRepository();
 
     // Batch-fetch souls, heartbeats, and unread counts to avoid N+1 queries
@@ -659,7 +659,7 @@ crewRoutes.get('/:id/memory', async (c) => {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Crew not found' }, 404);
     }
 
-    const { getCrewMemoryRepository } = await import('../db/repositories/crew-memory.js');
+    const { getCrewMemoryRepository } = await import('../db/repositories/crew/memory.js');
     const memRepo = getCrewMemoryRepository();
 
     const category = c.req.query('category');
@@ -691,7 +691,7 @@ crewRoutes.delete('/:id/memory/:memoryId', async (c) => {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Crew not found' }, 404);
     }
 
-    const { getCrewMemoryRepository } = await import('../db/repositories/crew-memory.js');
+    const { getCrewMemoryRepository } = await import('../db/repositories/crew/memory.js');
     const memRepo = getCrewMemoryRepository();
     const deleted = await memRepo.delete(memoryId);
     if (!deleted) {
@@ -715,7 +715,7 @@ crewRoutes.get('/:id/tasks', async (c) => {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Crew not found' }, 404);
     }
 
-    const { getCrewTasksRepository } = await import('../db/repositories/crew-tasks.js');
+    const { getCrewTasksRepository } = await import('../db/repositories/crew/tasks.js');
     const taskRepo = getCrewTasksRepository();
 
     const status = c.req.query('status') as

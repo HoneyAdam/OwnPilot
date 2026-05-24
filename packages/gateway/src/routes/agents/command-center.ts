@@ -17,8 +17,8 @@ import {
   getIntParam,
 } from '../helpers.js';
 import { getSoulsRepository } from '../../db/repositories/souls.js';
-import { getCrewsRepository } from '../../db/repositories/crews.js';
-import { getHeartbeatLogRepository } from '../../db/repositories/heartbeat-log.js';
+import { getCrewsRepository } from '../../db/repositories/crew/index.js';
+import { getHeartbeatLogRepository } from '../../db/repositories/heartbeats/log.js';
 import { getClawService } from '../../services/claw/service.js';
 import {
   validateBody,
@@ -392,7 +392,7 @@ agentCommandCenterRoutes.get('/status', async (c) => {
     // Aggregate status — batch-fetch latest heartbeat per soul in a single
     // query instead of N round-trips (souls.length can reach 1000).
     const hbRepo = (
-      await import('../../db/repositories/heartbeat-log.js')
+      await import('../../db/repositories/heartbeats/log.js')
     ).getHeartbeatLogRepository();
     const latestByAgent = await hbRepo.getLatestByAgentIds(souls.map((s) => s.agentId));
     const soulStatuses = souls.map((soul) => {
@@ -524,7 +524,7 @@ agentCommandCenterRoutes.get('/activity', async (c) => {
 
     const soulRepo = getSoulsRepository();
     const hbRepo = getHeartbeatLogRepository();
-    const { getAgentMessagesRepository } = await import('../../db/repositories/agent-messages.js');
+    const { getAgentMessagesRepository } = await import('../../db/repositories/agents/messages.js');
     const msgRepo = getAgentMessagesRepository();
 
     const userId = getUserId(c);

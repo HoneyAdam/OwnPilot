@@ -54,7 +54,7 @@ vi.mock('../../db/repositories/souls.js', () => ({
   getSoulsRepository: () => mockSoulsRepo,
 }));
 
-vi.mock('../../db/repositories/heartbeat-log.js', () => ({
+vi.mock('../../db/repositories/heartbeats/log.js', () => ({
   getHeartbeatLogRepository: () => mockHbRepo,
 }));
 
@@ -66,7 +66,7 @@ vi.mock('../../services/heartbeat/soul-service.js', () => ({
   runAgentHeartbeat: mockRunAgentHeartbeat,
 }));
 
-vi.mock('../../db/repositories/agents.js', () => ({
+vi.mock('../../db/repositories/agents/index.js', () => ({
   agentsRepo: { create: vi.fn(), delete: vi.fn() },
 }));
 

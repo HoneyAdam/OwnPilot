@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { NodeResult } from '../../db/repositories/workflows.js';
+import type { NodeResult } from '../../db/repositories/workflows/index.js';
 
 import {
   resolveTemplates,

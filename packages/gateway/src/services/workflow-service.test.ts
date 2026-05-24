@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mocks — must come before dynamic import
 // ---------------------------------------------------------------------------
 
-vi.mock('../db/repositories/workflows.js', () => ({
+vi.mock('../db/repositories/workflows/index.js', () => ({
   createWorkflowsRepository: vi.fn(),
 }));
 

@@ -534,7 +534,7 @@ async function main() {
 
     // Recover orphaned workflows at boot (gap 24.1 Phase 2 crash recovery)
     try {
-      const { createWorkflowsRepository } = await import('./db/repositories/workflows.js');
+      const { createWorkflowsRepository } = await import('./db/repositories/workflows/index.js');
       const recoveryRepo = createWorkflowsRepository('default');
       const runningLogs = await recoveryRepo.listRunningLogs();
       if (runningLogs.length > 0) {

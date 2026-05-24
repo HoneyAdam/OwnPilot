@@ -2,7 +2,7 @@
  * Crew Repository — CRUD for agent_crews and agent_crew_members
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 import type { AgentCrew, CrewMember, CrewCoordinationPattern, CrewStatus } from '@ownpilot/core';
 
 // ── DB Row Types ────────────────────────────────────

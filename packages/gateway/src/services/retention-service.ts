@@ -10,9 +10,9 @@
 import { getLog } from './log.js';
 import { getJobsRepository } from '../db/repositories/jobs.js';
 import { getClawsRepository } from '../db/repositories/claws.js';
-import { createWorkflowsRepository } from '../db/repositories/workflows.js';
+import { createWorkflowsRepository } from '../db/repositories/workflows/index.js';
 import { createTriggersRepository } from '../db/repositories/triggers.js';
-import { getHeartbeatLogRepository } from '../db/repositories/heartbeat-log.js';
+import { getHeartbeatLogRepository } from '../db/repositories/heartbeats/log.js';
 import { embeddingCacheRepo } from '../db/repositories/embedding-cache.js';
 import { createLogsRepository } from '../db/repositories/logs.js';
 import { getProviderMetricsRepository } from '../db/repositories/provider-metrics.js';

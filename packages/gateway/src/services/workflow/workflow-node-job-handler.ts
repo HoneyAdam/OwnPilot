@@ -15,8 +15,12 @@
 
 import type { JobRecord } from '../../db/repositories/jobs.js';
 import { getToolService, type IToolService } from '@ownpilot/core';
-import type { NodeResult, WorkflowNode, WorkflowEdge } from '../../db/repositories/workflows.js';
-import { createWorkflowsRepository } from '../../db/repositories/workflows.js';
+import type {
+  NodeResult,
+  WorkflowNode,
+  WorkflowEdge,
+} from '../../db/repositories/workflows/index.js';
+import { createWorkflowsRepository } from '../../db/repositories/workflows/index.js';
 import { JobQueueService } from '../job-queue-service.js';
 import { getLog } from '../log.js';
 import { getDownstreamNodes } from './dag-utils.js';

@@ -22,7 +22,7 @@ const { mockRepo, mockExecFileSync } = vi.hoisted(() => ({
   mockExecFileSync: vi.fn(),
 }));
 
-vi.mock('../../db/repositories/cli-providers.js', () => ({
+vi.mock('../../db/repositories/cli/providers.js', () => ({
   cliProvidersRepo: mockRepo,
 }));
 

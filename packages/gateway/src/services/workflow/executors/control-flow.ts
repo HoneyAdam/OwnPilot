@@ -12,7 +12,7 @@ import type {
   ConditionNodeData,
   SwitchNodeData,
   NodeResult,
-} from '../../../db/repositories/workflows.js';
+} from '../../../db/repositories/workflows/index.js';
 import { getErrorMessage } from '../../../utils/common.js';
 import { resolveTemplates } from '../template-resolver.js';
 import { log, safeVmEval } from './utils.js';

@@ -10,7 +10,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { WorkflowNode, WorkflowEdge, NodeResult } from '../../db/repositories/workflows.js';
+import type {
+  WorkflowNode,
+  WorkflowEdge,
+  NodeResult,
+} from '../../db/repositories/workflows/index.js';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -27,7 +31,7 @@ const mockExecuteSwitchNode = vi.hoisted(() => vi.fn());
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../../db/repositories/workflows.js', () => ({
+vi.mock('../../db/repositories/workflows/index.js', () => ({
   createWorkflowsRepository: vi.fn(),
 }));
 
@@ -438,7 +442,7 @@ describe('executeForEachNode', () => {
       setup.toolService,
       undefined,
       mockRepo as unknown as ReturnType<
-        typeof import('../../db/repositories/workflows.js').createWorkflowsRepository
+        typeof import('../../db/repositories/workflows/index.js').createWorkflowsRepository
       >,
       'log-1'
     );

@@ -5,7 +5,7 @@
  * Enables extensible tool orchestration beyond the built-in providers.
  */
 
-import { BaseRepository, parseJsonField, parseBool } from './base.js';
+import { BaseRepository, parseJsonField, parseBool } from '../base.js';
 
 // =============================================================================
 // ROW TYPE

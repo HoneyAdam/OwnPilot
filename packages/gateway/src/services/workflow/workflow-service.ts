@@ -17,7 +17,7 @@ import {
   type NodeResult,
   type WorkflowLog,
   type WorkflowLogStatus,
-} from '../../db/repositories/workflows.js';
+} from '../../db/repositories/workflows/index.js';
 import {
   getToolService as getCoreToolService,
   type IWorkflowService,
@@ -25,7 +25,7 @@ import {
   sleep,
   withTimeout,
 } from '@ownpilot/core';
-import { createWorkflowApprovalsRepository } from '../../db/repositories/workflow-approvals.js';
+import { createWorkflowApprovalsRepository } from '../../db/repositories/workflows/approvals.js';
 import { getErrorMessage } from '../../utils/common.js';
 import { getLog } from '../log.js';
 import {

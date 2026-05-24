@@ -52,7 +52,7 @@ vi.mock('../../db/repositories/souls.js', () => ({
 const mockListByAgent = vi.fn();
 const mockGetStats = vi.fn();
 
-vi.mock('../../db/repositories/heartbeat-log.js', () => ({
+vi.mock('../../db/repositories/heartbeats/log.js', () => ({
   getHeartbeatLogRepository: vi.fn().mockReturnValue({
     listByAgent: mockListByAgent,
     getStats: mockGetStats,

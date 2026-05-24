@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Mock the database adapter
@@ -14,12 +14,12 @@ import { createMockAdapter } from '../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { AgentsRepository } from './agents.js';
+import { AgentsRepository } from './index.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -612,7 +612,7 @@ describe('AgentsRepository', () => {
 
   describe('createAgentsRepository', () => {
     it('should be importable and return an AgentsRepository instance', async () => {
-      const { createAgentsRepository } = await import('./agents.js');
+      const { createAgentsRepository } = await import('./index.js');
       const r = createAgentsRepository();
       expect(r).toBeInstanceOf(AgentsRepository);
     });
@@ -620,7 +620,7 @@ describe('AgentsRepository', () => {
 
   describe('agentsRepo', () => {
     it('should export a singleton instance', async () => {
-      const { agentsRepo } = await import('./agents.js');
+      const { agentsRepo } = await import('./index.js');
       expect(agentsRepo).toBeInstanceOf(AgentsRepository);
     });
   });

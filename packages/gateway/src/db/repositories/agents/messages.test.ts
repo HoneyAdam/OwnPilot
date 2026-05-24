@@ -3,16 +3,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-const { AgentMessagesRepository, getAgentMessagesRepository } = await import('./agent-messages.js');
+const { AgentMessagesRepository, getAgentMessagesRepository } = await import('./messages.js');
 
 // ---------------------------------------------------------------------------
 // Helpers

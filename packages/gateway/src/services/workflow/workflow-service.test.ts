@@ -14,7 +14,7 @@ import type {
   WorkflowEdge,
   NodeResult,
   WorkflowLog,
-} from '../../db/repositories/workflows.js';
+} from '../../db/repositories/workflows/index.js';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -65,7 +65,7 @@ const mockApprovalsRepo = vi.hoisted(() => ({
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../../db/repositories/workflows.js', () => ({
+vi.mock('../../db/repositories/workflows/index.js', () => ({
   createWorkflowsRepository: vi.fn(() => mockRepo),
 }));
 
@@ -123,7 +123,7 @@ vi.mock('./node-executors.js', () => ({
   executeWebhookResponseNode: mockExecuteWebhookResponseNode,
 }));
 
-vi.mock('../../db/repositories/workflow-approvals.js', () => ({
+vi.mock('../../db/repositories/workflows/approvals.js', () => ({
   createWorkflowApprovalsRepository: vi.fn(() => mockApprovalsRepo),
 }));
 

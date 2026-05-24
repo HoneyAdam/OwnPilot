@@ -17,8 +17,8 @@ import {
 } from '../helpers.js';
 import type { CliToolPolicy, CliInstallMethod } from '@ownpilot/core';
 import { CLI_TOOLS_BY_NAME } from '../../services/cli/tools-catalog.js';
-import { cliProvidersRepo } from '../../db/repositories/cli-providers.js';
-import { cliToolPoliciesRepo } from '../../db/repositories/cli-tool-policies.js';
+import { cliProvidersRepo } from '../../db/repositories/cli/providers.js';
+import { cliToolPoliciesRepo } from '../../db/repositories/cli/tool-policies.js';
 import { clearDiscoveryCache } from '../../services/cli/tools-discovery.js';
 
 const VALID_POLICIES = ['allowed', 'prompt', 'blocked'];

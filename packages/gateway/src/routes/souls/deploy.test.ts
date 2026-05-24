@@ -13,7 +13,7 @@ const mockAdapter = { transaction: vi.fn(async (fn: () => Promise<unknown>) => f
 vi.mock('../../db/repositories/souls.js', () => ({
   getSoulsRepository: vi.fn(() => mockSoulRepo),
 }));
-vi.mock('../../db/repositories/agents.js', () => ({
+vi.mock('../../db/repositories/agents/index.js', () => ({
   agentsRepo: mockAgentsRepo,
 }));
 vi.mock('../../db/repositories/triggers.js', () => ({

@@ -19,8 +19,8 @@ import {
   safeKeyCompare,
 } from '../helpers.js';
 import { ERROR_CODES } from '../error-codes.js';
-import { createWorkflowsRepository } from '../../db/repositories/workflows.js';
-import { createWorkflowApprovalsRepository } from '../../db/repositories/workflow-approvals.js';
+import { createWorkflowsRepository } from '../../db/repositories/workflows/index.js';
+import { createWorkflowApprovalsRepository } from '../../db/repositories/workflows/approvals.js';
 import { topologicalSort, getWorkflowService } from '../../services/workflow/index.js';
 import {
   detectCycle,

@@ -3,16 +3,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { CodingAgentResultsRepository } from './coding-agent-results.js';
+import { CodingAgentResultsRepository } from './results.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -375,13 +375,13 @@ describe('CodingAgentResultsRepository', () => {
 
   describe('factory', () => {
     it('createCodingAgentResultsRepository should return instance', async () => {
-      const { createCodingAgentResultsRepository } = await import('./coding-agent-results.js');
+      const { createCodingAgentResultsRepository } = await import('./results.js');
       const r = createCodingAgentResultsRepository();
       expect(r).toBeInstanceOf(CodingAgentResultsRepository);
     });
 
     it('codingAgentResultsRepo should be a singleton', async () => {
-      const { codingAgentResultsRepo } = await import('./coding-agent-results.js');
+      const { codingAgentResultsRepo } = await import('./results.js');
       expect(codingAgentResultsRepo).toBeInstanceOf(CodingAgentResultsRepository);
     });
   });

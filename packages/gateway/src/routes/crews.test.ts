@@ -67,7 +67,7 @@ const {
 
 // ─── Module mocks ──────────────────────────────────────────────────────────────
 
-vi.mock('../db/repositories/crews.js', () => ({
+vi.mock('../db/repositories/crew/index.js', () => ({
   getCrewsRepository: vi.fn(() => mockCrewsRepo),
 }));
 
@@ -75,11 +75,11 @@ vi.mock('../db/repositories/souls.js', () => ({
   getSoulsRepository: vi.fn(() => mockSoulsRepo),
 }));
 
-vi.mock('../db/repositories/heartbeat-log.js', () => ({
+vi.mock('../db/repositories/heartbeats/log.js', () => ({
   getHeartbeatLogRepository: vi.fn(() => mockHbRepo),
 }));
 
-vi.mock('../db/repositories/agents.js', () => ({
+vi.mock('../db/repositories/agents/index.js', () => ({
   agentsRepo: mockAgentsRepo,
 }));
 
@@ -87,7 +87,7 @@ vi.mock('../db/repositories/triggers.js', () => ({
   createTriggersRepository: vi.fn(() => mockTriggersRepo),
 }));
 
-vi.mock('../db/repositories/agent-messages.js', () => ({
+vi.mock('../db/repositories/agents/messages.js', () => ({
   getAgentMessagesRepository: vi.fn(() => mockAgentMsgsRepo),
 }));
 

@@ -41,7 +41,7 @@ vi.mock('../services/coding-agent/sessions.js', () => ({
   getCodingAgentSessionManager: mockGetSessionManager,
 }));
 
-vi.mock('../db/repositories/coding-agent-results.js', () => ({
+vi.mock('../db/repositories/coding-agent/results.js', () => ({
   codingAgentResultsRepo: mockResultsRepo,
 }));
 

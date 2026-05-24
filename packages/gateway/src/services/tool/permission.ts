@@ -70,7 +70,7 @@ async function loadEnabledToolGroupIds(): Promise<string[]> {
 async function loadCliToolPolicy(toolName: string, userId: string): Promise<string | null> {
   if (!_cliToolPoliciesRepo) {
     try {
-      const mod = await import('../../db/repositories/cli-tool-policies.js');
+      const mod = await import('../../db/repositories/cli/tool-policies.js');
       _cliToolPoliciesRepo = mod.cliToolPoliciesRepo;
     } catch {
       return null;

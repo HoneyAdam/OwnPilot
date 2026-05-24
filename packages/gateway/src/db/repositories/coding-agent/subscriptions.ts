@@ -4,7 +4,7 @@
  * Budget and subscription tracking per coding agent provider.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 // =============================================================================
 // ROW TYPE

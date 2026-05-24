@@ -2,7 +2,7 @@
  * Agent Messages Repository — inter-agent communication persistence
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 import type { AgentMessage, AgentMessageType } from '@ownpilot/core';
 
 // ── DB Row Types ────────────────────────────────────

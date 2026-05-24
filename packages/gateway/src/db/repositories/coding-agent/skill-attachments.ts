@@ -5,7 +5,7 @@
  * These are injected into the agent's system prompt when creating sessions.
  */
 
-import { BaseRepository, parseBool } from './base.js';
+import { BaseRepository, parseBool } from '../base.js';
 
 // =============================================================================
 // ROW TYPE

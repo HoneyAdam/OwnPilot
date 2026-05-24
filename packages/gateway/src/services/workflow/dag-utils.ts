@@ -2,7 +2,7 @@
  * DAG utilities — Topological sort and graph traversal for workflow execution.
  */
 
-import type { WorkflowNode, WorkflowEdge } from '../../db/repositories/workflows.js';
+import type { WorkflowNode, WorkflowEdge } from '../../db/repositories/workflows/index.js';
 
 /**
  * Simple node/edge types for validation (before conversion to WorkflowNode/Edge)

@@ -3,16 +3,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-const { CrewsRepository, getCrewsRepository } = await import('./crews.js');
+const { CrewsRepository, getCrewsRepository } = await import('./index.js');
 
 // ---------------------------------------------------------------------------
 // Helpers

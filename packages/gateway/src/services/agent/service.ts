@@ -37,7 +37,7 @@ import {
 } from '../app-settings.js';
 import { localProvidersRepo } from '../../db/repositories/local-providers.js';
 import { getSoulsRepository } from '../../db/repositories/souls.js';
-import { getAgentMessagesRepository } from '../../db/repositories/agent-messages.js';
+import { getAgentMessagesRepository } from '../../db/repositories/agents/messages.js';
 import { getLog } from '../log.js';
 import { BASE_SYSTEM_PROMPT, CLI_SYSTEM_PROMPT } from './prompt.js';
 import {

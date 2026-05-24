@@ -29,7 +29,7 @@ const mockMessagesRepo = {
   create: vi.fn(),
 };
 
-vi.mock('../db/repositories/crews.js', () => ({
+vi.mock('../db/repositories/crew/index.js', () => ({
   getCrewsRepository: vi.fn().mockReturnValue(mockCrewRepo),
 }));
 
@@ -37,7 +37,7 @@ vi.mock('../db/repositories/souls.js', () => ({
   getSoulsRepository: vi.fn().mockReturnValue(mockSoulsRepo),
 }));
 
-vi.mock('../db/repositories/agent-messages.js', () => ({
+vi.mock('../db/repositories/agents/messages.js', () => ({
   getAgentMessagesRepository: vi.fn().mockReturnValue(mockMessagesRepo),
 }));
 

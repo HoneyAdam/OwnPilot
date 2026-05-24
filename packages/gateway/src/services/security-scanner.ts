@@ -23,7 +23,7 @@ import {
   cliToolPoliciesRepo,
 } from '../db/repositories/index.js';
 import type { Trigger } from '../db/repositories/triggers.js';
-import type { Workflow, WorkflowNode } from '../db/repositories/workflows.js';
+import type { Workflow, WorkflowNode } from '../db/repositories/workflows/index.js';
 import { getLog } from './log.js';
 
 const log = getLog('SecurityScanner');

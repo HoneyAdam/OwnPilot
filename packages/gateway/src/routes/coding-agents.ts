@@ -16,11 +16,11 @@ import {
   listOrchestrations,
   countOrchestrations,
 } from '../services/coding-agent/orchestrator.js';
-import { codingAgentResultsRepo } from '../db/repositories/coding-agent-results.js';
+import { codingAgentResultsRepo } from '../db/repositories/coding-agent/results.js';
 import { orchestrationRunsRepo } from '../db/repositories/orchestration-runs.js';
-import { codingAgentPermissionsRepo } from '../db/repositories/coding-agent-permissions.js';
-import { codingAgentSkillAttachmentsRepo } from '../db/repositories/coding-agent-skill-attachments.js';
-import { codingAgentSubscriptionsRepo } from '../db/repositories/coding-agent-subscriptions.js';
+import { codingAgentPermissionsRepo } from '../db/repositories/coding-agent/permissions.js';
+import { codingAgentSkillAttachmentsRepo } from '../db/repositories/coding-agent/skill-attachments.js';
+import { codingAgentSubscriptionsRepo } from '../db/repositories/coding-agent/subscriptions.js';
 import {
   getUserId,
   apiResponse,

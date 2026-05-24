@@ -15,7 +15,7 @@
 import { Hono } from 'hono';
 import type { AgentSoul } from '@ownpilot/core';
 import { getSoulsRepository } from '../../db/repositories/souls.js';
-import { getHeartbeatLogRepository } from '../../db/repositories/heartbeat-log.js';
+import { getHeartbeatLogRepository } from '../../db/repositories/heartbeats/log.js';
 import {
   apiResponse,
   apiError,

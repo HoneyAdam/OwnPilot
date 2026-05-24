@@ -5,7 +5,7 @@
  * Stores ReactFlow-compatible nodes/edges and execution logs.
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 import { generateId } from '@ownpilot/core';
 
 // ============================================================================

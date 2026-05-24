@@ -4,7 +4,7 @@
 
 import { Hono } from 'hono';
 import type { AgentMessageType } from '@ownpilot/core';
-import { getAgentMessagesRepository } from '../../db/repositories/agent-messages.js';
+import { getAgentMessagesRepository } from '../../db/repositories/agents/messages.js';
 import {
   apiResponse,
   apiError,

@@ -4,7 +4,7 @@
  * Per-provider permission profiles for coding agent sessions.
  */
 
-import { BaseRepository, parseJsonField, parseBool } from './base.js';
+import { BaseRepository, parseJsonField, parseBool } from '../base.js';
 
 // =============================================================================
 // ROW TYPE

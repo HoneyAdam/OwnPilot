@@ -7,7 +7,7 @@
  * 2-second polling until the claw reaches a terminal state or is cancelled.
  */
 
-import type { WorkflowNode, NodeResult } from '../../../db/repositories/workflows.js';
+import type { WorkflowNode, NodeResult } from '../../../db/repositories/workflows/index.js';
 import { getErrorMessage } from '../../../utils/common.js';
 import { resolveTemplates } from '../template-resolver.js';
 import { log } from './utils.js';

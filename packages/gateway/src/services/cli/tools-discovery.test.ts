@@ -45,13 +45,13 @@ vi.mock('./tools-catalog.js', () => ({
   ]),
 }));
 
-vi.mock('../../db/repositories/cli-tool-policies.js', () => ({
+vi.mock('../../db/repositories/cli/tool-policies.js', () => ({
   cliToolPoliciesRepo: {
     listPolicies: (...args: unknown[]) => mockListPolicies(...args),
   },
 }));
 
-vi.mock('../../db/repositories/cli-providers.js', () => ({
+vi.mock('../../db/repositories/cli/providers.js', () => ({
   cliProvidersRepo: {
     listActive: (...args: unknown[]) => mockListActive(...args),
   },

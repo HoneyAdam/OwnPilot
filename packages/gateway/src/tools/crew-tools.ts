@@ -18,11 +18,11 @@
 
 import { generateId, getErrorMessage, getEventSystem } from '@ownpilot/core';
 import type { ToolDefinition, AgentMessage } from '@ownpilot/core';
-import { getCrewsRepository } from '../db/repositories/crews.js';
+import { getCrewsRepository } from '../db/repositories/crew/index.js';
 import { getSoulsRepository } from '../db/repositories/souls.js';
-import { getAgentMessagesRepository } from '../db/repositories/agent-messages.js';
-import { getCrewMemoryRepository } from '../db/repositories/crew-memory.js';
-import { getCrewTasksRepository } from '../db/repositories/crew-tasks.js';
+import { getAgentMessagesRepository } from '../db/repositories/agents/messages.js';
+import { getCrewMemoryRepository } from '../db/repositories/crew/memory.js';
+import { getCrewTasksRepository } from '../db/repositories/crew/tasks.js';
 import { getHeartbeatContext } from '../services/heartbeat/context.js';
 import type { ToolExecutionResult } from '../services/tool/executor.js';
 

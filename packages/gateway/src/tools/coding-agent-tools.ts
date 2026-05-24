@@ -12,7 +12,7 @@
 import { type ToolDefinition, type CodingAgentProvider, getErrorMessage } from '@ownpilot/core';
 import { getCodingAgentService } from '../services/coding-agent/service.js';
 import { getCodingAgentSessionManager } from '../services/coding-agent/sessions.js';
-import { codingAgentResultsRepo } from '../db/repositories/coding-agent-results.js';
+import { codingAgentResultsRepo } from '../db/repositories/coding-agent/results.js';
 import {
   startOrchestration,
   continueOrchestration,

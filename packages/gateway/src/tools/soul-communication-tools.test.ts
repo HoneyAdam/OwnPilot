@@ -19,7 +19,7 @@ const mockRepo = {
   markAsRead: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../db/repositories/agent-messages.js', () => ({
+vi.mock('../db/repositories/agents/messages.js', () => ({
   getAgentMessagesRepository: vi.fn(() => mockRepo),
 }));
 

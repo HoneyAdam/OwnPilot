@@ -23,7 +23,7 @@ const { mockRepo } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../db/repositories/heartbeat-log.js', () => ({
+vi.mock('../../db/repositories/heartbeats/log.js', () => ({
   getHeartbeatLogRepository: vi.fn(() => mockRepo),
 }));
 

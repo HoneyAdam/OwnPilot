@@ -8,7 +8,7 @@ vi.mock('../adapters/index.js', () => ({
   getAdapterSync: () => mockAdapter,
 }));
 
-import { CliToolPoliciesRepository, createCliToolPoliciesRepository } from './cli-tool-policies.js';
+import { CliToolPoliciesRepository, createCliToolPoliciesRepository } from './cli/tool-policies.js';
 
 describe('CliToolPoliciesRepository', () => {
   let repo: CliToolPoliciesRepository;

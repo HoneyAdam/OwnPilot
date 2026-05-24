@@ -4,7 +4,7 @@
  * Manages approval gate records for workflow execution pause/resume.
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 import { generateId } from '@ownpilot/core';
 
 // ============================================================================

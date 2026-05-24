@@ -39,7 +39,7 @@ vi.mock('../services/coding-agent/service.js', () => ({
   getCodingAgentService: vi.fn(() => mockCodingAgentService),
 }));
 
-vi.mock('../db/repositories/coding-agent-results.js', () => ({
+vi.mock('../db/repositories/coding-agent/results.js', () => ({
   codingAgentResultsRepo: mockResultsRepo,
 }));
 

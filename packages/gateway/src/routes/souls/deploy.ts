@@ -7,7 +7,7 @@
 import { Hono } from 'hono';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { getSoulsRepository } from '../../db/repositories/souls.js';
-import { agentsRepo } from '../../db/repositories/agents.js';
+import { agentsRepo } from '../../db/repositories/agents/index.js';
 import { createTriggersRepository } from '../../db/repositories/triggers.js';
 import { getAdapter } from '../../db/adapters/index.js';
 import { apiResponse, apiError, ERROR_CODES, getErrorMessage } from '../helpers.js';

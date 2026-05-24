@@ -10,7 +10,7 @@
 import { Hono } from 'hono';
 import { getMemoryService, getGoalService, type SoulFeedback } from '@ownpilot/core';
 import { getSoulsRepository } from '../../db/repositories/souls.js';
-import { getHeartbeatLogRepository } from '../../db/repositories/heartbeat-log.js';
+import { getHeartbeatLogRepository } from '../../db/repositories/heartbeats/log.js';
 import { getSharedToolRegistry } from '../../services/tool/executor.js';
 import { runAgentHeartbeat } from '../../services/heartbeat/soul-service.js';
 import {

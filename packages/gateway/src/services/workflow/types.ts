@@ -2,7 +2,10 @@
  * Workflow types — Progress events and execution context interfaces.
  */
 
-import type { NodeExecutionStatus, WorkflowLogStatus } from '../../db/repositories/workflows.js';
+import type {
+  NodeExecutionStatus,
+  WorkflowLogStatus,
+} from '../../db/repositories/workflows/index.js';
 
 // ============================================================================
 // Progress event types

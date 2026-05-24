@@ -5,7 +5,7 @@
  * Used by the CLI tool service to enforce security policies.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 import type { CliToolPolicy } from '@ownpilot/core';
 
 // =============================================================================

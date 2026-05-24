@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { WorkflowNode, NodeResult } from '../../db/repositories/workflows.js';
+import type { WorkflowNode, NodeResult } from '../../db/repositories/workflows/index.js';
 
 // ---------------------------------------------------------------------------
 // Mocks

@@ -8,16 +8,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-const { CrewMemoryRepository, getCrewMemoryRepository } = await import('./crew-memory.js');
+const { CrewMemoryRepository, getCrewMemoryRepository } = await import('./memory.js');
 
 const NOW = '2026-01-01T00:00:00Z';
 

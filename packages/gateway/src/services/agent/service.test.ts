@@ -124,7 +124,7 @@ vi.mock('../../db/repositories/souls.js', () => ({
   })),
 }));
 
-vi.mock('../../db/repositories/agent-messages.js', () => ({
+vi.mock('../../db/repositories/agents/messages.js', () => ({
   getAgentMessagesRepository: vi.fn(() => ({
     countUnread: mockCountUnread,
   })),

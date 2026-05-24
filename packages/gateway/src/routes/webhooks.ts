@@ -12,7 +12,7 @@ import { getWorkflowService } from '@ownpilot/core';
 import { getLog } from '../services/log.js';
 import { safeKeyCompare, apiError, apiResponse, ERROR_CODES, getErrorMessage } from './helpers.js';
 import { TriggersRepository, type WebhookConfig } from '../db/repositories/triggers.js';
-import { WorkflowsRepository, type TriggerNodeData } from '../db/repositories/workflows.js';
+import { WorkflowsRepository, type TriggerNodeData } from '../db/repositories/workflows/index.js';
 
 const log = getLog('Webhooks');
 

@@ -105,7 +105,7 @@ export async function reconcileOrphanedWorkflows(): Promise<ReconciliationResult
   };
 
   try {
-    const { createWorkflowsRepository } = await import('../db/repositories/workflows.js');
+    const { createWorkflowsRepository } = await import('../db/repositories/workflows/index.js');
     const repo = createWorkflowsRepository();
 
     const orphaned = await repo.getOrphanedRuns(ORPHAN_THRESHOLD_MS);

@@ -12,7 +12,7 @@ vi.mock('../adapters/index.js', () => ({
   getAdapterSync: () => mockAdapter,
 }));
 
-import { CliProvidersRepository } from './cli-providers.js';
+import { CliProvidersRepository } from './cli/providers.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -412,13 +412,13 @@ describe('CliProvidersRepository', () => {
 
   describe('factory', () => {
     it('createCliProvidersRepository should return instance', async () => {
-      const { createCliProvidersRepository } = await import('./cli-providers.js');
+      const { createCliProvidersRepository } = await import('./cli/providers.js');
       const r = createCliProvidersRepository();
       expect(r).toBeInstanceOf(CliProvidersRepository);
     });
 
     it('cliProvidersRepo should be a singleton', async () => {
-      const { cliProvidersRepo } = await import('./cli-providers.js');
+      const { cliProvidersRepo } = await import('./cli/providers.js');
       expect(cliProvidersRepo).toBeInstanceOf(CliProvidersRepository);
     });
   });

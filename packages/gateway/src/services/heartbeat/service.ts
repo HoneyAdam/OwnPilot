@@ -10,7 +10,7 @@ import {
   createHeartbeatsRepository,
   type Heartbeat,
   type HeartbeatQuery,
-} from '../../db/repositories/heartbeats.js';
+} from '../../db/repositories/heartbeats/index.js';
 import { parseSchedule, parseMarkdown, HeartbeatParseError } from './parser.js';
 import { getLog } from '../log.js';
 

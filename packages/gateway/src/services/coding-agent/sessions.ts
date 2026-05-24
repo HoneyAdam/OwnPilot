@@ -22,7 +22,7 @@ import { isBuiltinProvider } from '@ownpilot/core';
 import type { PtyHandle } from './pty.js';
 import { spawnStreamingPty, spawnStreamingProcess, type PtyOptions } from './pty.js';
 import { sessionManager as wsSessionManager } from '../../ws/session.js';
-import { codingAgentResultsRepo } from '../../db/repositories/coding-agent-results.js';
+import { codingAgentResultsRepo } from '../../db/repositories/coding-agent/results.js';
 import { getLog } from '../log.js';
 
 const log = getLog('CodingAgentSessions');

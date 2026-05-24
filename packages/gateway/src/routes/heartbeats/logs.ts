@@ -3,7 +3,7 @@
  */
 
 import { Hono } from 'hono';
-import { getHeartbeatLogRepository } from '../../db/repositories/heartbeat-log.js';
+import { getHeartbeatLogRepository } from '../../db/repositories/heartbeats/log.js';
 import {
   apiResponse,
   apiError,

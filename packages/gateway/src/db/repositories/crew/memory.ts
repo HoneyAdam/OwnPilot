@@ -2,7 +2,7 @@
  * Crew Shared Memory Repository — CRUD for crew_shared_memory
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 
 // ── DB Row Type ─────────────────────────────────────
 

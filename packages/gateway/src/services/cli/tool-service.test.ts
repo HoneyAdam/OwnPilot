@@ -79,14 +79,14 @@ vi.mock('./tools-discovery.js', () => ({
   clearDiscoveryCache: (...args: unknown[]) => mockClearDiscoveryCache(...args),
 }));
 
-vi.mock('../../db/repositories/cli-tool-policies.js', () => ({
+vi.mock('../../db/repositories/cli/tool-policies.js', () => ({
   cliToolPoliciesRepo: {
     getPolicy: (...args: unknown[]) => mockGetPolicy(...args),
     setPolicy: (...args: unknown[]) => mockSetPolicy(...args),
   },
 }));
 
-vi.mock('../../db/repositories/cli-providers.js', () => ({
+vi.mock('../../db/repositories/cli/providers.js', () => ({
   cliProvidersRepo: {
     getByName: (...args: unknown[]) => mockGetByName(...args),
     listActive: vi.fn().mockResolvedValue([]),

@@ -2,14 +2,14 @@
  * ForEach executor — Iterates over an array, executing a body subgraph per item.
  */
 
-import type { createWorkflowsRepository } from '../../db/repositories/workflows.js';
+import type { createWorkflowsRepository } from '../../db/repositories/workflows/index.js';
 import {
   type WorkflowNode,
   type WorkflowEdge,
   type ForEachNodeData,
   type SwitchNodeData,
   type NodeResult,
-} from '../../db/repositories/workflows.js';
+} from '../../db/repositories/workflows/index.js';
 import type { IToolService } from '@ownpilot/core';
 import { getErrorMessage } from '../../utils/common.js';
 import { getLog } from '../log.js';

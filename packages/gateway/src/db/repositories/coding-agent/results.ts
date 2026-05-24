@@ -4,7 +4,7 @@
  * Persists outcomes from coding agent task executions (both user-initiated and AI-tool-initiated).
  */
 
-import { BaseRepository, parseBool } from './base.js';
+import { BaseRepository, parseBool } from '../base.js';
 
 // =============================================================================
 // ROW TYPE

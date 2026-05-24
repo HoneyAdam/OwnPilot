@@ -4,8 +4,8 @@
  * Stores agent configurations
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
-import { buildUpdateStatement, type RawSetClause } from './query-helpers.js';
+import { BaseRepository, parseJsonField } from '../base.js';
+import { buildUpdateStatement, type RawSetClause } from '../query-helpers.js';
 
 export interface AgentRecord {
   id: string;

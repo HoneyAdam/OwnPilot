@@ -31,7 +31,7 @@ import {
   getErrorMessage,
 } from '@ownpilot/core';
 import { tryImport } from '@ownpilot/core';
-import { cliProvidersRepo, type CliProviderRecord } from '../../db/repositories/cli-providers.js';
+import { cliProvidersRepo, type CliProviderRecord } from '../../db/repositories/cli/providers.js';
 import {
   isBinaryInstalled,
   getBinaryVersion,

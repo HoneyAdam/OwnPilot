@@ -50,11 +50,11 @@ const mockService = {
   resumeFromApproval: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../../db/repositories/workflows.js', () => ({
+vi.mock('../../db/repositories/workflows/index.js', () => ({
   createWorkflowsRepository: () => mockRepo,
 }));
 
-vi.mock('../../db/repositories/workflow-approvals.js', () => ({
+vi.mock('../../db/repositories/workflows/approvals.js', () => ({
   createWorkflowApprovalsRepository: () => mockApprovalsRepo,
 }));
 

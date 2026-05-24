@@ -14,7 +14,7 @@ import type {
   DelayNodeData,
   WebhookResponseNodeData,
   NodeResult,
-} from '../../../db/repositories/workflows.js';
+} from '../../../db/repositories/workflows/index.js';
 import { getErrorMessage } from '../../../utils/common.js';
 import { safeFetch, DEFAULT_MAX_REQUEST_BODY_SIZE } from '../../../utils/safe-fetch.js';
 import { resolveTemplates } from '../template-resolver.js';

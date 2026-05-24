@@ -49,7 +49,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
 // ---------------------------------------------------------------------------
 
 const { WorkflowApprovalsRepository, createWorkflowApprovalsRepository } =
-  await import('./workflow-approvals.js');
+  await import('./workflows/approvals.js');
 
 // ---------------------------------------------------------------------------
 // Helpers

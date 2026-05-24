@@ -48,7 +48,7 @@ const mockCliProvidersRepo = {
   delete: vi.fn(),
 };
 
-vi.mock('../../db/repositories/cli-providers.js', () => ({
+vi.mock('../../db/repositories/cli/providers.js', () => ({
   cliProvidersRepo: mockCliProvidersRepo,
 }));
 
@@ -62,7 +62,7 @@ const mockCliToolPoliciesRepo = {
   deletePolicy: vi.fn(),
 };
 
-vi.mock('../../db/repositories/cli-tool-policies.js', () => ({
+vi.mock('../../db/repositories/cli/tool-policies.js', () => ({
   cliToolPoliciesRepo: mockCliToolPoliciesRepo,
 }));
 

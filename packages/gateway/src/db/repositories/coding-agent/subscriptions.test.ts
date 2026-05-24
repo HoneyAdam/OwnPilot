@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { DatabaseAdapter } from '../adapters/types.js';
+import type { DatabaseAdapter } from '../../adapters/types.js';
 
 // Mock the adapter module
 const mockAdapter: {
@@ -28,7 +28,7 @@ const mockAdapter: {
   close: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: vi.fn().mockResolvedValue(mockAdapter),
   getAdapterSync: vi.fn().mockReturnValue(mockAdapter),
 }));
@@ -37,7 +37,7 @@ const {
   CodingAgentSubscriptionsRepository,
   codingAgentSubscriptionsRepo,
   createCodingAgentSubscriptionsRepository,
-} = await import('./coding-agent-subscriptions.js');
+} = await import('./subscriptions.js');
 
 // Test fixtures
 function createMockSubscriptionRow(overrides: Partial<Record<string, unknown>> = {}) {

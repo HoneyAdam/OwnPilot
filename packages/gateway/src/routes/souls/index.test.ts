@@ -43,7 +43,7 @@ vi.mock('../../db/repositories/souls.js', () => ({
   }),
 }));
 
-vi.mock('../../db/repositories/agents.js', () => ({
+vi.mock('../../db/repositories/agents/index.js', () => ({
   agentsRepo: {
     create: vi.fn(),
     delete: vi.fn(),
@@ -56,7 +56,7 @@ vi.mock('../../db/repositories/triggers.js', () => ({
   }),
 }));
 
-vi.mock('../../db/repositories/heartbeat-log.js', () => ({
+vi.mock('../../db/repositories/heartbeats/log.js', () => ({
   getHeartbeatLogRepository: () => ({
     listByAgent: vi.fn(),
     getStats: vi.fn(),
@@ -95,7 +95,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => ({
 }));
 
 // Import after mocks
-import { agentsRepo } from '../../db/repositories/agents.js';
+import { agentsRepo } from '../../db/repositories/agents/index.js';
 import { getSoulsRepository } from '../../db/repositories/souls.js';
 import { settingsRepo } from '../../db/repositories/index.js';
 import { soulRoutes } from './index.js';

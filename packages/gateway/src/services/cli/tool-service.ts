@@ -22,8 +22,8 @@ import type {
 import { getErrorMessage } from '@ownpilot/core';
 import { CLI_TOOLS_BY_NAME } from './tools-catalog.js';
 import { discoverTools, clearDiscoveryCache } from './tools-discovery.js';
-import { cliToolPoliciesRepo } from '../../db/repositories/cli-tool-policies.js';
-import { cliProvidersRepo } from '../../db/repositories/cli-providers.js';
+import { cliToolPoliciesRepo } from '../../db/repositories/cli/tool-policies.js';
+import { cliProvidersRepo } from '../../db/repositories/cli/providers.js';
 import {
   isBinaryInstalled,
   validateCwd,

@@ -2,7 +2,7 @@
  * Heartbeat Log Repository — audit trail for heartbeat cycles
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 import type { HeartbeatLogEntry } from '@ownpilot/core';
 
 // ── DB Row Types ────────────────────────────────────

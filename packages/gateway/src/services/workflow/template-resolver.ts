@@ -3,7 +3,7 @@
  * in workflow node arguments, supporting nested access and variable fallback.
  */
 
-import type { NodeResult } from '../../db/repositories/workflows.js';
+import type { NodeResult } from '../../db/repositories/workflows/index.js';
 
 /**
  * Resolve template expressions in tool arguments.

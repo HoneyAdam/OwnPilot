@@ -39,7 +39,7 @@ const mockRepo = {
   count: vi.fn(),
 };
 
-vi.mock('../../db/repositories/heartbeats.js', () => ({
+vi.mock('../../db/repositories/heartbeats/index.js', () => ({
   HeartbeatsRepository: vi.fn(),
   createHeartbeatsRepository: () => mockRepo,
 }));

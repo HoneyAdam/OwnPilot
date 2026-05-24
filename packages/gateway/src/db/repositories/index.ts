@@ -54,7 +54,7 @@ export {
   createAgentsRepository,
   agentsRepo,
   type AgentRecord,
-} from './agents.js';
+} from './agents/index.js';
 
 export {
   SettingsRepository,
@@ -308,7 +308,7 @@ export {
   type CreateHeartbeatInput,
   type UpdateHeartbeatInput,
   type HeartbeatQuery,
-} from './heartbeats.js';
+} from './heartbeats/index.js';
 
 // Extensions repository
 export {
@@ -340,7 +340,7 @@ export {
   type NodeExecutionStatus,
   type CreateWorkflowInput,
   type UpdateWorkflowInput,
-} from './workflows.js';
+} from './workflows/index.js';
 
 // Workflow Approvals repository
 export {
@@ -349,7 +349,7 @@ export {
   type WorkflowApproval,
   type ApprovalStatus,
   type CreateApprovalInput,
-} from './workflow-approvals.js';
+} from './workflows/approvals.js';
 
 // Workspaces repository
 export {
@@ -371,7 +371,7 @@ export {
   createCodingAgentResultsRepository,
   type CodingAgentResultRecord,
   type SaveResultInput,
-} from './coding-agent-results.js';
+} from './coding-agent/results.js';
 
 // CLI providers repository
 export {
@@ -383,7 +383,7 @@ export {
   type CliOutputFormat,
   type CreateCliProviderInput,
   type UpdateCliProviderInput,
-} from './cli-providers.js';
+} from './cli/providers.js';
 
 // Coding agent permissions repository
 export {
@@ -395,7 +395,7 @@ export {
   type IoFormat,
   type FsAccess,
   type Autonomy,
-} from './coding-agent-permissions.js';
+} from './coding-agent/permissions.js';
 
 // Coding agent skill attachments repository
 export {
@@ -406,7 +406,7 @@ export {
   type CreateSkillAttachmentInput,
   type UpdateSkillAttachmentInput,
   type SkillAttachmentType,
-} from './coding-agent-skill-attachments.js';
+} from './coding-agent/skill-attachments.js';
 
 // Coding agent subscriptions repository
 export {
@@ -415,7 +415,7 @@ export {
   createCodingAgentSubscriptionsRepository,
   type CodingAgentSubscriptionRecord,
   type UpsertSubscriptionInput,
-} from './coding-agent-subscriptions.js';
+} from './coding-agent/subscriptions.js';
 
 // Orchestration runs repository
 export {
@@ -432,16 +432,16 @@ export {
   cliToolPoliciesRepo,
   createCliToolPoliciesRepository,
   type ToolPolicyRecord,
-} from './cli-tool-policies.js';
+} from './cli/tool-policies.js';
 
 // Artifacts repository
 export { ArtifactsRepository, createArtifactsRepository } from './artifacts.js';
 
 // Soul system repositories
 export { SoulsRepository, getSoulsRepository } from './souls.js';
-export { CrewsRepository, getCrewsRepository } from './crews.js';
-export { AgentMessagesRepository, getAgentMessagesRepository } from './agent-messages.js';
-export { HeartbeatLogRepository, getHeartbeatLogRepository } from './heartbeat-log.js';
+export { CrewsRepository, getCrewsRepository } from './crew/index.js';
+export { AgentMessagesRepository, getAgentMessagesRepository } from './agents/messages.js';
+export { HeartbeatLogRepository, getHeartbeatLogRepository } from './heartbeats/log.js';
 
 // UI Sessions repository
 export {
