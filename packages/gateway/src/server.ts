@@ -294,12 +294,12 @@ async function main() {
   installPermissionGate();
 
   // Start embedding queue (background embedding generation for memories)
-  const { getEmbeddingQueue } = await import('./services/embedding-queue.js');
+  const { getEmbeddingQueue } = await import('./services/embedding/queue.js');
   getEmbeddingQueue().start();
 
   // 6. Embedding Service — also installed on the core capability singleton
   {
-    const { getEmbeddingService } = await import('./services/embedding-service.js');
+    const { getEmbeddingService } = await import('./services/embedding/service.js');
     const embedding = getEmbeddingService();
     registry.register(Services.Embedding, embedding);
     const { setEmbeddingService } = await import('@ownpilot/core');
@@ -889,7 +889,7 @@ async function main() {
 
     // 5.3. Stop embedding queue
     try {
-      const { getEmbeddingQueue } = await import('./services/embedding-queue.js');
+      const { getEmbeddingQueue } = await import('./services/embedding/queue.js');
       getEmbeddingQueue().stop();
     } catch (e) {
       log.warn('Embedding queue stop error', { error: String(e) });

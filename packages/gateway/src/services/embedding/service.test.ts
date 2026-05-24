@@ -6,13 +6,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EmbeddingService } from './embedding-service.js';
+import { EmbeddingService } from './service.js';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('./log.js', () => ({
+vi.mock('../log.js', () => ({
   getLog: () => ({
     info: vi.fn(),
     debug: vi.fn(),
@@ -39,7 +39,7 @@ const mockEmbeddingCacheRepo = {
   store: vi.fn(),
   contentHash: vi.fn((text: string) => `hash_${text}`),
 };
-vi.mock('../db/repositories/embedding-cache.js', () => ({
+vi.mock('../../db/repositories/embedding-cache.js', () => ({
   EmbeddingCacheRepository: {
     contentHash: (text: string) => mockEmbeddingCacheRepo.contentHash(text),
   },
@@ -49,7 +49,7 @@ vi.mock('../db/repositories/embedding-cache.js', () => ({
   },
 }));
 
-vi.mock('../config/defaults.js', async (importOriginal) => {
+vi.mock('../../config/defaults.js', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -628,7 +628,7 @@ describe('EmbeddingService', () => {
   describe('getEmbeddingService', () => {
     it('returns the same instance on repeated calls', async () => {
       // Dynamic import to get the singleton factory, avoiding module-level caching issues
-      const mod = await import('./embedding-service.js');
+      const mod = await import('./service.js');
       const a = mod.getEmbeddingService();
       const b = mod.getEmbeddingService();
 

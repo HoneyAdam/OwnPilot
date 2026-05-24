@@ -5,14 +5,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EmbeddingQueue, getEmbeddingQueue } from './embedding-queue.js';
-import { EMBEDDING_QUEUE_MAX_SIZE } from '../config/defaults.js';
+import { EmbeddingQueue, getEmbeddingQueue } from './queue.js';
+import { EMBEDDING_QUEUE_MAX_SIZE } from '../../config/defaults.js';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('./log.js', () => ({
+vi.mock('../log.js', () => ({
   getLog: () => ({
     info: vi.fn(),
     debug: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock('@ownpilot/core', () => ({
 const mockUpdateEmbedding = vi.fn();
 const mockGetWithoutEmbeddings = vi.fn();
 
-vi.mock('../db/repositories/memories.js', () => ({
+vi.mock('../../db/repositories/memories.js', () => ({
   createMemoriesRepository: () => ({
     updateEmbedding: mockUpdateEmbedding,
     getWithoutEmbeddings: mockGetWithoutEmbeddings,

@@ -331,7 +331,7 @@ memoriesRoutes.post('/cleanup', async (c) => {
 memoriesRoutes.post('/backfill-embeddings', async (c) => {
   const userId = getUserId(c);
 
-  const { getEmbeddingQueue } = await import('../services/embedding-queue.js');
+  const { getEmbeddingQueue } = await import('../services/embedding/queue.js');
   const queued = await getEmbeddingQueue().backfill(userId);
 
   log.info('Embedding backfill queued', { userId, count: queued });
@@ -345,8 +345,8 @@ memoriesRoutes.post('/backfill-embeddings', async (c) => {
  * GET /memories/embedding-stats - Get embedding system stats
  */
 memoriesRoutes.get('/embedding-stats', async (c) => {
-  const { getEmbeddingService } = await import('../services/embedding-service.js');
-  const { getEmbeddingQueue } = await import('../services/embedding-queue.js');
+  const { getEmbeddingService } = await import('../services/embedding/service.js');
+  const { getEmbeddingQueue } = await import('../services/embedding/queue.js');
   const { embeddingCacheRepo } = await import('../db/repositories/embedding-cache.js');
 
   const embeddingService = getEmbeddingService();

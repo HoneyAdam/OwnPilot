@@ -7,14 +7,14 @@
  */
 
 import { getEmbeddingService, getEventSystem } from '@ownpilot/core';
-import { getLog } from './log.js';
-import { createMemoriesRepository } from '../db/repositories/memories.js';
+import { getLog } from '../log.js';
+import { createMemoriesRepository } from '../../db/repositories/memories.js';
 import {
   EMBEDDING_BACKFILL_LIMIT,
   EMBEDDING_QUEUE_BATCH_SIZE,
   EMBEDDING_QUEUE_INTERVAL_MS,
   EMBEDDING_QUEUE_MAX_SIZE,
-} from '../config/defaults.js';
+} from '../../config/defaults.js';
 
 const log = getLog('EmbeddingQueue');
 

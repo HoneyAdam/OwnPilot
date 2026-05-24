@@ -7,11 +7,11 @@
 
 import type { IEmbeddingService } from '@ownpilot/core';
 import { getConfigCenter } from '@ownpilot/core';
-import { getLog } from './log.js';
+import { getLog } from '../log.js';
 import {
   EmbeddingCacheRepository,
   embeddingCacheRepo,
-} from '../db/repositories/embedding-cache.js';
+} from '../../db/repositories/embedding-cache.js';
 import {
   EMBEDDING_MODEL,
   EMBEDDING_DIMENSIONS,
@@ -19,7 +19,7 @@ import {
   EMBEDDING_RATE_LIMIT_DELAY_MS,
   EMBEDDING_RETRY_AFTER_DEFAULT_S,
   EMBEDDING_SERVER_ERROR_RETRY_MS,
-} from '../config/defaults.js';
+} from '../../config/defaults.js';
 
 const log = getLog('EmbeddingService');
 
