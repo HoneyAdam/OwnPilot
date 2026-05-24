@@ -21,7 +21,7 @@ vi.mock('../../db/repositories/cli-tool-policies.js', () => ({
   },
 }));
 
-vi.mock('../custom-tool-registry.js', () => ({
+vi.mock('../custom/tool-registry.js', () => ({
   getCustomToolDynamicRegistry: vi.fn(() => ({
     tools: new Map(),
   })),
@@ -45,7 +45,7 @@ import {
 // Access mocks
 const { getEnabledToolGroupIds } = await import('../app-settings.js');
 const { cliToolPoliciesRepo } = await import('../../db/repositories/cli-tool-policies.js');
-const { getCustomToolDynamicRegistry } = await import('../custom-tool-registry.js');
+const { getCustomToolDynamicRegistry } = await import('../custom/tool-registry.js');
 
 const mockGetEnabledToolGroupIds = getEnabledToolGroupIds as ReturnType<typeof vi.fn>;
 const mockGetPolicy = cliToolPoliciesRepo.getPolicy as ReturnType<typeof vi.fn>;

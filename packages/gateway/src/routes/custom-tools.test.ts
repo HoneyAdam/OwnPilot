@@ -91,7 +91,7 @@ vi.mock('../db/repositories/custom-tools.js', () => ({
   createCustomToolsRepo: vi.fn(() => mockRepo),
 }));
 
-vi.mock('../services/custom-tool-registry.js', () => ({
+vi.mock('../services/custom/tool-registry.js', () => ({
   syncToolToRegistry: (...args: unknown[]) => mockSyncToolToRegistry(...args),
   executeCustomToolUnified: (...args: unknown[]) => mockExecuteCustomToolUnified(...args),
   unregisterToolFromRegistries: (...args: unknown[]) => mockUnregisterToolFromRegistries(...args),

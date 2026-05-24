@@ -6,13 +6,13 @@
  */
 
 import { getEventSystem, type IDatabaseService, type DatabaseTableStats } from '@ownpilot/core';
-import type { CustomDataRepository } from '../db/repositories/custom-data.js';
+import type { CustomDataRepository } from '../../db/repositories/custom-data.js';
 import {
   createCustomDataRepository,
   type CustomTableSchema,
   type CustomDataRecord,
   type ColumnDefinition,
-} from '../db/repositories/custom-data.js';
+} from '../../db/repositories/custom-data.js';
 
 // ============================================================================
 // Types

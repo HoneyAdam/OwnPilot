@@ -33,7 +33,7 @@ import { createCustomToolsRepo } from '../../db/repositories/custom-tools.js';
 import {
   getCustomToolDynamicRegistry,
   setSharedRegistryForCustomTools,
-} from '../custom-tool-registry.js';
+} from '../custom/tool-registry.js';
 import { getErrorMessage } from '../../utils/common.js';
 import { getLog } from '../log.js';
 import { registerImageOverrides } from '../../tools/image-overrides.js';

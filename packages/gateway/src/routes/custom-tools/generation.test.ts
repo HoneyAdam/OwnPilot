@@ -138,7 +138,7 @@ const mockExecuteCustomToolUnified = vi.fn(async () => ({
 }));
 const mockUnregisterToolFromRegistries = vi.fn();
 
-vi.mock('../../services/custom-tool-registry.js', () => ({
+vi.mock('../../services/custom/tool-registry.js', () => ({
   syncToolToRegistry: (...args: unknown[]) => mockSyncToolToRegistry(...args),
   executeCustomToolUnified: (...args: unknown[]) => mockExecuteCustomToolUnified(...args),
   unregisterToolFromRegistries: (...args: unknown[]) => mockUnregisterToolFromRegistries(...args),

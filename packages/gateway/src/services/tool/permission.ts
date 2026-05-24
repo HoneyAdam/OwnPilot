@@ -82,7 +82,7 @@ async function loadCliToolPolicy(toolName: string, userId: string): Promise<stri
 async function loadCustomToolRequiresApproval(toolName: string): Promise<boolean> {
   if (!_dynamicRegistryGetter) {
     try {
-      const mod = await import('../custom-tool-registry.js');
+      const mod = await import('../custom/tool-registry.js');
       _dynamicRegistryGetter = mod.getCustomToolDynamicRegistry as NonNullable<
         typeof _dynamicRegistryGetter
       >;

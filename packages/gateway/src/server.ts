@@ -75,7 +75,7 @@ import { registerPipelineMiddleware } from './services/middleware/index.js';
 import { createToolService } from './services/tool/service.js';
 import { createProviderService } from './services/provider/service.js';
 import { createAuditService } from './services/audit-service-impl.js';
-import { getCustomDataService } from './services/custom-data-service.js';
+import { getCustomDataService } from './services/custom/data-service.js';
 import { createPluginService } from './services/plugin-service-impl.js';
 import { getMemoryService } from './services/memory-service.js';
 import { createWorkspaceServiceImpl } from './services/workspace-service-impl.js';

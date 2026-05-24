@@ -92,7 +92,7 @@ vi.mock('../../services/api-service-registrar.js', () => ({
   unregisterDependencies: mockUnregisterDependencies,
 }));
 
-vi.mock('../../services/custom-tool-registry.js', () => ({
+vi.mock('../../services/custom/tool-registry.js', () => ({
   syncToolToRegistry: mockSyncToolToRegistry,
   unregisterToolFromRegistries: mockUnregisterToolFromRegistries,
 }));

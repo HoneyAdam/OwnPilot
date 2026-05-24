@@ -20,7 +20,7 @@ import {
   type ToolExecutionResult as CoreToolResult,
   type ToolContext,
 } from '@ownpilot/core';
-import { getCustomToolDynamicRegistry } from '../../services/custom-tool-registry.js';
+import { getCustomToolDynamicRegistry } from '../../services/custom/tool-registry.js';
 import { getSharedToolRegistry } from '../../services/tool/executor.js';
 import type { ExtensionService } from '../../services/extension/service.js';
 import { traceToolCallStart, traceToolCallEnd } from '../../tracing/index.js';

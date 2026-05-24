@@ -11,7 +11,7 @@
 
 import { getDatabaseService } from '@ownpilot/core';
 import type { ColumnDefinition } from '../db/repositories/custom-data.js';
-import { CustomDataServiceError } from '../services/custom-data-service.js';
+import { CustomDataServiceError } from '../services/custom/data-service.js';
 import { sanitizeId, sanitizeText, getErrorMessage } from '../utils/common.js';
 import type { ToolExecutionResult } from '../services/tool/executor.js';
 

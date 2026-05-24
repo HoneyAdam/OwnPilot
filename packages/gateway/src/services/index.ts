@@ -36,7 +36,7 @@ export { PluginServiceImpl, createPluginService } from './plugin-service-impl.js
 export { MemoryService, getMemoryService } from './memory-service.js';
 
 // Database Service
-export { CustomDataService, getCustomDataService } from './custom-data-service.js';
+export { CustomDataService, getCustomDataService } from './custom/data-service.js';
 
 // Workspace Service
 export { WorkspaceServiceImpl, createWorkspaceServiceImpl } from './workspace-service-impl.js';

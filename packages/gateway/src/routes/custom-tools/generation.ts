@@ -21,7 +21,7 @@ import {
 import {
   syncToolToRegistry,
   executeCustomToolUnified,
-} from '../../services/custom-tool-registry.js';
+} from '../../services/custom/tool-registry.js';
 import {
   getUserId,
   apiResponse,

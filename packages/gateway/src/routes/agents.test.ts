@@ -139,7 +139,7 @@ vi.mock('./custom-tools.js', () => ({
   executeActiveCustomTool: vi.fn(),
   getActiveCustomToolDefinitions: vi.fn(async () => []),
 }));
-vi.mock('../services/custom-tool-registry.js', () => ({
+vi.mock('../services/custom/tool-registry.js', () => ({
   getCustomToolDynamicRegistry: vi.fn(() => ({
     has: vi.fn(() => false),
     register: vi.fn(),

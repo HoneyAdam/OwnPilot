@@ -116,7 +116,7 @@ const mockDynamicRegistry = {
   setCallableTools: vi.fn(),
 };
 
-vi.mock('../custom-tool-registry.js', () => ({
+vi.mock('../custom/tool-registry.js', () => ({
   getCustomToolDynamicRegistry: vi.fn(() => mockDynamicRegistry),
   setSharedRegistryForCustomTools: vi.fn(),
 }));

@@ -23,7 +23,7 @@ import {
 import {
   syncToolToRegistry,
   unregisterToolFromRegistries,
-} from '../../services/custom-tool-registry.js';
+} from '../../services/custom/tool-registry.js';
 import {
   getUserId,
   apiResponse,

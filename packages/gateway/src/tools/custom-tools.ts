@@ -26,7 +26,7 @@ import {
   syncToolToRegistry,
   executeCustomToolUnified,
   unregisterToolFromRegistries,
-} from '../services/custom-tool-registry.js';
+} from '../services/custom/tool-registry.js';
 import { sanitizeId, sanitizeText, getErrorMessage } from '../utils/common.js';
 import type { ToolExecutionResult as BaseToolExecutionResult } from '../services/tool/executor.js';
 

@@ -30,7 +30,7 @@ const mockCustomDataService = {
   batchAddRecords: vi.fn(),
 };
 
-vi.mock('../services/custom-data-service.js', () => ({
+vi.mock('../services/custom/data-service.js', () => ({
   getCustomDataService: () => mockCustomDataService,
   CustomDataServiceError: class extends Error {
     code: string;
@@ -150,7 +150,7 @@ describe('Custom Data Routes', () => {
     });
 
     it('returns 400 on validation error', async () => {
-      const { CustomDataServiceError } = await import('../services/custom-data-service.js');
+      const { CustomDataServiceError } = await import('../services/custom/data-service.js');
       mockCustomDataService.createTable.mockRejectedValue(
         new CustomDataServiceError('Invalid columns', 'VALIDATION_ERROR')
       );
@@ -260,7 +260,7 @@ describe('Custom Data Routes', () => {
     });
 
     it('returns 403 for protected tables', async () => {
-      const { CustomDataServiceError } = await import('../services/custom-data-service.js');
+      const { CustomDataServiceError } = await import('../services/custom/data-service.js');
       mockCustomDataService.deleteTable.mockRejectedValue(
         new CustomDataServiceError('Table is protected', 'PROTECTED')
       );
@@ -922,7 +922,7 @@ describe('executeCustomDataTool', () => {
 
   describe('error handling', () => {
     it('catches CustomDataServiceError and returns message', async () => {
-      const { CustomDataServiceError } = await import('../services/custom-data-service.js');
+      const { CustomDataServiceError } = await import('../services/custom/data-service.js');
       mockCustomDataService.createTable.mockRejectedValue(
         new CustomDataServiceError('Duplicate name', 'VALIDATION_ERROR')
       );

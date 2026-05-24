@@ -14,7 +14,7 @@ import {
   type ToolContext,
   type ToolExecutor,
 } from '@ownpilot/core';
-import type { CustomToolRecord } from '../db/repositories/custom-tools.js';
+import type { CustomToolRecord } from '../../db/repositories/custom-tools.js';
 
 // ============================================================================
 // Dynamic Tool Registry

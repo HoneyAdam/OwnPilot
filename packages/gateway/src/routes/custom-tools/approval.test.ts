@@ -26,7 +26,7 @@ vi.mock('../agents.js', () => ({
   invalidateAgentCache: vi.fn(),
 }));
 
-vi.mock('../../services/custom-tool-registry.js', () => ({
+vi.mock('../../services/custom/tool-registry.js', () => ({
   syncToolToRegistry: vi.fn(),
 }));
 
