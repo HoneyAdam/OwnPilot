@@ -6,7 +6,7 @@
  */
 
 import { Hono } from 'hono';
-import { getCliToolService } from '../services/cli/tool-service.js';
+import { getCliToolService } from '../../services/cli/tool-service.js';
 import {
   getUserId,
   apiResponse,
@@ -14,12 +14,12 @@ import {
   ERROR_CODES,
   getErrorMessage,
   parseJsonBody,
-} from './helpers.js';
+} from '../helpers.js';
 import type { CliToolPolicy, CliInstallMethod } from '@ownpilot/core';
-import { CLI_TOOLS_BY_NAME } from '../services/cli/tools-catalog.js';
-import { cliProvidersRepo } from '../db/repositories/cli-providers.js';
-import { cliToolPoliciesRepo } from '../db/repositories/cli-tool-policies.js';
-import { clearDiscoveryCache } from '../services/cli/tools-discovery.js';
+import { CLI_TOOLS_BY_NAME } from '../../services/cli/tools-catalog.js';
+import { cliProvidersRepo } from '../../db/repositories/cli-providers.js';
+import { cliToolPoliciesRepo } from '../../db/repositories/cli-tool-policies.js';
+import { clearDiscoveryCache } from '../../services/cli/tools-discovery.js';
 
 const VALID_POLICIES = ['allowed', 'prompt', 'blocked'];
 const VALID_RISK_LEVELS = ['low', 'medium', 'high', 'critical'];

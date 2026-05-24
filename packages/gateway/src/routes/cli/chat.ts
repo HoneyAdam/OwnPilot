@@ -7,15 +7,15 @@
  */
 
 import { Hono } from 'hono';
-import { apiResponse, apiError, ERROR_CODES, getErrorMessage } from './helpers.js';
+import { apiResponse, apiError, ERROR_CODES, getErrorMessage } from '../helpers.js';
 import {
   detectCliChatProviders,
   isCliChatProvider,
   getCliBinaryFromProviderId,
   getCliChatProviderDefinition,
   createCliChatProvider,
-} from '../services/cli/chat-provider.js';
-import { isBinaryInstalled, getBinaryVersion } from '../services/binary-utils.js';
+} from '../../services/cli/chat-provider.js';
+import { isBinaryInstalled, getBinaryVersion } from '../../services/binary-utils.js';
 
 const app = new Hono();
 

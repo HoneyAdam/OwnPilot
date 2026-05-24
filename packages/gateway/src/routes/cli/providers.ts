@@ -7,7 +7,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { Hono } from 'hono';
-import { cliProvidersRepo } from '../db/repositories/cli-providers.js';
+import { cliProvidersRepo } from '../../db/repositories/cli-providers.js';
 import {
   getUserId,
   apiResponse,
@@ -15,7 +15,7 @@ import {
   ERROR_CODES,
   getErrorMessage,
   parseJsonBody,
-} from './helpers.js';
+} from '../helpers.js';
 
 export const cliProvidersRoutes = new Hono();
 

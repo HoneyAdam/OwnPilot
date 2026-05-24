@@ -10,8 +10,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Hono } from 'hono';
-import { requestId } from '../middleware/request-id.js';
-import { errorHandler } from '../middleware/error-handler.js';
+import { requestId } from '../../middleware/request-id.js';
+import { errorHandler } from '../../middleware/error-handler.js';
 
 // Mock CLI chat provider service
 const mockDetectCliChatProviders = vi.fn();
@@ -20,7 +20,7 @@ const mockGetCliBinaryFromProviderId = vi.fn();
 const mockGetCliChatProviderDefinition = vi.fn();
 const mockCreateCliChatProvider = vi.fn();
 
-vi.mock('../services/cli/chat-provider.js', () => ({
+vi.mock('../../services/cli/chat-provider.js', () => ({
   detectCliChatProviders: mockDetectCliChatProviders,
   isCliChatProvider: mockIsCliChatProvider,
   getCliBinaryFromProviderId: mockGetCliBinaryFromProviderId,
@@ -32,13 +32,13 @@ vi.mock('../services/cli/chat-provider.js', () => ({
 const mockIsBinaryInstalled = vi.fn();
 const mockGetBinaryVersion = vi.fn();
 
-vi.mock('../services/binary-utils.js', () => ({
+vi.mock('../../services/binary-utils.js', () => ({
   isBinaryInstalled: mockIsBinaryInstalled,
   getBinaryVersion: mockGetBinaryVersion,
 }));
 
 // Import after mocks
-const { cliChatRoutes } = await import('./cli-chat.js');
+const { cliChatRoutes } = await import('./chat.js');
 
 function createApp() {
   const app = new Hono();

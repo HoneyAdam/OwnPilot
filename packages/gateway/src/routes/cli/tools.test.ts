@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import { errorHandler } from '../middleware/error-handler.js';
+import { errorHandler } from '../../middleware/error-handler.js';
 
 // ---------------------------------------------------------------------------
 // Mock: CliToolService singleton factory
@@ -23,7 +23,7 @@ const mockCliToolService = {
   refreshDiscovery: vi.fn(),
 };
 
-vi.mock('../services/cli/tool-service.js', () => ({
+vi.mock('../../services/cli/tool-service.js', () => ({
   getCliToolService: vi.fn(() => mockCliToolService),
 }));
 
@@ -31,7 +31,7 @@ vi.mock('../services/cli/tool-service.js', () => ({
 // Mock: CLI Tools Catalog — controls collision check for custom tool names
 // ---------------------------------------------------------------------------
 
-vi.mock('../services/cli/tools-catalog.js', () => ({
+vi.mock('../../services/cli/tools-catalog.js', () => ({
   CLI_TOOLS_BY_NAME: new Map([
     ['eslint', { name: 'eslint' }],
     ['prettier', { name: 'prettier' }],
@@ -48,7 +48,7 @@ const mockCliProvidersRepo = {
   delete: vi.fn(),
 };
 
-vi.mock('../db/repositories/cli-providers.js', () => ({
+vi.mock('../../db/repositories/cli-providers.js', () => ({
   cliProvidersRepo: mockCliProvidersRepo,
 }));
 
@@ -62,7 +62,7 @@ const mockCliToolPoliciesRepo = {
   deletePolicy: vi.fn(),
 };
 
-vi.mock('../db/repositories/cli-tool-policies.js', () => ({
+vi.mock('../../db/repositories/cli-tool-policies.js', () => ({
   cliToolPoliciesRepo: mockCliToolPoliciesRepo,
 }));
 
@@ -70,7 +70,7 @@ vi.mock('../db/repositories/cli-tool-policies.js', () => ({
 // Mock: clearDiscoveryCache
 // ---------------------------------------------------------------------------
 
-vi.mock('../services/cli/tools-discovery.js', () => ({
+vi.mock('../../services/cli/tools-discovery.js', () => ({
   clearDiscoveryCache: vi.fn(),
 }));
 
@@ -78,7 +78,7 @@ vi.mock('../services/cli/tools-discovery.js', () => ({
 // Import route after mocks
 // ---------------------------------------------------------------------------
 
-const { cliToolsRoutes } = await import('./cli-tools.js');
+const { cliToolsRoutes } = await import('./tools.js');
 
 // ---------------------------------------------------------------------------
 // App factory

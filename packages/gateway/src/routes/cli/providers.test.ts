@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import { errorHandler } from '../middleware/error-handler.js';
+import { errorHandler } from '../../middleware/error-handler.js';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -22,7 +22,7 @@ const { mockRepo, mockExecFileSync } = vi.hoisted(() => ({
   mockExecFileSync: vi.fn(),
 }));
 
-vi.mock('../db/repositories/cli-providers.js', () => ({
+vi.mock('../../db/repositories/cli-providers.js', () => ({
   cliProvidersRepo: mockRepo,
 }));
 
@@ -31,7 +31,7 @@ vi.mock('node:child_process', async (importOriginal) => {
   return { ...actual, execFileSync: mockExecFileSync };
 });
 
-const { cliProvidersRoutes } = await import('./cli-providers.js');
+const { cliProvidersRoutes } = await import('./providers.js');
 
 // ---------------------------------------------------------------------------
 // App setup
