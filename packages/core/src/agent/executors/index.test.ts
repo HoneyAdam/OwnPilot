@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { CORE_EXECUTORS } from './index.js';
-import type { ToolContext } from './types.js';
+import type { ToolContext } from '../types.js';
 
 // Helper to invoke an executor with minimal boilerplate.
 const exec = (name: string, args: Record<string, unknown> = {}) =>

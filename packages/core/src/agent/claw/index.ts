@@ -8,10 +8,7 @@
  */
 
 export { ClawCircuitBreaker } from './claw-circuit-breaker.js';
-export type { ClawCircuitBreakerOptions } from './claw-circuit-breaker.js';
-
 export { ClawMetricsCollector } from './claw-metrics.js';
-export type { ClawMetricsOptions } from './claw-metrics.js';
 
 export type {
   ClawCircuitState,

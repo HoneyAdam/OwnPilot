@@ -12,7 +12,6 @@ export type {
   SoulVoice,
   SoulPurpose,
   SoulAutonomy,
-  ClawModeConfig,
   SoulHeartbeat,
   QuietHours,
   HeartbeatTask,
@@ -61,19 +60,12 @@ export type { IHeartbeatAgentEngine, IHeartbeatEventBus } from './heartbeat-runn
 
 // Heartbeat Circuit Breaker
 export { HeartbeatCircuitBreaker } from './heartbeat-circuit-breaker.js';
-export type {
-  HeartbeatCircuitBreakerOptions,
-  HeartbeatCircuitState,
-  HeartbeatCircuitSnapshot,
-} from './heartbeat-circuit-breaker.js';
 
 // Heartbeat Metrics
 export { HeartbeatMetricsCollector } from './heartbeat-metrics.js';
-export type { MetricsOptions } from './heartbeat-metrics.js';
 
 // Budget Forecaster
 export { BudgetForecaster } from './budget-forecast.js';
-export type { BudgetForecastOptions } from './budget-forecast.js';
 
 // Evolution Engine
 export { SoulEvolutionEngine } from './evolution.js';

@@ -62,10 +62,7 @@ export type {
   ToolResult,
   ToolProvider,
   ToolMiddleware,
-  ToolMiddlewareContext,
   ToolSource,
-  ToolTrustLevel,
-  ToolConfigRequirement,
 };
 
 /**
