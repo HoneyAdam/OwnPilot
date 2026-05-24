@@ -41,7 +41,7 @@ import { initializeAdapter } from './db/adapters/index.js';
 import { getDatabaseConfig, DEFAULT_POSTGRES_PASSWORD } from './db/adapters/types.js';
 import { loadApiKeysToEnvironment } from './services/app-settings.js';
 import { initializeFileWorkspace } from './workspace/index.js';
-import { settingsRepo, initializeSettingsRepo } from './db/repositories/settings.js';
+import { settingsRepo, initializeSettingsRepo } from './db/repositories/settings/index.js';
 import { initializeDataDirectories, getDataDirectoryInfo } from './paths/index.js';
 import { autoMigrateIfNeeded } from './paths/migration.js';
 import { initializePlugins, getDefaultPluginRegistry } from './plugins/index.js';

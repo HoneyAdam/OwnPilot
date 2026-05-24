@@ -15,7 +15,7 @@ import { wsGateway } from '../ws/server.js';
 import { getLog } from './log.js';
 import { truncate } from '../utils/common.js';
 import type { StreamState } from './streaming-types.js';
-import type { CreateConversationInput, Conversation } from '../db/repositories/chat.js';
+import type { CreateConversationInput, Conversation } from '../db/repositories/chat/index.js';
 
 const log = getLog('ConversationService');
 

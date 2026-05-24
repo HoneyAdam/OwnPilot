@@ -193,7 +193,7 @@ export async function executeSendOutput(
 
   // 3. Store in conversation as assistant message (so user sees it in chat history)
   try {
-    const { createMessagesRepository } = await import('../../db/repositories/messages.js');
+    const { createMessagesRepository } = await import('../../db/repositories/chat/messages.js');
     const msgRepo = createMessagesRepository();
     await msgRepo.create({
       id: generateId('msg'),
@@ -294,7 +294,7 @@ export async function executeCompleteReport(
 
   // 4. Store summary in conversation
   try {
-    const { createMessagesRepository } = await import('../../db/repositories/messages.js');
+    const { createMessagesRepository } = await import('../../db/repositories/chat/messages.js');
     const msgRepo = createMessagesRepository();
     await msgRepo.create({
       id: generateId('msg'),

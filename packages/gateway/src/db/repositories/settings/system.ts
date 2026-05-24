@@ -4,7 +4,7 @@
  * Persists pairing key and per-platform owner identity across restarts.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 interface SettingRow {
   key: string;

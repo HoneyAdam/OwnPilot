@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Mock the database adapter
@@ -14,12 +14,12 @@ import { createMockAdapter } from '../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { SettingsRepository } from './settings.js';
+import { SettingsRepository } from './index.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -527,7 +527,7 @@ describe('SettingsRepository', () => {
 
   describe('createSettingsRepository', () => {
     it('should be importable and return a SettingsRepository instance', async () => {
-      const { createSettingsRepository } = await import('./settings.js');
+      const { createSettingsRepository } = await import('./index.js');
       const r = createSettingsRepository();
       expect(r).toBeInstanceOf(SettingsRepository);
     });
@@ -535,14 +535,14 @@ describe('SettingsRepository', () => {
 
   describe('settingsRepo', () => {
     it('should export a singleton instance', async () => {
-      const { settingsRepo } = await import('./settings.js');
+      const { settingsRepo } = await import('./index.js');
       expect(settingsRepo).toBeInstanceOf(SettingsRepository);
     });
   });
 
   describe('initializeSettingsRepo', () => {
     it('calls initialize on the singleton repo', async () => {
-      const { initializeSettingsRepo, settingsRepo: repo } = await import('./settings.js');
+      const { initializeSettingsRepo, settingsRepo: repo } = await import('./index.js');
       const initSpy = vi.spyOn(repo, 'initialize').mockResolvedValueOnce(undefined);
       await initializeSettingsRepo();
       expect(initSpy).toHaveBeenCalled();

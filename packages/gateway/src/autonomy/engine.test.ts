@@ -51,7 +51,7 @@ const mockSettingsStore = {
   clear: vi.fn(),
 };
 
-vi.mock('../db/repositories/settings.js', () => ({
+vi.mock('../db/repositories/settings/index.js', () => ({
   settingsRepo: {
     get: vi.fn().mockReturnValue(null),
     set: vi.fn().mockResolvedValue(undefined),

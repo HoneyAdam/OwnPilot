@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Mock the database adapter
@@ -13,12 +13,12 @@ import { createMockAdapter } from '../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { CostsRepository } from './costs.js';
+import { CostsRepository } from './index.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -740,7 +740,7 @@ describe('CostsRepository', () => {
 
   describe('createCostsRepository', () => {
     it('should be importable and return a CostsRepository instance', async () => {
-      const { createCostsRepository } = await import('./costs.js');
+      const { createCostsRepository } = await import('./index.js');
       const r = createCostsRepository();
       expect(r).toBeInstanceOf(CostsRepository);
     });
@@ -748,7 +748,7 @@ describe('CostsRepository', () => {
 
   describe('costsRepo', () => {
     it('should export a singleton instance', async () => {
-      const { costsRepo } = await import('./costs.js');
+      const { costsRepo } = await import('./index.js');
       expect(costsRepo).toBeInstanceOf(CostsRepository);
     });
   });

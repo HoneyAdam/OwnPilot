@@ -60,7 +60,7 @@ export async function ensureConversationRow(
 ): Promise<void> {
   const conversationId = `claw-${clawId}`;
   try {
-    const { ChatRepository } = await import('../../db/repositories/chat.js');
+    const { ChatRepository } = await import('../../db/repositories/chat/index.js');
     const chatRepo = new ChatRepository(userId);
     const existing = await chatRepo.getConversation(conversationId).catch(() => null);
     if (!existing) {

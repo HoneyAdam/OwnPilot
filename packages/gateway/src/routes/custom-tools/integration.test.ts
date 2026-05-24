@@ -87,7 +87,7 @@ const mockExecuteCustomToolUnified = vi.fn(async () => ({
 }));
 const mockUnregisterToolFromRegistries = vi.fn();
 
-vi.mock('../../db/repositories/custom-tools.js', () => ({
+vi.mock('../../db/repositories/custom/tools.js', () => ({
   createCustomToolsRepo: vi.fn(() => mockRepo),
 }));
 

@@ -11,7 +11,7 @@ import {
   createCustomToolsRepo,
   type CustomToolRecord,
   type ToolPermission,
-} from '../../db/repositories/custom-tools.js';
+} from '../../db/repositories/custom/tools.js';
 import {
   createDynamicToolRegistry,
   ALL_TOOLS,

@@ -21,7 +21,7 @@ export const budgetManager = new BudgetManager(usageTracker);
 // Wire DB persistence — fire-and-forget, errors are logged below.
 async function wireUsageRepository(): Promise<void> {
   try {
-    const { getUsageRepository } = await import('../db/repositories/usage.js');
+    const { getUsageRepository } = await import('../db/repositories/costs/usage.js');
     const repo = await getUsageRepository();
     usageTracker.setRecordCallback(async (record) => {
       await repo.save(record);

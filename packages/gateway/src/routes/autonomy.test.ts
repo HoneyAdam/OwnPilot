@@ -102,7 +102,7 @@ const mockSettingsRepo = {
   set: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../db/repositories/settings.js', () => ({
+vi.mock('../db/repositories/settings/index.js', () => ({
   settingsRepo: {
     get: (...args: unknown[]) => mockSettingsRepo.get(...args),
     set: (...args: unknown[]) => mockSettingsRepo.set(...args),

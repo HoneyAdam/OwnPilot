@@ -26,7 +26,7 @@ import {
 } from '@ownpilot/core';
 import type { SessionInfo } from '../../types/index.js';
 import { agentsRepo, type AgentRecord } from '../../db/repositories/index.js';
-import { ChatRepository } from '../../db/repositories/chat.js';
+import { ChatRepository } from '../../db/repositories/chat/index.js';
 import { getErrorMessage } from '../../utils/common.js';
 import {
   resolveDefaultProviderAndModel,

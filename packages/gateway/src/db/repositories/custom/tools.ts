@@ -5,8 +5,8 @@
  * Supports enable/disable, permissions, and approval workflows
  */
 
-import { BaseRepository, parseJsonField, parseJsonFieldNullable } from './base.js';
-import { buildUpdateStatement, type RawSetClause } from './query-helpers.js';
+import { BaseRepository, parseJsonField, parseJsonFieldNullable } from '../base.js';
+import { buildUpdateStatement, type RawSetClause } from '../query-helpers.js';
 import { randomUUID } from 'node:crypto';
 
 // =============================================================================

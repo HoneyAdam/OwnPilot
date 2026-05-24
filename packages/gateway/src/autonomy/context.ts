@@ -164,7 +164,8 @@ async function gatherMemories(userId: string, ctx: PulseContext): Promise<void> 
 async function gatherActivity(userId: string, now: Date, ctx: PulseContext): Promise<void> {
   try {
     // Check last conversation activity via DB
-    const { createConversationsRepository } = await import('../db/repositories/conversations.js');
+    const { createConversationsRepository } =
+      await import('../db/repositories/chat/conversations.js');
     const convRepo = createConversationsRepository();
     const recent = await convRepo.getAll(userId, 1, 0);
     if (recent.length > 0) {

@@ -18,7 +18,7 @@ const { mockRepo } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../db/repositories/custom-tools.js', () => ({
+vi.mock('../../db/repositories/custom/tools.js', () => ({
   createCustomToolsRepo: vi.fn(() => mockRepo),
 }));
 

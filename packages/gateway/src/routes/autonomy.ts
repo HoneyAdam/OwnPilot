@@ -18,7 +18,7 @@ import {
 import { RULE_DEFINITIONS, DEFAULT_RULE_THRESHOLDS } from '../autonomy/evaluator.js';
 import { DEFAULT_ACTION_COOLDOWNS } from '../autonomy/executor.js';
 import { DEFAULT_PULSE_DIRECTIVES, type PulseDirectives } from '../autonomy/engine.js';
-import { settingsRepo } from '../db/repositories/settings.js';
+import { settingsRepo } from '../db/repositories/settings/index.js';
 import {
   getUserId,
   apiResponse,

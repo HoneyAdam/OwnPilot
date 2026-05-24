@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CustomDataService, CustomDataServiceError, getCustomDataService } from './data-service.js';
-import type { CustomTableSchema, CustomDataRecord } from '../../db/repositories/custom-data.js';
+import type { CustomTableSchema, CustomDataRecord } from '../../db/repositories/custom/data.js';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -39,7 +39,7 @@ const mockRepo = {
   transaction: vi.fn(async <T>(fn: () => Promise<T>) => fn()),
 };
 
-vi.mock('../../db/repositories/custom-data.js', () => ({
+vi.mock('../../db/repositories/custom/data.js', () => ({
   CustomDataRepository: vi.fn(),
   createCustomDataRepository: () => mockRepo,
 }));

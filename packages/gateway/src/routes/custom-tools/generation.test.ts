@@ -104,7 +104,7 @@ const mockRepo = {
   ]),
 };
 
-vi.mock('../../db/repositories/custom-tools.js', () => ({
+vi.mock('../../db/repositories/custom/tools.js', () => ({
   createCustomToolsRepo: vi.fn(() => mockRepo),
 }));
 
@@ -1104,7 +1104,7 @@ describe('Custom Tools Generation Routes', () => {
     it('passes userId to repo', async () => {
       await getActiveCustomToolDefinitions('user-123');
 
-      const { createCustomToolsRepo } = await import('../../db/repositories/custom-tools.js');
+      const { createCustomToolsRepo } = await import('../../db/repositories/custom/tools.js');
       expect(createCustomToolsRepo).toHaveBeenCalledWith('user-123');
     });
   });

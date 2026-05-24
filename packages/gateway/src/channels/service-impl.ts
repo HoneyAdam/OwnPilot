@@ -915,7 +915,7 @@ export class ChannelServiceImpl implements IChannelService {
 
         // Also persist to DB for audit/history
         const { createConversationsRepository } =
-          await import('../db/repositories/conversations.js');
+          await import('../db/repositories/chat/conversations.js');
         const conversationsRepo = createConversationsRepository();
         await conversationsRepo.create({
           id: conversationId,

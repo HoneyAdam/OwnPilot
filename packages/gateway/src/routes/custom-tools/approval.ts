@@ -6,7 +6,7 @@
  */
 
 import { Hono } from 'hono';
-import { createCustomToolsRepo } from '../../db/repositories/custom-tools.js';
+import { createCustomToolsRepo } from '../../db/repositories/custom/tools.js';
 import { invalidateAgentCache } from '../agents/index.js';
 import { syncToolToRegistry } from '../../services/custom/tool-registry.js';
 import { getUserId, apiResponse, apiError, ERROR_CODES, notFoundError } from '../helpers.js';

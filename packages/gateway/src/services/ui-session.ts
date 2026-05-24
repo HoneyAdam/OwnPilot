@@ -6,7 +6,7 @@
  */
 
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import { settingsRepo } from '../db/repositories/settings.js';
+import { settingsRepo } from '../db/repositories/settings/index.js';
 import { uiSessionsRepo } from '../db/repositories/ui-sessions.js';
 import { TTLCache } from '../utils/ttl-cache.js';
 import { getLog } from './log.js';

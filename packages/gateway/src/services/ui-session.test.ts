@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock settingsRepo before importing the module
-vi.mock('../db/repositories/settings.js', () => ({
+vi.mock('../db/repositories/settings/index.js', () => ({
   settingsRepo: {
     get: vi.fn(),
     set: vi.fn(),
@@ -49,7 +49,7 @@ import {
   startCleanup,
   stopCleanup,
 } from './ui-session.js';
-import { settingsRepo } from '../db/repositories/settings.js';
+import { settingsRepo } from '../db/repositories/settings/index.js';
 import { uiSessionsRepo } from '../db/repositories/ui-sessions.js';
 
 const mockSettingsRepo = vi.mocked(settingsRepo);

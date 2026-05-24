@@ -15,7 +15,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { timingSafeEqual } from 'node:crypto';
-import { getSystemSettingsRepository } from '../db/repositories/system-settings.js';
+import { getSystemSettingsRepository } from '../db/repositories/settings/system.js';
 import { getLog } from './log.js';
 
 const log = getLog('PairingService');

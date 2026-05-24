@@ -37,7 +37,7 @@ import {
 import { AGENT_DEFAULT_MAX_TOKENS, AGENT_DEFAULT_TEMPERATURE } from '../../config/defaults.js';
 import { getLlmSemaphore } from '../llm/semaphore.js';
 import type { ExtensionService } from '../extension/service.js';
-import { getProviderMetricsRepository } from '../../db/repositories/provider-metrics.js';
+import { getProviderMetricsRepository } from '../../db/repositories/costs/provider-metrics.js';
 
 const log = getLog('AgentRunnerUtils');
 

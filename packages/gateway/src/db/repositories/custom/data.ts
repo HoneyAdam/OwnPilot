@@ -5,7 +5,7 @@
  * Allows the AI to create tables, define columns, and manage data on the fly.
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 import { generateId } from '@ownpilot/core';
 
 /**

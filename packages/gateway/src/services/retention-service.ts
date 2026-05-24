@@ -15,7 +15,7 @@ import { createTriggersRepository } from '../db/repositories/triggers.js';
 import { getHeartbeatLogRepository } from '../db/repositories/heartbeats/log.js';
 import { embeddingCacheRepo } from '../db/repositories/embedding-cache.js';
 import { createLogsRepository } from '../db/repositories/logs.js';
-import { getProviderMetricsRepository } from '../db/repositories/provider-metrics.js';
+import { getProviderMetricsRepository } from '../db/repositories/costs/provider-metrics.js';
 import { JobQueueService } from './job-queue-service.js';
 
 const log = getLog('RetentionService');

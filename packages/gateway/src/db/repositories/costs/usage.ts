@@ -5,7 +5,7 @@
  * Complements in-memory UsageTracker — this provides durability.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 import type { UsageRecord } from '@ownpilot/core';
 
 // ── Row Type ────────────────────────────────────────────────────────────────

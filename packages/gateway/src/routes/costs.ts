@@ -14,7 +14,7 @@ import {
   type BudgetConfig,
 } from '@ownpilot/core';
 import { usageTracker, budgetManager } from '../services/usage-tracking.js';
-import { getUsageRepository } from '../db/repositories/usage.js';
+import { getUsageRepository } from '../db/repositories/costs/usage.js';
 import {
   apiResponse,
   apiError,
@@ -224,7 +224,7 @@ costRoutes.get('/breakdown', async (c) => {
 
   // Enrich with DB-backed records for durability (graceful — endpoint works even if repo unavailable)
   type DbSummary = Awaited<
-    ReturnType<import('../db/repositories/usage.js').UsageRepository['getSummary']>
+    ReturnType<import('../db/repositories/costs/usage.js').UsageRepository['getSummary']>
   >;
   let dbSummary: DbSummary = {
     totalRecords: 0,

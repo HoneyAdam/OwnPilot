@@ -125,7 +125,7 @@ const mockCustomToolsRepo = {
   getActiveTools: vi.fn(async () => [] as unknown[]),
 };
 
-vi.mock('../../db/repositories/custom-tools.js', () => ({
+vi.mock('../../db/repositories/custom/tools.js', () => ({
   createCustomToolsRepo: vi.fn(() => mockCustomToolsRepo),
 }));
 

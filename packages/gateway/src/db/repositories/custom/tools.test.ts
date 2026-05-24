@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Mock the database adapter
@@ -14,12 +14,12 @@ import { createMockAdapter } from '../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { CustomToolsRepository } from './custom-tools.js';
+import { CustomToolsRepository } from './tools.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -846,13 +846,13 @@ describe('CustomToolsRepository', () => {
 
   describe('createCustomToolsRepo', () => {
     it('should be importable and return CustomToolsRepository instance', async () => {
-      const { createCustomToolsRepo } = await import('./custom-tools.js');
+      const { createCustomToolsRepo } = await import('./tools.js');
       const r = createCustomToolsRepo('u1');
       expect(r).toBeInstanceOf(CustomToolsRepository);
     });
 
     it('should default to "default" userId', async () => {
-      const { createCustomToolsRepo } = await import('./custom-tools.js');
+      const { createCustomToolsRepo } = await import('./tools.js');
       const r = createCustomToolsRepo();
       expect(r).toBeInstanceOf(CustomToolsRepository);
     });

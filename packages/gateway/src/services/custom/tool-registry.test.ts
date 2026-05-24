@@ -28,7 +28,7 @@ import {
   unregisterToolFromRegistries,
   syncToolToRegistry,
 } from './tool-registry.js';
-import type { CustomToolRecord } from '../../db/repositories/custom-tools.js';
+import type { CustomToolRecord } from '../../db/repositories/custom/tools.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

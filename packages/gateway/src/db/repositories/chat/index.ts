@@ -4,8 +4,8 @@
  * CRUD operations for conversations and messages
  */
 
-import { BaseRepository, parseJsonField, parseJsonFieldNullable } from './base.js';
-import { truncate } from '../../utils/common.js';
+import { BaseRepository, parseJsonField, parseJsonFieldNullable } from '../base.js';
+import { truncate } from '../../../utils/common.js';
 
 // =====================================================
 // TYPES

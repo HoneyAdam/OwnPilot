@@ -2,7 +2,7 @@
  * Conversations Repository (PostgreSQL)
  */
 
-import { BaseRepository, parseJsonField } from './base.js';
+import { BaseRepository, parseJsonField } from '../base.js';
 
 export interface Conversation {
   id: string;

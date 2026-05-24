@@ -102,7 +102,7 @@ vi.mock('../../db/repositories/index.js', () => ({
 const mockChatRepoGetMessages = vi.fn(async () => []);
 const mockChatRepoDeleteMessage = vi.fn(async () => true);
 const mockChatRepoAddMessage = vi.fn(async () => ({ id: 'm-1' }));
-vi.mock('../../db/repositories/chat.js', () => ({
+vi.mock('../../db/repositories/chat/index.js', () => ({
   // Use `function` (not an arrow) — this constructor is invoked with `new`,
   // which arrow functions don't support. See vitest_mock_queue_gotcha note.
   ChatRepository: vi.fn().mockImplementation(function () {

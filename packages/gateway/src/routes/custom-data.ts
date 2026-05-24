@@ -18,7 +18,7 @@ import {
   parseJsonBody,
 } from './helpers.js';
 import { pagination } from '../middleware/pagination.js';
-import type { ColumnDefinition } from '../db/repositories/custom-data.js';
+import type { ColumnDefinition } from '../db/repositories/custom/data.js';
 import { CustomDataServiceError } from '../services/custom/data-service.js';
 import { getDatabaseService } from '@ownpilot/core';
 import { wsGateway } from '../ws/server.js';

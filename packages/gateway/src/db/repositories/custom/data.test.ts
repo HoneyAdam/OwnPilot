@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Mock the database adapter
@@ -14,12 +14,12 @@ import { createMockAdapter } from '../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { CustomDataRepository } from './custom-data.js';
+import { CustomDataRepository } from './data.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -981,7 +981,7 @@ describe('CustomDataRepository', () => {
 
   describe('createCustomDataRepository', () => {
     it('should be importable and return CustomDataRepository instance', async () => {
-      const { createCustomDataRepository } = await import('./custom-data.js');
+      const { createCustomDataRepository } = await import('./data.js');
       const r = createCustomDataRepository();
       expect(r).toBeInstanceOf(CustomDataRepository);
     });
@@ -989,7 +989,7 @@ describe('CustomDataRepository', () => {
 
   describe('getCustomDataRepository alias', () => {
     it('should be importable and return CustomDataRepository instance', async () => {
-      const { getCustomDataRepository } = await import('./custom-data.js');
+      const { getCustomDataRepository } = await import('./data.js');
       const r = getCustomDataRepository();
       expect(r).toBeInstanceOf(CustomDataRepository);
     });

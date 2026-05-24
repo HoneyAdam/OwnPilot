@@ -73,7 +73,7 @@ vi.mock('@ownpilot/core', () => ({
   })),
 }));
 
-vi.mock('../db/repositories/conversations.js', () => ({
+vi.mock('../db/repositories/chat/conversations.js', () => ({
   createConversationsRepository: vi.fn(() => mockConvRepo),
 }));
 

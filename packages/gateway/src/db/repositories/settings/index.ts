@@ -4,8 +4,8 @@
  * Key-value store for application settings
  */
 
-import { BaseRepository, ensureTable } from './base.js';
-import { getLog } from '../../services/log.js';
+import { BaseRepository, ensureTable } from '../base.js';
+import { getLog } from '../../../services/log.js';
 
 const log = getLog('SettingsRepo');
 

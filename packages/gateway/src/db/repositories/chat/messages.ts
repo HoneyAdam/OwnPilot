@@ -2,7 +2,7 @@
  * Messages Repository (PostgreSQL)
  */
 
-import { BaseRepository, parseJsonFieldNullable } from './base.js';
+import { BaseRepository, parseJsonFieldNullable } from '../base.js';
 
 export interface MessageAttachment {
   type: 'image' | 'file';

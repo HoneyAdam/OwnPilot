@@ -212,7 +212,7 @@ vi.mock('../services/app-settings.js', () => ({
   resolveDefaultProviderAndModel: vi.fn().mockResolvedValue({ provider: 'openai', model: 'gpt-4' }),
 }));
 
-vi.mock('../db/repositories/conversations.js', () => ({
+vi.mock('../db/repositories/chat/conversations.js', () => ({
   createConversationsRepository: () => mockConversationsRepo,
 }));
 

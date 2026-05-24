@@ -24,9 +24,9 @@ export {
   ConversationsRepository,
   createConversationsRepository,
   type Conversation,
-} from './conversations.js';
+} from './chat/conversations.js';
 
-export { MessagesRepository, createMessagesRepository, type Message } from './messages.js';
+export { MessagesRepository, createMessagesRepository, type Message } from './chat/messages.js';
 
 export {
   ChannelMessagesRepository,
@@ -47,7 +47,7 @@ export {
   type Cost,
   type CostSummary,
   type DailyCost,
-} from './costs.js';
+} from './costs/index.js';
 
 export {
   AgentsRepository,
@@ -61,7 +61,7 @@ export {
   createSettingsRepository,
   settingsRepo,
   type Setting,
-} from './settings.js';
+} from './settings/index.js';
 
 // Personal data repositories
 export {
@@ -239,7 +239,7 @@ export {
   type CreateConversationInput,
   type CreateMessageInput,
   type ConversationQuery,
-} from './chat.js';
+} from './chat/index.js';
 
 // Request Logs repository (for debugging)
 export {
@@ -258,7 +258,7 @@ export {
   type CustomTableSchema,
   type CustomDataRecord,
   type ColumnDefinition,
-} from './custom-data.js';
+} from './custom/data.js';
 
 // Custom Tools repository
 export {
@@ -267,7 +267,7 @@ export {
   type CustomToolRecord,
   type ToolPermission,
   type ToolStatus,
-} from './custom-tools.js';
+} from './custom/tools.js';
 
 // Plugins repository
 export {

@@ -6,7 +6,7 @@
  * Used by ModelRoutingService to compute moving averages.
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 const TABLE = 'provider_metrics';
 

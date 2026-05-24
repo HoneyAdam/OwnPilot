@@ -29,7 +29,7 @@ import { DEFAULT_ACTION_COOLDOWNS, type ActionCooldowns } from './executor.js';
 import { getPulseSystemPrompt, buildPulseUserMessage } from './prompt.js';
 import { reportPulseResult } from './reporter.js';
 import { createAutonomyLogRepo } from '../db/repositories/autonomy-log.js';
-import { settingsRepo } from '../db/repositories/settings.js';
+import { settingsRepo } from '../db/repositories/settings/index.js';
 import {
   PULSE_MIN_INTERVAL_MS,
   PULSE_MAX_INTERVAL_MS,

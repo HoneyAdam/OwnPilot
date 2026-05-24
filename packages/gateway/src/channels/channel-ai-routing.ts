@@ -76,7 +76,8 @@ export async function processViaBus(
       activeConversationId = newConv.id;
 
       // Persist to DB before updating the FK on channel_sessions
-      const { createConversationsRepository } = await import('../db/repositories/conversations.js');
+      const { createConversationsRepository } =
+        await import('../db/repositories/chat/conversations.js');
       const conversationsRepo = createConversationsRepository();
       await conversationsRepo.create({
         id: activeConversationId,

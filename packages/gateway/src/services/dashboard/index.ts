@@ -26,7 +26,7 @@ import {
   type Note,
   type Plan,
 } from '../../db/repositories/index.js';
-import { type CustomTableSchema } from '../../db/repositories/custom-data.js';
+import { type CustomTableSchema } from '../../db/repositories/custom/data.js';
 import {
   getMemoryService,
   getGoalService,

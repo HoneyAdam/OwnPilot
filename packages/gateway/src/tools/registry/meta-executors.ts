@@ -23,7 +23,7 @@ import {
   type ToolExecutionResult as CoreToolResult,
   type ToolContext,
 } from '@ownpilot/core';
-import { createCustomToolsRepo } from '../../db/repositories/custom-tools.js';
+import { createCustomToolsRepo } from '../../db/repositories/custom/tools.js';
 import { getToolSource } from '../../services/tool/source.js';
 import { getErrorMessage, truncate } from '../../utils/common.js';
 import {

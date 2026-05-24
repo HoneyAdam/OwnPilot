@@ -71,7 +71,7 @@ const {
 // Module mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../../db/repositories/custom-tools.js', () => ({
+vi.mock('../../db/repositories/custom/tools.js', () => ({
   createCustomToolsRepo: mockCreateCustomToolsRepo,
 }));
 

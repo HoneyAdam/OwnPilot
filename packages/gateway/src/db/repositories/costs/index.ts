@@ -4,7 +4,7 @@
  * Tracks LLM API costs and token usage
  */
 
-import { BaseRepository } from './base.js';
+import { BaseRepository } from '../base.js';
 
 export interface Cost {
   id: string;

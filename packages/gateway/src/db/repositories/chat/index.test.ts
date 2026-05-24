@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAdapter } from '../../test-helpers.js';
+import { createMockAdapter } from '../../../test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Mock the database adapter
@@ -14,12 +14,12 @@ import { createMockAdapter } from '../../test-helpers.js';
 
 const mockAdapter = createMockAdapter();
 
-vi.mock('../adapters/index.js', () => ({
+vi.mock('../../adapters/index.js', () => ({
   getAdapter: async () => mockAdapter,
   getAdapterSync: () => mockAdapter,
 }));
 
-import { ChatRepository } from './chat.js';
+import { ChatRepository } from './index.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -1148,13 +1148,13 @@ describe('ChatRepository', () => {
 
   describe('createChatRepository', () => {
     it('should be importable and return ChatRepository instance', async () => {
-      const { createChatRepository } = await import('./chat.js');
+      const { createChatRepository } = await import('./index.js');
       const r = createChatRepository('u1');
       expect(r).toBeInstanceOf(ChatRepository);
     });
 
     it('should default to "default" userId', async () => {
-      const { createChatRepository } = await import('./chat.js');
+      const { createChatRepository } = await import('./index.js');
       const r = createChatRepository();
       expect(r).toBeInstanceOf(ChatRepository);
     });

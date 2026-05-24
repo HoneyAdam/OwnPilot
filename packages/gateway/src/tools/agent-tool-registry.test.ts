@@ -136,7 +136,7 @@ vi.mock('../services/tool/executor.js', () => ({
 const mockCustomToolsRepo = {
   getByName: vi.fn().mockResolvedValue(null),
 };
-vi.mock('../db/repositories/custom-tools.js', () => ({
+vi.mock('../db/repositories/custom/tools.js', () => ({
   createCustomToolsRepo: vi.fn(() => mockCustomToolsRepo),
 }));
 vi.mock('./index.js', () => ({

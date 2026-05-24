@@ -21,7 +21,7 @@ const mockRepo = vi.hoisted(() => ({
   delete: vi.fn<(key: string) => Promise<void>>().mockResolvedValue(undefined),
 }));
 
-vi.mock('../db/repositories/system-settings.js', () => ({
+vi.mock('../db/repositories/settings/system.js', () => ({
   getSystemSettingsRepository: () => mockRepo,
 }));
 

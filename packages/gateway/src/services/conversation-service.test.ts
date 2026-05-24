@@ -162,7 +162,7 @@ import {
   type SaveStreamingParams,
 } from './conversation-service.js';
 import type { StreamState } from './streaming-types.js';
-import type { Conversation } from '../db/repositories/chat.js';
+import type { Conversation } from '../db/repositories/chat/index.js';
 
 // ---------------------------------------------------------------------------
 // Test Helpers

@@ -13,7 +13,7 @@ import {
   createCustomToolsRepo,
   type CustomToolRecord,
   type ToolPermission,
-} from '../../db/repositories/custom-tools.js';
+} from '../../db/repositories/custom/tools.js';
 import { validateToolCode } from '@ownpilot/core';
 import { invalidateAgentCache } from '../agents/index.js';
 import {
