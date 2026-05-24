@@ -51,7 +51,7 @@ export { TriggerService, getTriggerService } from './trigger-service.js';
 export { PlanService, getPlanService } from './plan-service.js';
 
 // Resource Service
-export { ResourceServiceImpl, createResourceServiceImpl } from './resource-service-impl.js';
+export { ResourceServiceImpl, createResourceServiceImpl } from './resource/service.js';
 
 // Conversation Service
 export {

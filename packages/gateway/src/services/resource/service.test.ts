@@ -16,11 +16,11 @@ const mockResourceRegistry = vi.hoisted(() => ({
   clear: vi.fn(),
 }));
 
-vi.mock('./resource-registry.js', () => ({
+vi.mock('./registry.js', () => ({
   getResourceRegistry: () => mockResourceRegistry,
 }));
 
-import { ResourceServiceImpl, createResourceServiceImpl } from './resource-service-impl.js';
+import { ResourceServiceImpl, createResourceServiceImpl } from './service.js';
 
 const mockResourceDef = {
   name: 'goal',

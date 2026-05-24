@@ -8,8 +8,8 @@
  * aggregate via Prometheus Pushgateway or remote_write.
  */
 
-import { getLog } from './log.js';
-import { getAgentRegistry } from './agent/registry.js';
+import { getLog } from '../log.js';
+import { getAgentRegistry } from '../agent/registry.js';
 
 const log = getLog('Metrics');
 

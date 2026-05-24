@@ -16,7 +16,7 @@ import type {
   ResourceTypeDefinition,
   ResourceSummaryEntry,
 } from '@ownpilot/core';
-import { getResourceRegistry } from './resource-registry.js';
+import { getResourceRegistry } from './registry.js';
 
 // ============================================================================
 // ResourceServiceImpl Adapter

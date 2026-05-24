@@ -14,7 +14,7 @@
 
 import { getEventSystem, type EventHandler } from '@ownpilot/core';
 import { ClawCircuitBreaker, ClawMetricsCollector, type ClawCycleSummary } from '@ownpilot/core';
-import { getLog } from './log.js';
+import { getLog } from '../log.js';
 import type { ClawState } from '@ownpilot/core';
 
 const log = getLog('PulseMetricsService');

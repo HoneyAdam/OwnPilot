@@ -8,7 +8,7 @@
  */
 
 import { Hono } from 'hono';
-import { getPulseMetricsService } from '../services/pulse-metrics-service.js';
+import { getPulseMetricsService } from '../services/metric/pulse.js';
 import { apiResponse, apiError, ERROR_CODES, getErrorMessage } from './helpers.js';
 
 export const pulseRoutes = new Hono();

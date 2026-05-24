@@ -7,7 +7,7 @@
 
 import type { MiddlewareHandler } from 'hono';
 import { hasAuditService, getAuditService } from '@ownpilot/core';
-import { recordHttpRequest } from '../services/metrics-service.js';
+import { recordHttpRequest } from '../services/metric/service.js';
 
 /**
  * Hono middleware that logs each request via AuditService.logAudit().

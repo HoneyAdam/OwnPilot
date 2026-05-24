@@ -16,7 +16,7 @@ import {
   resetResourceRegistry,
   CORE_RESOURCE_TYPES,
   type ResourceTypeDefinition,
-} from './resource-registry.js';
+} from './registry.js';
 
 describe('ResourceRegistry', () => {
   let registry: ResourceRegistry;

@@ -56,7 +56,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
 });
 
 const mockResourceSummary = vi.fn(() => []);
-vi.mock('../services/resource-registry.js', () => ({
+vi.mock('../services/resource/registry.js', () => ({
   getResourceRegistry: vi.fn(() => ({ getSummary: mockResourceSummary })),
 }));
 

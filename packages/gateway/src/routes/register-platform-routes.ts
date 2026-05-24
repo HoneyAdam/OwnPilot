@@ -69,7 +69,7 @@ export function registerPlatformRoutes(app: Hono): void {
 
   // Prometheus metrics endpoint (under /api/v1 so it inherits auth middleware)
   app.get('/api/v1/metrics', async (c) => {
-    const { renderMetrics } = await import('../services/metrics-service.js');
+    const { renderMetrics } = await import('../services/metric/service.js');
     const metrics = renderMetrics();
     return c.body(metrics, 200, {
       'Content-Type': 'text/plain; charset=utf-8',

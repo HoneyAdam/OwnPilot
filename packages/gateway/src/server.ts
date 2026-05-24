@@ -82,7 +82,7 @@ import { createWorkspaceServiceImpl } from './services/workspace-service-impl.js
 import { getGoalService } from './services/goal-service.js';
 import { getTriggerService } from './services/trigger-service.js';
 import { getPlanService } from './services/plan-service.js';
-import { createResourceServiceImpl } from './services/resource-service-impl.js';
+import { createResourceServiceImpl } from './services/resource/service.js';
 import { stopAllRateLimiters } from './middleware/rate-limit.js';
 import { getApprovalManager } from './autonomy/approvals.js';
 import { getLog } from './services/log.js';
@@ -256,7 +256,7 @@ async function main() {
 
   // Start metrics service for Prometheus endpoint
   log.info('Starting metrics service...');
-  const { startMetricsService } = await import('./services/metrics-service.js');
+  const { startMetricsService } = await import('./services/metric/service.js');
   startMetricsService();
 
   // Load saved API keys from database into environment
@@ -574,7 +574,7 @@ async function main() {
   }
 
   // 19b. Pulse Metrics Service (claw + soul monitoring)
-  const { getPulseMetricsService } = await import('./services/pulse-metrics-service.js');
+  const { getPulseMetricsService } = await import('./services/metric/pulse.js');
   getPulseMetricsService().start();
 
   // 20. Coding Agent Service (external AI coding CLI orchestration) — also installed on the core capability singleton
@@ -959,7 +959,7 @@ async function main() {
 
     // 8.1. Stop metrics service (H-C1: refresh timer queried DB after pool close)
     try {
-      const { stopMetricsService } = await import('./services/metrics-service.js');
+      const { stopMetricsService } = await import('./services/metric/service.js');
       stopMetricsService();
     } catch (e) {
       log.warn('Metrics service stop error', { error: String(e) });
