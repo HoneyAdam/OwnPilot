@@ -23,7 +23,7 @@ const { mockService } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../services/artifact-service.js', () => ({
+vi.mock('../services/artifact/service.js', () => ({
   getArtifactService: vi.fn(() => mockService),
 }));
 

@@ -34,7 +34,7 @@ vi.mock('../services/claw/manager.js', () => ({
   getClawManager: mockGetClawManager,
 }));
 
-vi.mock('../services/artifact-service.js', () => ({
+vi.mock('../services/artifact/service.js', () => ({
   getArtifactService: mockGetArtifactService,
 }));
 

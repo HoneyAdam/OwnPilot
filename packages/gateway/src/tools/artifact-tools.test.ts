@@ -18,7 +18,7 @@ const mockArtifactService = {
   refreshBindings: vi.fn(),
 };
 
-vi.mock('../services/artifact-service.js', () => ({
+vi.mock('../services/artifact/service.js', () => ({
   getArtifactService: () => mockArtifactService,
 }));
 

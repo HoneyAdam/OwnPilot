@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { resolveBinding, resolveAllBindings } from './artifact-data-resolver.js';
+import { resolveBinding, resolveAllBindings } from './data-resolver.js';
 import type { DataBinding } from '@ownpilot/core';
 
 // ============================================================================
@@ -23,7 +23,7 @@ const { mockTasksRepo, mockGoalsRepo, mockMemoriesRepo, mockCustomDataRepo } = v
   mockCustomDataRepo: { listRecords: vi.fn() },
 }));
 
-vi.mock('../db/repositories/index.js', () => ({
+vi.mock('../../db/repositories/index.js', () => ({
   TasksRepository: vi.fn(function () {
     return mockTasksRepo;
   }),

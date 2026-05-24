@@ -7,7 +7,7 @@
 
 import { Hono } from 'hono';
 import type { ArtifactType, DataBinding, DashboardSize } from '@ownpilot/core';
-import { getArtifactService } from '../services/artifact-service.js';
+import { getArtifactService } from '../services/artifact/service.js';
 import {
   getUserId,
   apiResponse,

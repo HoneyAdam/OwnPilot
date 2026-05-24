@@ -588,7 +588,7 @@ async function main() {
 
   // 24. Artifact Service (AI-generated interactive content) — also installed on the core capability singleton
   {
-    const { getArtifactService } = await import('./services/artifact-service.js');
+    const { getArtifactService } = await import('./services/artifact/service.js');
     const artifact = getArtifactService();
     registry.register(Services.Artifact, artifact);
     const { setArtifactService } = await import('@ownpilot/core');

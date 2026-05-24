@@ -15,7 +15,7 @@ import {
   GoalsRepository,
   MemoriesRepository,
   CustomDataRepository,
-} from '../db/repositories/index.js';
+} from '../../db/repositories/index.js';
 
 const log = getLog('ArtifactDataResolver');
 

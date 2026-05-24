@@ -7,7 +7,7 @@
  */
 
 import { type ToolDefinition, type DataBinding, getErrorMessage } from '@ownpilot/core';
-import { getArtifactService } from '../services/artifact-service.js';
+import { getArtifactService } from '../services/artifact/service.js';
 
 // =============================================================================
 // Tool Definitions

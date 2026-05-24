@@ -15,9 +15,9 @@ import type {
   UpdateArtifactInput,
   ArtifactQuery,
 } from '@ownpilot/core';
-import { ArtifactsRepository } from '../db/repositories/artifacts.js';
-import { resolveAllBindings } from './artifact-data-resolver.js';
-import { wsGateway } from '../ws/server.js';
+import { ArtifactsRepository } from '../../db/repositories/artifacts.js';
+import { resolveAllBindings } from './data-resolver.js';
+import { wsGateway } from '../../ws/server.js';
 
 const log = getLog('ArtifactService');
 

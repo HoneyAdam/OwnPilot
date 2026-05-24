@@ -25,7 +25,7 @@ const { mockRepo, MockArtifactsRepository } = vi.hoisted(() => {
   return { mockRepo, MockArtifactsRepository };
 });
 
-vi.mock('../db/repositories/artifacts.js', () => ({
+vi.mock('../../db/repositories/artifacts.js', () => ({
   ArtifactsRepository: MockArtifactsRepository,
 }));
 
@@ -33,11 +33,11 @@ const { mockResolveAllBindings } = vi.hoisted(() => ({
   mockResolveAllBindings: vi.fn(async (_, bindings) => bindings),
 }));
 
-vi.mock('./artifact-data-resolver.js', () => ({
+vi.mock('./data-resolver.js', () => ({
   resolveAllBindings: mockResolveAllBindings,
 }));
 
-vi.mock('../ws/server.js', () => ({
+vi.mock('../../ws/server.js', () => ({
   wsGateway: { broadcast: vi.fn() },
 }));
 
@@ -46,7 +46,7 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
   return { ...actual, getLog: vi.fn(() => ({ info: vi.fn(), error: vi.fn(), debug: vi.fn() })) };
 });
 
-import { getArtifactService } from './artifact-service.js';
+import { getArtifactService } from './service.js';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -96,7 +96,7 @@ describe('ArtifactService', () => {
     });
 
     it('broadcasts created event', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       await service.createArtifact('user-1', {} as any);
       expect(wsGateway.broadcast).toHaveBeenCalledWith(
         'data:changed',
@@ -128,7 +128,7 @@ describe('ArtifactService', () => {
     });
 
     it('broadcasts updated event when update succeeds', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       await service.updateArtifact('user-1', 'art-1', {} as any);
       expect(wsGateway.broadcast).toHaveBeenCalledWith(
         'data:changed',
@@ -137,7 +137,7 @@ describe('ArtifactService', () => {
     });
 
     it('does not broadcast when update returns null', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       mockRepo.update.mockResolvedValueOnce(null);
       await service.updateArtifact('user-1', 'art-1', {} as any);
       expect(wsGateway.broadcast).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe('ArtifactService', () => {
     });
 
     it('broadcasts deleted event when deleted', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       await service.deleteArtifact('user-1', 'art-1');
       expect(wsGateway.broadcast).toHaveBeenCalledWith(
         'data:changed',
@@ -161,7 +161,7 @@ describe('ArtifactService', () => {
     });
 
     it('does not broadcast when delete returns false', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       mockRepo.delete.mockResolvedValueOnce(false);
       await service.deleteArtifact('user-1', 'art-1');
       expect(wsGateway.broadcast).not.toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe('ArtifactService', () => {
     });
 
     it('broadcasts updated event on pin toggle', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       await service.togglePin('user-1', 'art-1');
       expect(wsGateway.broadcast).toHaveBeenCalledWith(
         'data:changed',
@@ -199,7 +199,7 @@ describe('ArtifactService', () => {
     });
 
     it('returns null without broadcasting when togglePin returns null', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       mockRepo.togglePin.mockResolvedValueOnce(null);
       const result = await service.togglePin('user-1', 'art-1');
       expect(result).toBeNull();
@@ -255,7 +255,7 @@ describe('ArtifactService', () => {
 
   describe('broadcast error handling', () => {
     it('silently catches wsGateway.broadcast errors', async () => {
-      const { wsGateway } = await import('../ws/server.js');
+      const { wsGateway } = await import('../../ws/server.js');
       (wsGateway.broadcast as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
         throw new Error('WS not initialized');
       });

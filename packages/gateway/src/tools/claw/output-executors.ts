@@ -69,7 +69,7 @@ export async function executePublishArtifact(
     // Manager may not be available in tests — allow through
   }
 
-  const { getArtifactService } = await import('../../services/artifact-service.js');
+  const { getArtifactService } = await import('../../services/artifact/service.js');
   const artifactService = getArtifactService();
 
   const artifact = await artifactService.createArtifact(userId, {
@@ -247,7 +247,7 @@ export async function executeCompleteReport(
 
   // 1. Publish as artifact
   try {
-    const { getArtifactService } = await import('../../services/artifact-service.js');
+    const { getArtifactService } = await import('../../services/artifact/service.js');
     const artifact = await getArtifactService().createArtifact(userId, {
       title,
       content: report,
