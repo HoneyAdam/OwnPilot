@@ -24,5 +24,3 @@ export function buildWebChatChannelPlugin() {
     .channelApi((_config) => new WebChatChannelAPI(_config))
     .build();
 }
-
-export { WebChatChannelAPI } from './webchat-api.js';

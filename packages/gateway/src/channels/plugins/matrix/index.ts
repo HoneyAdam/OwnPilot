@@ -135,5 +135,3 @@ export function buildMatrixChannelPlugin() {
     )
     .build();
 }
-
-export { MatrixChannelAPI } from './matrix-api.js';

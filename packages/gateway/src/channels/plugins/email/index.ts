@@ -181,5 +181,3 @@ export function buildEmailChannelPlugin() {
     )
     .build();
 }
-
-export { EmailChannelAPI } from './email-api.js';

@@ -63,14 +63,14 @@ let webhookHandler: {
   callback: (event: SlackMessageEvent) => Promise<void>;
 } | null = null;
 
-export function registerSlackWebhookHandler(
+function registerSlackWebhookHandler(
   signingSecret: string,
   callback: (event: SlackMessageEvent) => Promise<void>
 ): void {
   webhookHandler = { signingSecret, callback };
 }
 
-export function unregisterSlackWebhookHandler(): void {
+function unregisterSlackWebhookHandler(): void {
   webhookHandler = null;
 }
 

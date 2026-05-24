@@ -129,5 +129,3 @@ export function buildSmsChannelPlugin() {
     )
     .build();
 }
-
-export { SmsChannelAPI } from './sms-api.js';
