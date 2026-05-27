@@ -504,6 +504,56 @@ describe('ClawManager', () => {
     });
   });
 
+  describe('steerClaw', () => {
+    it('adds a [STEER]-prefixed directive to the inbox and persists it', async () => {
+      const repo = setupRepo(makeConfig());
+      await manager.startClaw('claw-1', 'user-1');
+
+      const result = await manager.steerClaw('claw-1', 'user-1', 'Focus on the API docs instead');
+
+      expect(result).toBe(true);
+      expect(manager.getSession('claw-1')?.inbox).toContainEqual(
+        expect.stringContaining('[STEER] Focus on the API docs instead')
+      );
+      expect(repo.appendToInbox).toHaveBeenCalledWith('claw-1', expect.stringContaining('[STEER]'));
+    });
+
+    it('returns false for a non-existent claw', async () => {
+      const result = await manager.steerClaw('claw-99', 'user-1', 'hi');
+      expect(result).toBe(false);
+    });
+
+    it('returns false for an empty message', async () => {
+      setupRepo(makeConfig());
+      await manager.startClaw('claw-1', 'user-1');
+      const result = await manager.steerClaw('claw-1', 'user-1', '   ');
+      expect(result).toBe(false);
+    });
+
+    it('aborts the in-flight cycle when steering during a cycle', async () => {
+      setupRepo(makeConfig());
+      // Make runCycle hang until aborted so a cycle is in progress when we steer.
+      let abortedSignal = false;
+      mockRunCycle.mockImplementation(
+        (_session: ClawSession, signal: AbortSignal) =>
+          new Promise<ClawCycleResult>((resolve) => {
+            signal.addEventListener('abort', () => {
+              abortedSignal = true;
+              resolve(makeCycleResult({ success: false, outputMessage: 'aborted' }));
+            });
+          })
+      );
+
+      await manager.startClaw('claw-1', 'user-1');
+      // Let the first scheduled cycle begin (CONTINUOUS_MIN_DELAY_MS = 500ms).
+      await vi.advanceTimersByTimeAsync(600);
+
+      const result = await manager.steerClaw('claw-1', 'user-1', 'Change direction');
+      expect(result).toBe(true);
+      expect(abortedSignal).toBe(true);
+    });
+  });
+
   describe('escalation', () => {
     it('should pause claw on escalation request', async () => {
       const repo = setupRepo(makeConfig());

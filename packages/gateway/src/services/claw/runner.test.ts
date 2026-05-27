@@ -382,7 +382,7 @@ describe('ClawRunner', () => {
 
       const basePromptArg = mockBuildEnhancedSystemPrompt.mock.calls[0][0] as string;
       expect(basePromptArg).toContain('Workspace');
-      expect(basePromptArg).toContain('.claw/ Directive System');
+      expect(basePromptArg).toContain('.claw/ Files');
     });
 
     it('includes coding agent info when configured', async () => {
@@ -390,7 +390,7 @@ describe('ClawRunner', () => {
       await runner.runCycle(makeSession());
 
       const basePromptArg = mockBuildEnhancedSystemPrompt.mock.calls[0][0] as string;
-      expect(basePromptArg).toContain('Coding Agent');
+      expect(basePromptArg).toContain('coding agents');
       expect(basePromptArg).toContain('claude-code');
     });
 
@@ -399,7 +399,7 @@ describe('ClawRunner', () => {
       await runner.runCycle(makeSession());
 
       const basePromptArg = mockBuildEnhancedSystemPrompt.mock.calls[0][0] as string;
-      expect(basePromptArg).toContain('Parent Context');
+      expect(basePromptArg).toContain('SubClaw');
       expect(basePromptArg).toContain('depth 2');
       expect(basePromptArg).toContain('claw-parent');
     });

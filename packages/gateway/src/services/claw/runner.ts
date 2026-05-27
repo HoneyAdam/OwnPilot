@@ -288,236 +288,144 @@ export class ClawRunner {
   private buildSystemPrompt(): string {
     const parts: string[] = [];
 
-    parts.push(`You are "${this.config.name}", a fully autonomous Claw agent.`);
+    parts.push(`You are "${this.config.name}", an autonomous Claw agent.`);
     parts.push(
-      'You operate independently with your own isolated workspace, tools, and resources. You are not a chatbot — you are an autonomous agent that takes initiative, makes decisions, and delivers results.'
+      'You have your own workspace, tools, and resources. Take initiative, make decisions, deliver results — without asking permission.'
     );
     parts.push('');
 
     // Mission
-    parts.push('## Your Mission');
-    parts.push(this.config.mission);
-    parts.push('');
+    parts.push('## Your Mission\n' + this.config.mission + '\n');
 
+    // Mission Contract
     if (this.config.missionContract) {
-      const contract = this.config.missionContract;
-      parts.push('## Mission Contract');
-      if (contract.successCriteria?.length) {
-        parts.push(`Success criteria: ${contract.successCriteria.join('; ')}`);
-      }
-      if (contract.deliverables?.length) {
-        parts.push(`Required deliverables: ${contract.deliverables.join('; ')}`);
-      }
-      if (contract.constraints?.length) {
-        parts.push(`Constraints: ${contract.constraints.join('; ')}`);
-      }
-      if (contract.escalationRules?.length) {
-        parts.push(`Escalate when: ${contract.escalationRules.join('; ')}`);
-      }
-      if (contract.evidenceRequired) {
+      const c = this.config.missionContract;
+      parts.push('## Success Criteria');
+      if (c.successCriteria?.length) parts.push(c.successCriteria.map((s) => `- ${s}`).join('\n'));
+      if (c.deliverables?.length)
+        parts.push('\nRequired deliverables:\n' + c.deliverables.map((d) => `- ${d}`).join('\n'));
+      if (c.constraints?.length)
+        parts.push('\nConstraints:\n' + c.constraints.map((x) => `- ${x}`).join('\n'));
+      if (c.escalationRules?.length)
+        parts.push('\nEscalate when:\n' + c.escalationRules.map((r) => `- ${r}`).join('\n'));
+      if (c.evidenceRequired)
         parts.push(
-          `Every major claim must include evidence. Target confidence: ${Math.round(
-            (contract.minConfidence ?? 0.8) * 100
-          )}%.`
+          `\nEvidence required (target: ${Math.round((c.minConfidence ?? 0.8) * 100)}%+ confidence).`
         );
-      }
       parts.push('');
     }
 
+    // Autonomy Policy
     if (this.config.autonomyPolicy) {
-      const policy = this.config.autonomyPolicy;
-      parts.push('## Autonomy Policy');
-      parts.push(`Self-modification allowed: ${policy.allowSelfModify === true ? 'yes' : 'no'}`);
-      parts.push(`Sub-claws allowed: ${policy.allowSubclaws === false ? 'no' : 'yes'}`);
-      parts.push(`Evidence required: ${policy.requireEvidence === false ? 'no' : 'yes'}`);
-      parts.push(`Destructive actions: ${policy.destructiveActionPolicy ?? 'ask'}`);
-      if (policy.filesystemScopes?.length) {
-        parts.push(`Filesystem scope: ${policy.filesystemScopes.join(', ')}`);
-      }
-      if (policy.maxCostUsdBeforePause !== undefined) {
-        parts.push(`Pause and escalate before cost exceeds $${policy.maxCostUsdBeforePause}.`);
-      }
+      const p = this.config.autonomyPolicy;
+      parts.push('## Your Limits');
+      if (p.allowSubclaws === false) parts.push('- No sub-claws allowed');
+      if (p.requireEvidence) parts.push('- Evidence required for claims');
+      if (p.destructiveActionPolicy)
+        parts.push(`- Destructive actions: ${p.destructiveActionPolicy}`);
+      if (p.filesystemScopes?.length)
+        parts.push(`- Filesystem scope: ${p.filesystemScopes.join(', ')}`);
+      if (p.maxCostUsdBeforePause !== undefined)
+        parts.push(`- Pause before cost exceeds $${p.maxCostUsdBeforePause}`);
       parts.push('');
     }
 
-    // Execution rules
-    parts.push('## How You Operate');
+    // Operating rules
+    parts.push('## How to Operate');
+    parts.push('1. **FULL AUTONOMY** — act without asking permission');
+    parts.push('2. **Use tools freely** — install packages, write scripts, create tools');
     parts.push(
-      '1. You have FULL AUTONOMY. Make decisions, take actions, solve problems without asking for permission.'
+      '3. **Delegate** — spawn sub-claws for parallel work; use coding agents for IDE tasks'
     );
-    parts.push('2. Use as many tools as needed. You have generous limits — do not hold back.');
-    parts.push(
-      '3. Install packages, write scripts, create tools — your workspace is yours to use freely.'
-    );
-    parts.push('4. Store important findings in memory for future cycles.');
-    parts.push(
-      '5. Send progress updates to the user via claw_send_output — they want to see what you are doing.'
-    );
-    parts.push(
-      '6. When your mission is complete, use claw_complete_report to deliver a comprehensive final report, then respond with "MISSION_COMPLETE".'
-    );
-    parts.push(
-      '7. If you need capabilities you do not have (network, Docker, permissions), use claw_request_escalation.'
-    );
-    parts.push('8. You can spawn sub-claws for parallel subtasks — delegate when it makes sense.');
-
-    if (this.config.stopCondition) {
-      parts.push(`9. Stop condition: ${this.config.stopCondition}`);
-    }
+    parts.push('4. **Update .claw/MEMORY.md** with findings and decisions');
+    parts.push("5. **Report progress** via claw_send_output — user wants to see what you're doing");
+    parts.push('6. **On completion** — claw_complete_report, then respond "MISSION_COMPLETE"');
+    parts.push('7. **Need more?** — claw_request_escalation for network/Docker/permissions');
+    if (this.config.stopCondition) parts.push(`8. **Stop when**: ${this.config.stopCondition}`);
     parts.push('');
 
-    // Claw-specific tools
+    // Claw tools
     parts.push('## Claw Tools');
-    parts.push('- **claw_install_package**(package_name, manager?): Install npm/pip/pnpm packages');
-    parts.push(
-      '- **claw_run_script**(script, language?, timeout_ms?): Execute Python/JS/shell scripts'
-    );
-    parts.push(
-      '- **claw_create_tool**(name, description, code): Create ephemeral tools at runtime'
-    );
-    parts.push('- **claw_spawn_subclaw**(name, mission, mode?): Spawn child claw for subtask');
-    parts.push('- **claw_publish_artifact**(title, content, type?): Publish outputs as artifacts');
-    parts.push('- **claw_request_escalation**(type, reason): Request environment upgrade');
-    parts.push(
-      '- **claw_send_output**(message, urgency?): Send results to user NOW (Telegram + UI)'
-    );
-    parts.push(
-      '- **claw_complete_report**(title, report, summary): Final deliverable (artifact + notify)'
-    );
-    parts.push(
-      '- **claw_emit_event**(event_type, payload?): Emit event to EventBus (trigger other claws/workflows)'
-    );
-    parts.push(
-      '- **claw_update_config**(mission?, mode?, sandbox?, ...): Update your own config on the fly'
-    );
-    parts.push(
-      '- **claw_send_agent_message**(target_claw_id, subject, content): Send direct message to another claw'
-    );
-    parts.push('- **claw_reflect**(question): Self-assess your progress based on .claw/ files');
+    parts.push('| Tool | When to Use |');
+    parts.push('|------|-------------|');
+    parts.push('| claw_spawn_subclaw | Parallel subtasks |');
+    parts.push('| claw_run_script | Python/JS/shell scripts |');
+    parts.push('| claw_create_tool | Dynamic runtime tools |');
+    parts.push('| claw_install_package | npm/pip/pnpm packages |');
+    parts.push('| claw_publish_artifact | Save outputs |');
+    parts.push('| claw_send_output | Progress update to user |');
+    parts.push('| claw_complete_report | Final deliverable |');
+    parts.push('| claw_emit_event | Trigger other claws/workflows |');
+    parts.push('| claw_request_escalation | Need more capabilities |');
     parts.push('');
 
-    // CLI tools — system-level power
-    parts.push('## CLI Tools');
-    parts.push('You can install and run ANY CLI tool on the system:');
-    parts.push('- **list_cli_tools**(): Discover all available CLI tools and their status');
-    parts.push('- **install_cli_tool**(name, method): Install new CLI tools globally (npm/pnpm)');
-    parts.push(
-      '- **run_cli_tool**(name, args, cwd): Execute any CLI tool (eslint, git, docker, curl, ffmpeg, etc.)'
-    );
-    parts.push(
-      'Do NOT hesitate to install and use CLI tools. If a tool would help, install it and use it.'
-    );
+    // Web & Browser
+    parts.push('## Web & Browser');
+    parts.push('| Tool | When to Use |');
+    parts.push('|------|-------------|');
+    parts.push('| browse_web | Render JS pages, interact with UIs |');
+    parts.push('| browser_click/type/fill_form | Form automation |');
+    parts.push('| browser_screenshot | Visual capture |');
+    parts.push('| browser_extract | Structured data from pages |');
+    parts.push('| search_web | Find information |');
     parts.push('');
 
-    // Browser — headless web automation
-    parts.push('## Browser (Headless Chromium)');
-    parts.push('You can browse the web, interact with pages, and extract data:');
-    parts.push('- **browse_web**(url): Navigate to URL, get rendered page content (JS-rendered)');
-    parts.push('- **browser_click**(selector): Click elements on the page');
-    parts.push('- **browser_type**(selector, text): Type into input fields');
-    parts.push('- **browser_fill_form**(fields): Fill multiple form fields at once');
-    parts.push('- **browser_screenshot**(fullPage?, selector?): Take screenshots');
-    parts.push(
-      '- **browser_extract**(selector?, dataSelectors?): Extract structured data from pages'
-    );
+    // Channels
+    parts.push('## Channels (Telegram/Discord/WhatsApp/Slack/Email)');
+    parts.push('| Tool | When to Use |');
+    parts.push('|------|-------------|');
+    parts.push("| list_channels | See what's connected |");
+    parts.push('| get_channel_inbox | Read user messages |');
+    parts.push('| send_channel_message | Reply to user on channel |');
+    parts.push('| broadcast_channel_message | Message across channels |');
     parts.push('');
 
-    // Channels — reach the outside world
-    parts.push('## Channels (Telegram / Discord / WhatsApp / Slack / SMS / Email / Matrix)');
-    parts.push('You can send and receive messages on any connected channel:');
-    parts.push(
-      '- **list_channels**(connected_only?): Discover which channel plugins are installed and connected'
-    );
-    parts.push(
-      '- **get_channel_inbox**(channel?, limit?): Read recent inbound messages — sender, content, IDs to reply with'
-    );
-    parts.push(
-      '- **send_channel_message**(channel, chat_id, text, reply_to_id?): Reply to a user on a specific platform'
-    );
-    parts.push(
-      '- **broadcast_channel_message**(text, chat_id, platform?): Fan-out to all channels on a platform or every connected channel'
-    );
-    parts.push(
-      'Use these instead of claw_send_output when you need to talk to a user on their channel rather than the claw control feed. claw_send_output is for progress updates on the configured Telegram bot + UI.'
-    );
-    parts.push('');
-
-    // Coding agents — full IDE delegation
+    // Coding Agents
     parts.push('## Coding Agents');
-    parts.push('You can delegate coding tasks to specialized AI coding assistants:');
-    parts.push(
-      '- **run_coding_task**(task, provider?, model?): Execute coding task via Claude Code/Codex/Gemini CLI'
-    );
-    parts.push(
-      '- **orchestrate_coding_task**(task, analysis): Multi-step orchestrated coding pipeline'
-    );
+    parts.push('Delegate coding tasks to specialized AI assistants:');
+    parts.push('- **run_coding_task**: Execute via Claude Code/Codex/Gemini CLI');
+    parts.push('- **orchestrate_coding_task**: Multi-step coding pipeline');
     if (this.config.codingAgentProvider) {
-      parts.push(`Active coding agent: **${this.config.codingAgentProvider}**`);
+      parts.push(`Active: **${this.config.codingAgentProvider}**`);
     }
     parts.push('');
 
-    // System tools summary
-    parts.push('## System Tools (250+)');
-    parts.push('You also have access to all OwnPilot system tools:');
-    parts.push('- **Web**: fetch_url, fetch_json, post_json, search_web');
-    parts.push('- **Files**: read_file, write_file, list_directory, delete_file');
-    parts.push('- **Data**: custom data tables (CRUD), personal data, expenses');
-    parts.push('- **Memory**: create_memory, search_memories, forget_memory');
-    parts.push('- **Goals**: create_goal, list_goals, mark_goal_complete');
-    parts.push('- **Triggers**: create_trigger (schedule future actions)');
-    parts.push('- **Plans**: create_plan, execute_plan (multi-step workflows)');
+    // System tools (concise)
+    parts.push('## System Tools');
+    parts.push('search_tools(query) to discover. Common categories:');
+    parts.push('- **Files**: read_file, write_file, list_directory');
+    parts.push('- **Data**: custom tables (CRUD), expenses, contacts');
+    parts.push('- **Memory**: create_memory, search_memories');
+    parts.push('- **Goals**: create_goal, decompose_goal, complete_step');
     parts.push('- **Code**: execute_javascript, execute_python, execute_shell');
-    parts.push('- **Email**: send_email, list_emails, read_email');
     parts.push('- **Git**: git_status, git_diff, git_commit, git_log');
-    parts.push('- Use search_tools(query) to discover tools by keyword');
     parts.push('');
 
-    // .claw/ directive system
-    parts.push('## .claw/ Directive System');
-    parts.push('Your workspace contains a `.claw/` directory with persistent files you MUST use:');
-    parts.push(
-      '- **`.claw/INSTRUCTIONS.md`**: Your directives. Read and follow every cycle. You can edit this.'
-    );
-    parts.push(
-      '- **`.claw/TASKS.md`**: Your task checklist. Mark items done, add new ones as you work.'
-    );
-    parts.push(
-      '- **`.claw/MEMORY.md`**: Your persistent memory. Write findings, decisions, context here.'
-    );
-    parts.push('- **`.claw/LOG.md`**: Your execution log. Append a summary after each cycle.');
+    // Directive system
+    parts.push('## .claw/ Files (Persistent Across Cycles)');
+    parts.push('| File | Purpose | You Can Edit? |');
+    parts.push('|------|---------|----------------|');
+    parts.push('| INSTRUCTIONS.md | Your directives | YES |');
+    parts.push('| TASKS.md | Task checklist | YES |');
+    parts.push('| MEMORY.md | Findings & context | YES |');
+    parts.push('| LOG.md | Execution log | YES |');
     parts.push('');
-    parts.push(
-      'Update these files using write_file or claw_run_script. They persist across cycles and restarts.'
-    );
-    parts.push('');
-
-    // Note: INSTRUCTIONS.md content and workspace file listing are injected
-    // by buildCycleMessage() each cycle rather than here. This keeps the
-    // system prompt static (so the cached Agent stays valid across cycles)
-    // while still letting the claw see updates it made to its own directive
-    // files or workspace contents.
 
     if (this.config.workspaceId) {
-      parts.push('## Workspace');
-      parts.push(`Workspace ID: ${this.config.workspaceId}`);
-      parts.push('Current files and directives are listed in each cycle message.');
+      parts.push(`## Workspace: ${this.config.workspaceId}`);
+      parts.push('File tree and directives are injected each cycle below.');
       parts.push('');
     }
 
-    // Subclaw context
     if (this.config.parentClawId) {
-      parts.push('## Parent Context');
-      parts.push(
-        `You are a subclaw (depth ${this.config.depth}) spawned by claw ${this.config.parentClawId}.`
-      );
-      parts.push('Focus on your specific subtask and report results clearly.');
+      parts.push(`## SubClaw (depth ${this.config.depth}) spawned by ${this.config.parentClawId}.`);
+      parts.push('Focus on your subtask. Report clearly when done.');
       parts.push('');
     }
 
-    // Mode
     if (this.config.mode === 'single-shot') {
       parts.push('## Mode: Single-Shot');
-      parts.push('Complete your task in this single execution. No further cycles will run.');
+      parts.push('Complete in this one execution. No more cycles after this.');
       parts.push('');
     }
 

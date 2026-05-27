@@ -61,6 +61,64 @@ const triggerConfigRefinement = (
   }
 };
 
+/** Max length of a pre-run gating script (chars). */
+const MAX_PRERUN_CODE_LENGTH = 10000;
+
+/**
+ * Validate the optional zero-token gating / chaining fields on action when
+ * present. `action` stays a loose record (payload shape varies by type), so
+ * these checks are additive and never reject existing triggers.
+ */
+const triggerActionRefinement = (
+  data: { action?: Record<string, unknown> },
+  ctx: z.RefinementCtx
+): void => {
+  const action = data.action;
+  if (!action) return;
+
+  if (action.preRun !== undefined) {
+    const preRun = action.preRun as Record<string, unknown> | null;
+    if (typeof preRun !== 'object' || preRun === null || typeof preRun.code !== 'string') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['action', 'preRun'],
+        message: 'preRun must be an object with a string "code" field',
+      });
+    } else {
+      if (preRun.code.length > MAX_PRERUN_CODE_LENGTH) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['action', 'preRun', 'code'],
+          message: `preRun.code exceeds ${MAX_PRERUN_CODE_LENGTH} characters`,
+        });
+      }
+      if (preRun.timeoutMs !== undefined && typeof preRun.timeoutMs !== 'number') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['action', 'preRun', 'timeoutMs'],
+          message: 'preRun.timeoutMs must be a number',
+        });
+      }
+    }
+  }
+
+  if (action.contextFrom !== undefined && typeof action.contextFrom !== 'string') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['action', 'contextFrom'],
+      message: 'contextFrom must be a trigger id string',
+    });
+  }
+
+  if (action.noAgentMode !== undefined && typeof action.noAgentMode !== 'boolean') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['action', 'noAgentMode'],
+      message: 'noAgentMode must be a boolean',
+    });
+  }
+};
+
 export const createTriggerSchema = z
   .object({
     name: z.string().min(1).max(200),
@@ -71,7 +129,8 @@ export const createTriggerSchema = z
     config: z.record(z.string(), z.unknown()),
     action: z.record(z.string(), z.unknown()),
   })
-  .superRefine(triggerConfigRefinement);
+  .superRefine(triggerConfigRefinement)
+  .superRefine(triggerActionRefinement);
 
 // ─── Pulse directives ────────────────────────────────────────────
 

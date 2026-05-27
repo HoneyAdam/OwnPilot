@@ -79,6 +79,13 @@ interface ManagedClaw {
    */
   abortController: AbortController | null;
   /**
+   * Set by steerClaw when it aborts an in-flight cycle: signals the
+   * aborted-cycle path to start a fresh cycle immediately (with the steer
+   * message now in the inbox) instead of leaving the claw idle until the next
+   * scheduled tick.
+   */
+  steerPending: boolean;
+  /**
    * Tracks whether the session has changes that have not been written to the
    * database yet. The periodic persist timer uses this to skip no-op writes
    * (e.g. event-mode claws idling between rare events). Mutating call paths
@@ -317,6 +324,7 @@ export class ClawManager {
       currentCycleNumber: 0,
       idleCycles: 0,
       abortController: null,
+      steerPending: false,
       dirty: true,
       priority: config.priority ?? 3,
     };
@@ -417,6 +425,54 @@ export class ClawManager {
 
     this.emitEvent('claw.progress', { clawId, message: 'New message received' });
     return true;
+  }
+
+  /**
+   * Steer a running claw: inject a directive and redirect it NOW.
+   *
+   * Unlike {@link sendMessage} (which lands in the inbox and is only seen on
+   * the next scheduled cycle), steer interrupts any in-flight cycle and starts
+   * a fresh one immediately with the steer message in context. This is the
+   * mid-run "interrupt and redirect" path — the agent abandons what it was
+   * doing and re-plans against the new instruction.
+   */
+  async steerClaw(clawId: string, _userId: string, message: string): Promise<boolean> {
+    const managed = this.claws.get(clawId);
+    if (!managed) return false;
+    // Only steer a live claw (running or waiting for events).
+    if (managed.session.state !== 'running' && managed.session.state !== 'waiting') return false;
+    if (!message.trim()) return false;
+
+    // Surface the steer prominently so the next prompt treats it as a directive.
+    const steerMsg = `[STEER] ${message}`;
+    managed.session.inbox.push(steerMsg);
+    this.trimInbox(managed.session);
+    this.markDirty(managed);
+    const repo = getClawsRepository();
+    await repo.appendToInbox(clawId, steerMsg);
+
+    this.emitEvent('claw.progress', { clawId, message: 'Steer received — redirecting' });
+
+    if (managed.cycleInProgress) {
+      // Interrupt the in-flight cycle; the aborted-cycle path starts a fresh
+      // cycle immediately because steerPending is set.
+      managed.steerPending = true;
+      managed.abortController?.abort();
+    } else {
+      // Idle between cycles — run a fresh cycle right away.
+      this.scheduleImmediate(clawId, managed);
+    }
+    return true;
+  }
+
+  /** Clear any pending timer and run a cycle on the next tick. */
+  private scheduleImmediate(clawId: string, managed: ManagedClaw): void {
+    this.clearScheduling(managed);
+    managed.timer = setTimeout(() => {
+      this.executeCycle(clawId).catch((err) => {
+        log.error(`Steered cycle error: ${getErrorMessage(err)}`);
+      });
+    }, 0);
   }
 
   private trimInbox(session: ClawSession): void {
@@ -827,7 +883,18 @@ export class ClawManager {
         managed.abortController?.signal.aborted === true ||
         (err instanceof Error && err.name === 'AbortError');
       if (aborted) {
-        log.info(`[${clawId}] Cycle ${cycleNumber} cancelled (pause/stop/escalation)`);
+        log.info(`[${clawId}] Cycle ${cycleNumber} cancelled (pause/stop/escalation/steer)`);
+        // A steer aborted this cycle to redirect it — start a fresh cycle
+        // immediately (the steer message is already in the inbox). Guard on a
+        // still-schedulable state so a concurrent pause/stop still wins.
+        if (
+          managed.steerPending &&
+          this.claws.has(clawId) &&
+          this.isSchedulableState(managed.session.state)
+        ) {
+          managed.steerPending = false;
+          this.scheduleImmediate(clawId, managed);
+        }
         return null;
       }
 

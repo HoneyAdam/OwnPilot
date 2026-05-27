@@ -837,6 +837,23 @@ clawRoutes.post('/:id/message', async (c) => {
   }
 });
 
+// POST /:id/steer — interrupt the in-flight cycle and redirect it now
+clawRoutes.post('/:id/steer', async (c) => {
+  try {
+    const userId = getUserId(c);
+    const { id } = c.req.param();
+    const body = validateBody(clawMessageSchema, await c.req.json());
+
+    const service = getClawService();
+    await service.steerClaw(id, userId, body.message);
+    return apiResponse(c, { steered: true });
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('Validation failed:'))
+      return apiError(c, { code: ERROR_CODES.VALIDATION_ERROR, message: err.message }, 400);
+    return apiError(c, { code: ERROR_CODES.INTERNAL_ERROR, message: getErrorMessage(err) }, 500);
+  }
+});
+
 // GET /:id/history
 clawRoutes.get('/:id/history', async (c) => {
   try {

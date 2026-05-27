@@ -259,6 +259,17 @@ export class ClawServiceImpl implements IClawService {
     if (!sent) throw new Error('Claw not running');
   }
 
+  /**
+   * Steer a running claw: inject a directive and interrupt + restart the
+   * current cycle immediately (mid-run redirect). See ClawManager.steerClaw.
+   */
+  async steerClaw(clawId: string, userId: string, message: string): Promise<void> {
+    const claw = await getClawsRepository().getById(clawId, userId);
+    if (!claw) throw new Error('Claw not found');
+    const steered = await getClawManager().steerClaw(clawId, userId, message);
+    if (!steered) throw new Error('Claw not running');
+  }
+
   // ---- Escalation ----
 
   async approveEscalation(clawId: string, userId: string): Promise<boolean> {
