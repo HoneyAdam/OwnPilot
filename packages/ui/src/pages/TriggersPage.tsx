@@ -65,6 +65,7 @@ const actionTypeLabels: Record<TriggerAction['type'], string> = {
   notification: 'Send Notification',
   goal_check: 'Check Goals',
   memory_summary: 'Memory Summary',
+  profile_learn: 'Learn User Profile',
 };
 
 // ============================================================================

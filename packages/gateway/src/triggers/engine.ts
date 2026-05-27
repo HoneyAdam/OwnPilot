@@ -21,6 +21,8 @@ import {
   getMemoryService,
   getGoalService,
   getTriggerService,
+  runInSandbox,
+  createPluginId,
   type ITriggerService,
   type IGoalService,
   type IMemoryService,
@@ -37,6 +39,21 @@ import {
 } from '../config/defaults.js';
 
 const log = getLog('TriggerEngine');
+
+/** Fixed sandbox identity for pre-run gating scripts. */
+const PRERUN_PLUGIN_ID = createPluginId('trigger-prerun');
+
+/** Result of a pre-run gating script. */
+interface PreRunGate {
+  /** false = skip the main action (no tokens spent). Defaults to true. */
+  wakeAgent: boolean;
+  /** Optional text to deliver verbatim when the action is skipped. */
+  output?: string;
+  /** Optional context merged into the action payload when the agent wakes. */
+  context?: unknown;
+  /** Set when the script itself failed — treated as a trigger failure. */
+  error?: string;
+}
 
 // ============================================================================
 // Types
@@ -550,6 +567,174 @@ export class TriggerEngine {
   }
 
   /**
+   * Resolve the action result for a trigger, applying job chaining and
+   * zero-token pre-run gating before (optionally) running the action handler.
+   * Returns `skipped: true` when the pre-run gate withheld the main action.
+   */
+  private async resolveActionResult(
+    trigger: Trigger,
+    basePayload: Record<string, unknown>
+  ): Promise<{ result: ActionResult; skipped: boolean }> {
+    const handler = this.actionHandlers.get(trigger.action.type);
+    if (!handler) {
+      return {
+        result: { success: false, error: `No handler for action type: ${trigger.action.type}` },
+        skipped: false,
+      };
+    }
+
+    const payload: Record<string, unknown> = { ...basePayload };
+
+    // Job chaining: inject the upstream trigger's most recent successful result.
+    const contextFrom = trigger.action.contextFrom;
+    if (contextFrom && contextFrom !== trigger.id) {
+      const chained = await this.resolveChainedContext(contextFrom);
+      if (chained !== undefined) {
+        payload.chainedContext = chained;
+      }
+    }
+
+    // Zero-token gating: run a cheap sandboxed script before spending tokens.
+    if (trigger.action.preRun) {
+      const gate = await this.runPreRun(trigger, payload);
+      if (gate.error) {
+        return {
+          result: { success: false, error: `Pre-run script failed: ${gate.error}` },
+          skipped: false,
+        };
+      }
+      const skip = trigger.action.noAgentMode === true || gate.wakeAgent === false;
+      if (skip) {
+        if (gate.output) {
+          await this.deliverPreRunOutput(trigger, payload, gate.output);
+        }
+        return {
+          result: {
+            success: true,
+            message: trigger.action.noAgentMode
+              ? 'No-agent mode: pre-run output delivered'
+              : 'Skipped by pre-run gate (state unchanged)',
+            data: {
+              skipped: true,
+              ...(gate.output !== undefined ? { output: gate.output } : {}),
+            },
+          },
+          skipped: true,
+        };
+      }
+      if (gate.context !== undefined) {
+        payload.preRunContext = gate.context;
+      }
+    } else if (trigger.action.noAgentMode === true) {
+      // no-agent mode without a script: nothing to run or deliver.
+      return {
+        result: {
+          success: true,
+          message: 'No-agent mode (no pre-run script)',
+          data: { skipped: true },
+        },
+        skipped: true,
+      };
+    }
+
+    const result = await handler(payload);
+    return { result, skipped: false };
+  }
+
+  /**
+   * Run a trigger's pre-run gating script in an isolated JS sandbox.
+   * The script body may `return { wakeAgent, output?, context? }`.
+   * Any failure (or no return value) defaults to waking the agent.
+   */
+  private async runPreRun(trigger: Trigger, payload: Record<string, unknown>): Promise<PreRunGate> {
+    const preRun = trigger.action.preRun;
+    if (!preRun) return { wakeAgent: true };
+
+    try {
+      const sandboxResult = await runInSandbox<unknown>(PRERUN_PLUGIN_ID, preRun.code, {
+        data: {
+          trigger: { id: trigger.id, name: trigger.name },
+          payload,
+        },
+        limits: preRun.timeoutMs ? { maxExecutionTime: preRun.timeoutMs } : undefined,
+      });
+
+      if (!sandboxResult.ok) {
+        return { wakeAgent: true, error: getErrorMessage(sandboxResult.error) };
+      }
+      const exec = sandboxResult.value;
+      if (!exec.success) {
+        return { wakeAgent: true, error: exec.error ?? 'pre-run execution failed' };
+      }
+
+      const ret = exec.value;
+      // Safe default: a script that returns nothing wakes the agent.
+      if (ret === null || ret === undefined || typeof ret !== 'object') {
+        return { wakeAgent: true };
+      }
+      const obj = ret as Record<string, unknown>;
+      return {
+        wakeAgent: obj.wakeAgent !== false,
+        output: typeof obj.output === 'string' ? obj.output : undefined,
+        context: 'context' in obj ? obj.context : undefined,
+      };
+    } catch (error) {
+      return { wakeAgent: true, error: getErrorMessage(error) };
+    }
+  }
+
+  /**
+   * Fetch the most recent successful result of an upstream trigger, for
+   * job chaining via `action.contextFrom`.
+   */
+  private async resolveChainedContext(upstreamTriggerId: string): Promise<unknown> {
+    try {
+      const { history } = await this.triggerService.getHistoryForTrigger(
+        this.config.userId,
+        upstreamTriggerId,
+        { status: 'success', limit: 1 }
+      );
+      return history[0]?.result ?? undefined;
+    } catch (error) {
+      log.warn('Failed to resolve chained context', {
+        upstreamTriggerId,
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  /**
+   * Deliver pre-run output verbatim to a channel when the trigger payload
+   * specifies `channel` + `chat_id`. Otherwise the output stays in history.
+   */
+  private async deliverPreRunOutput(
+    trigger: Trigger,
+    payload: Record<string, unknown>,
+    output: string
+  ): Promise<void> {
+    const channel = (payload.channel ?? payload.channelId) as string | undefined;
+    const chatId = (payload.chat_id ?? payload.chatId) as string | undefined;
+    if (!channel || !chatId) {
+      log.info('Pre-run output not delivered (no channel/chat_id in payload)', {
+        trigger: trigger.name,
+      });
+      return;
+    }
+    if (!(await hasTool('send_channel_message'))) return;
+
+    const userPerms = await executionPermissionsRepo.get(this.config.userId);
+    const triggerPerms = downgradePromptToBlocked(userPerms);
+    await executeTool(
+      'send_channel_message',
+      { channel, chat_id: chatId, text: output },
+      this.config.userId,
+      triggerPerms,
+      { source: 'trigger', executionPermissions: triggerPerms }
+    );
+  }
+
+  /**
    * Execute a trigger
    */
   private async executeTrigger(
@@ -563,30 +748,24 @@ export class TriggerEngine {
     const startTime = Date.now();
 
     try {
-      // Get action handler
-      const handler = this.actionHandlers.get(trigger.action.type);
-      if (!handler) {
-        throw new Error(`No handler for action type: ${trigger.action.type}`);
-      }
-
       // Merge event payload with action payload
-      const payload = {
+      const basePayload = {
         ...trigger.action.payload,
         ...(eventPayload ?? {}),
         triggerId: trigger.id,
         triggerName: trigger.name,
       };
 
-      // Execute action
-      const result = await handler(payload);
+      // Resolve chaining + pre-run gating, then run the action (or skip it)
+      const { result, skipped } = await this.resolveActionResult(trigger, basePayload);
       const durationMs = Date.now() - startTime;
 
-      // Log success
+      // Log execution — 'skipped' when the pre-run gate withheld the action
       await this.triggerService.logExecution(
         this.config.userId,
         trigger.id,
         trigger.name,
-        result.success ? 'success' : 'failure',
+        skipped ? 'skipped' : result.success ? 'success' : 'failure',
         result.data,
         result.error,
         durationMs
@@ -695,12 +874,7 @@ export class TriggerEngine {
     const startTime = Date.now();
 
     try {
-      const handler = this.actionHandlers.get(trigger.action.type);
-      if (!handler) {
-        return { success: false, error: `No handler for action type: ${trigger.action.type}` };
-      }
-
-      const result = await handler({
+      const { result, skipped } = await this.resolveActionResult(trigger, {
         ...trigger.action.payload,
         triggerId: trigger.id,
         triggerName: trigger.name,
@@ -713,7 +887,7 @@ export class TriggerEngine {
         this.config.userId,
         trigger.id,
         trigger.name,
-        result.success ? 'success' : 'failure',
+        skipped ? 'skipped' : result.success ? 'success' : 'failure',
         result.data,
         result.error,
         durationMs

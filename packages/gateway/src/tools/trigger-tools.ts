@@ -178,6 +178,46 @@ const triggerStatsDef: ToolDefinition = {
   category: 'Automation',
 };
 
+const cronFromNaturalLanguageDef: ToolDefinition = {
+  name: 'cron_from_natural_language',
+  workflowUsable: false,
+  description:
+    'Convert a natural language schedule description into a cron expression and create a trigger. ' +
+    'Use this to create schedule triggers without needing to know cron syntax. ' +
+    'Example: "every day at 9am" becomes cron "0 9 * * *".',
+  parameters: {
+    type: 'object',
+    properties: {
+      description: {
+        type: 'string',
+        description:
+          'Natural language description of the schedule (e.g., "every day at 9am", "weekday mornings")',
+      },
+      name: {
+        type: 'string',
+        description: 'Name for the trigger',
+      },
+      action_type: {
+        type: 'string',
+        enum: ['chat', 'tool', 'notification', 'goal_check', 'memory_summary'],
+        description: 'What to do when triggered (default: notification)',
+        default: 'notification',
+      },
+      action_payload: {
+        type: 'object',
+        description: 'Action payload for the trigger',
+      },
+      priority: {
+        type: 'number',
+        description: 'Priority 1-10 (default: 5)',
+        default: 5,
+      },
+    },
+    required: ['description'],
+  },
+  category: 'Automation',
+};
+
 export const TRIGGER_TOOLS: ToolDefinition[] = [
   createTriggerDef,
   listTriggersDef,
@@ -185,6 +225,7 @@ export const TRIGGER_TOOLS: ToolDefinition[] = [
   fireTriggerDef,
   deleteTriggerDef,
   triggerStatsDef,
+  cronFromNaturalLanguageDef,
 ];
 
 // =============================================================================
@@ -365,6 +406,136 @@ export async function executeTriggerTool(
     case 'trigger_stats': {
       const stats = await service.getStats(userId);
       return { success: true, result: stats };
+    }
+
+    case 'cron_from_natural_language': {
+      const description = args.description as string;
+      if (!description) {
+        return { success: false, error: 'description is required' };
+      }
+
+      // We need to make an internal call - create trigger directly via service
+      const { resolveDefaultProviderAndModel, getApiKey } = await import('../routes/settings.js');
+      const { localProvidersRepo } = await import('../db/repositories/index.js');
+      const { createProvider, getProviderConfig, validateCronExpression } =
+        await import('@ownpilot/core');
+      type AIProvider = 'openai' | 'anthropic' | 'google' | 'openai-compatible';
+      const { wsGateway } = await import('../ws/server.js');
+
+      const NATIVE_PROVIDERS = new Set([
+        'openai',
+        'anthropic',
+        'google',
+        'deepseek',
+        'groq',
+        'mistral',
+        'xai',
+        'together',
+        'fireworks',
+        'perplexity',
+      ]);
+
+      const { provider, model } = await resolveDefaultProviderAndModel('default', 'default');
+      if (!provider || !model) {
+        return { success: false, error: 'No AI provider configured' };
+      }
+
+      const localProv = await localProvidersRepo.getProvider(provider);
+      const apiKey = localProv ? localProv.apiKey || 'local-no-key' : await getApiKey(provider);
+      if (!apiKey) {
+        return { success: false, error: `API key not configured for: ${provider}` };
+      }
+
+      const providerConfig = getProviderConfig(provider);
+      const providerType = NATIVE_PROVIDERS.has(provider) ? provider : 'openai';
+      const providerInstance = createProvider({
+        id: provider,
+        provider: providerType as AIProvider,
+        apiKey,
+        baseUrl: providerConfig?.baseUrl,
+        headers: providerConfig?.headers,
+      });
+
+      const NL_CRON_PROMPT = `Convert this natural language schedule description into a valid cron expression.
+
+Input: "${description}"
+
+You MUST respond with ONLY a valid JSON object (no markdown, no explanation):
+{"cron": "valid 5-field cron expression", "summary": "one sentence what this schedule does"}
+
+Cron format: minute hour day month weekday
+- minute: 0-59, hour: 0-23, day: 1-31, month: 1-12, weekday: 0-6 (0=Sunday)
+- Use * for any, */n for every n, n-m for range, n,m for list
+
+Examples:
+- "every day at 9am" -> {"cron": "0 9 * * *", "summary": "Daily at 9am"}
+- "weekday mornings" -> {"cron": "0 8 * * 1-5", "summary": "Weekday mornings at 8am"}
+- "every hour" -> {"cron": "0 * * * *", "summary": "Hourly"}
+- "every Monday at noon" -> {"cron": "0 12 * * 1", "summary": "Weekly on Monday at noon"}`;
+
+      const result = await providerInstance.complete({
+        model: { model, maxTokens: 256, temperature: 0.3 },
+        messages: [
+          {
+            role: 'system' as const,
+            content: 'You are a cron expression expert. Respond with ONLY JSON.',
+          },
+          { role: 'user' as const, content: NL_CRON_PROMPT },
+        ],
+      });
+
+      if (!result.ok || !result.value.content) {
+        return { success: false, error: 'AI failed to parse schedule' };
+      }
+
+      let responseText = result.value.content.trim();
+      const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) responseText = jsonMatch[1]!;
+
+      let parsed: { cron?: string; summary?: string };
+      try {
+        parsed = JSON.parse(responseText);
+      } catch {
+        return { success: false, error: 'Invalid AI response format' };
+      }
+
+      if (!parsed.cron) {
+        return { success: false, error: 'AI did not return cron expression' };
+      }
+
+      const cronValidation = validateCronExpression(parsed.cron);
+      if (!cronValidation.valid) {
+        return { success: false, error: `Invalid cron from AI: ${cronValidation.error}` };
+      }
+
+      const trigger = await service.createTrigger(userId, {
+        name: (args.name as string) ?? parsed.summary ?? description.substring(0, 50),
+        description: parsed.summary ?? description,
+        type: 'schedule',
+        config: { cron: parsed.cron },
+        action: {
+          type: (args.action_type as 'notification') ?? 'notification',
+          payload: (args.action_payload as Record<string, unknown>) ?? {
+            message: `Trigger: ${description}`,
+          },
+        },
+        enabled: true,
+        priority: ((args.priority as number) ?? 5) as number,
+      });
+
+      wsGateway.broadcast('data:changed', { entity: 'trigger', action: 'created', id: trigger.id });
+
+      return {
+        success: true,
+        result: {
+          id: trigger.id,
+          name: trigger.name,
+          cron: parsed.cron,
+          summary: parsed.summary,
+          nextFire: trigger.nextFire?.toISOString() ?? null,
+          message: `Trigger "${trigger.name}" created with cron "${parsed.cron}"`,
+        },
+      };
     }
 
     default:

@@ -132,6 +132,64 @@ export const DEFAULT_TRIGGERS: CreateTriggerInput[] = [
     priority: 6,
     enabled: false,
   },
+
+  // Profile learning — dialectic user-modeling loop (off by default; opt-in)
+  {
+    name: 'Learn User Profile',
+    description:
+      'Review recent conversations and update the personal profile with inferred facts (flagged ai_inferred, never overwriting user-stated data).',
+    type: 'schedule',
+    config: {
+      cron: '13 3 * * *', // 3:13 AM daily — quiet hour, off the :00 mark
+      timezone: 'local',
+    },
+    action: {
+      type: 'profile_learn',
+      payload: {
+        conversations: 5,
+      },
+    },
+    priority: 3,
+    enabled: false,
+  },
+
+  // Memory extraction — distill recent conversations into long-term memories (opt-in)
+  {
+    name: 'Extract Memories',
+    description:
+      'Review recent conversations and store durable facts/preferences/events as long-term memories (deduplicated against existing).',
+    type: 'schedule',
+    config: {
+      cron: '23 2 * * *', // 2:23 AM daily — quiet hour, off the :00 mark
+      timezone: 'local',
+    },
+    action: {
+      type: 'memory_extract',
+      payload: {
+        conversations: 5,
+      },
+    },
+    priority: 3,
+    enabled: false,
+  },
+
+  // Memory consolidation — merge near-duplicate memories + decay/cleanup (opt-in)
+  {
+    name: 'Consolidate Memory',
+    description:
+      'Merge semantically-duplicate memories into single entries, then decay and clean up stale low-importance memories.',
+    type: 'schedule',
+    config: {
+      cron: '37 4 * * 0', // Sunday 4:37 AM — weekly, off the :00 mark
+      timezone: 'local',
+    },
+    action: {
+      type: 'memory_consolidate',
+      payload: {},
+    },
+    priority: 2,
+    enabled: false,
+  },
 ];
 
 // ============================================================================

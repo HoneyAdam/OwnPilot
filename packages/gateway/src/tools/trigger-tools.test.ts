@@ -61,8 +61,8 @@ describe('Trigger Tools', () => {
   // ========================================================================
 
   describe('TRIGGER_TOOLS', () => {
-    it('exports 6 tool definitions', () => {
-      expect(TRIGGER_TOOLS).toHaveLength(6);
+    it('exports 7 tool definitions', () => {
+      expect(TRIGGER_TOOLS).toHaveLength(7);
     });
 
     it('all tools have required fields', () => {

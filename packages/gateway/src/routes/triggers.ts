@@ -437,3 +437,189 @@ triggersRoutes.post('/engine/stop', (c) => {
     message: 'Trigger engine stopped.',
   });
 });
+
+// ============================================================================
+// Natural Language Cron
+// ============================================================================
+
+/**
+ * POST /triggers/from-natural-language - Create a schedule trigger from NL description
+ */
+triggersRoutes.post('/from-natural-language', async (c) => {
+  const userId = getUserId(c);
+  const rawBody = (await parseJsonBody<Record<string, unknown>>(c)) ?? {};
+
+  if (
+    !rawBody.description ||
+    typeof rawBody.description !== 'string' ||
+    rawBody.description.trim().length === 0
+  ) {
+    return apiError(
+      c,
+      { code: ERROR_CODES.VALIDATION_ERROR, message: 'description field is required' },
+      400
+    );
+  }
+
+  const { resolveDefaultProviderAndModel, getApiKey } = await import('../routes/settings.js');
+  const { localProvidersRepo } = await import('../db/repositories/index.js');
+  const { createProvider, getProviderConfig } = await import('@ownpilot/core');
+  type AIProvider = 'openai' | 'anthropic' | 'google' | 'openai-compatible';
+
+  const NATIVE_PROVIDERS = new Set([
+    'openai',
+    'anthropic',
+    'google',
+    'deepseek',
+    'groq',
+    'mistral',
+    'xai',
+    'together',
+    'fireworks',
+    'perplexity',
+  ]);
+
+  const description = rawBody.description.trim();
+  const actionType = rawBody.action_type ?? 'notification';
+  const actionPayload = rawBody.action_payload ?? { message: `Trigger: ${description}` };
+  const name = rawBody.name ?? description.substring(0, 50);
+  const priority = rawBody.priority ?? 5;
+
+  // Resolve provider
+  const { provider, model } = await resolveDefaultProviderAndModel('default', 'default');
+  if (!provider || !model) {
+    return apiError(
+      c,
+      { code: ERROR_CODES.INVALID_REQUEST, message: 'No AI provider configured' },
+      400
+    );
+  }
+
+  const localProv = await localProvidersRepo.getProvider(provider);
+  const apiKey = localProv ? localProv.apiKey || 'local-no-key' : await getApiKey(provider);
+  if (!apiKey) {
+    return apiError(
+      c,
+      { code: ERROR_CODES.INVALID_REQUEST, message: `API key not configured for: ${provider}` },
+      400
+    );
+  }
+
+  const providerConfig = getProviderConfig(provider);
+  const providerType = NATIVE_PROVIDERS.has(provider) ? provider : 'openai';
+  const providerInstance = createProvider({
+    id: provider,
+    provider: providerType as AIProvider,
+    apiKey,
+    baseUrl: providerConfig?.baseUrl,
+    headers: providerConfig?.headers,
+  });
+
+  const NL_CRON_PROMPT = `Convert this natural language schedule description into a valid cron expression.
+
+Input: "${description}"
+
+You MUST respond with ONLY a valid JSON object (no markdown, no explanation):
+{"cron": "valid 5-field cron expression", "summary": "one sentence what this schedule does"}
+
+Cron format: minute hour day month weekday
+- minute: 0-59, hour: 0-23, day: 1-31, month: 1-12, weekday: 0-6 (0=Sunday)
+- Use * for any, */n for every n, n-m for range, n,m for list
+- Common patterns: "0 8 * * *" (daily 8AM), "0 9 * * 1-5" (weekdays 9AM), "*/15 * * * *" (every 15min), "0 20 * * *" (daily 8PM)
+
+Examples:
+- "every day at 9am" -> {"cron": "0 9 * * *", "summary": "Daily at 9am"}
+- "weekday mornings" -> {"cron": "0 8 * * 1-5", "summary": "Weekday mornings at 8am"}
+- "every hour" -> {"cron": "0 * * * *", "summary": "Hourly"}
+- "every Monday at noon" -> {"cron": "0 12 * * 1", "summary": "Weekly on Monday at noon"}
+- "every 30 minutes" -> {"cron": "*/30 * * * *", "summary": "Every 30 minutes"}`;
+
+  try {
+    const result = await providerInstance.complete({
+      model: { model, maxTokens: 256, temperature: 0.3 },
+      messages: [
+        {
+          role: 'system' as const,
+          content: 'You are a cron expression expert. Respond with ONLY JSON.',
+        },
+        { role: 'user' as const, content: NL_CRON_PROMPT },
+      ],
+    });
+
+    if (!result.ok || !result.value.content) {
+      return apiError(
+        c,
+        { code: ERROR_CODES.EXECUTION_ERROR, message: 'AI failed to parse schedule' },
+        500
+      );
+    }
+
+    let responseText = result.value.content.trim();
+    // Strip code blocks
+    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) responseText = jsonMatch[1]!;
+
+    let parsed: { cron?: string; summary?: string };
+    try {
+      parsed = JSON.parse(responseText);
+    } catch {
+      return apiError(
+        c,
+        { code: ERROR_CODES.EXECUTION_ERROR, message: 'Invalid AI response format' },
+        500
+      );
+    }
+
+    if (!parsed.cron) {
+      return apiError(
+        c,
+        { code: ERROR_CODES.EXECUTION_ERROR, message: 'AI did not return cron expression' },
+        500
+      );
+    }
+
+    const cronValidation = validateCronExpression(parsed.cron);
+    if (!cronValidation.valid) {
+      return apiError(
+        c,
+        {
+          code: ERROR_CODES.INVALID_CRON,
+          message: `Invalid cron from AI: ${cronValidation.error}`,
+        },
+        400
+      );
+    }
+
+    const { validateBody, createTriggerSchema } = await import('../middleware/validation.js');
+    const triggerInput = validateBody(createTriggerSchema, {
+      name,
+      description: parsed.summary ?? description,
+      type: 'schedule',
+      config: { cron: parsed.cron },
+      action_type: actionType,
+      action_payload: actionPayload,
+      enabled: true,
+      priority,
+    }) as unknown as CreateTriggerInput;
+
+    const service = getTriggerService();
+    const trigger = await service.createTrigger(userId, triggerInput);
+
+    wsGateway.broadcast('data:changed', { entity: 'trigger', action: 'created', id: trigger.id });
+
+    return apiResponse(c, {
+      trigger,
+      cron: parsed.cron,
+      summary: parsed.summary,
+    });
+  } catch (error) {
+    return apiError(
+      c,
+      {
+        code: ERROR_CODES.EXECUTION_ERROR,
+        message: getErrorMessage(error, 'Failed to create trigger'),
+      },
+      500
+    );
+  }
+});

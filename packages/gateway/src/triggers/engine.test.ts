@@ -21,6 +21,7 @@ const mockTriggerService = {
   getByEventType: vi.fn(async () => []),
   getConditionTriggers: vi.fn(async () => []),
   getTrigger: vi.fn(),
+  getHistoryForTrigger: vi.fn(async () => ({ history: [], total: 0 })),
   logExecution: vi.fn(async () => {}),
   markFired: vi.fn(async () => {}),
 };
@@ -528,6 +529,150 @@ describe('TriggerEngine', () => {
       // The trigger is manual so it doesn't auto-calculate next fire,
       // but logExecution should still be called
       expect(mockTriggerService.logExecution).toHaveBeenCalled();
+    });
+  });
+
+  // ========================================================================
+  // Zero-token pre-run gating
+  // ========================================================================
+
+  describe('pre-run gating (no-agent mode)', () => {
+    it('skips the action when pre-run returns wakeAgent:false', async () => {
+      const trigger = makeTrigger({
+        action: {
+          type: 'notification',
+          payload: { message: 'should not send' },
+          preRun: { code: 'return { wakeAgent: false, output: "no change" };' },
+        },
+      });
+      mockTriggerService.getTrigger.mockResolvedValue(trigger);
+
+      const result = await engine.fireTrigger('trigger-1');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Skipped by pre-run gate');
+      expect((result.data as { skipped?: boolean })?.skipped).toBe(true);
+      // logged as 'skipped', not 'success'
+      expect(mockTriggerService.logExecution).toHaveBeenCalledWith(
+        'default',
+        'trigger-1',
+        'Test Trigger',
+        'skipped',
+        expect.anything(),
+        undefined,
+        expect.any(Number)
+      );
+    });
+
+    it('runs the action and merges context when pre-run wakes the agent', async () => {
+      let received: Record<string, unknown> | null = null;
+      engine.setChatHandler(async (_msg, payload) => {
+        received = payload;
+        return 'ok';
+      });
+
+      const trigger = makeTrigger({
+        action: {
+          type: 'chat',
+          payload: { prompt: 'hi' },
+          preRun: { code: 'return { wakeAgent: true, context: { foo: "bar" } };' },
+        },
+      });
+      mockTriggerService.getTrigger.mockResolvedValue(trigger);
+
+      const result = await engine.fireTrigger('trigger-1');
+
+      expect(result.success).toBe(true);
+      expect(received).not.toBeNull();
+      expect((received as unknown as Record<string, unknown>).preRunContext).toEqual({
+        foo: 'bar',
+      });
+    });
+
+    it('delivers pre-run output to a channel in no-agent mode', async () => {
+      mockHasTool.mockResolvedValue(true);
+      const trigger = makeTrigger({
+        action: {
+          type: 'notification',
+          payload: { message: 'x', channel: 'telegram', chat_id: '123' },
+          noAgentMode: true,
+          preRun: { code: 'return { wakeAgent: true, output: "daily digest" };' },
+        },
+      });
+      mockTriggerService.getTrigger.mockResolvedValue(trigger);
+
+      const result = await engine.fireTrigger('trigger-1');
+
+      expect(result.success).toBe(true);
+      expect((result.data as { skipped?: boolean })?.skipped).toBe(true);
+      expect(mockExecuteTool).toHaveBeenCalledWith(
+        'send_channel_message',
+        expect.objectContaining({ channel: 'telegram', chat_id: '123', text: 'daily digest' }),
+        'default',
+        expect.any(Object),
+        expect.objectContaining({ source: 'trigger' })
+      );
+    });
+
+    it('fails the trigger when the pre-run script throws', async () => {
+      const trigger = makeTrigger({
+        action: {
+          type: 'notification',
+          payload: {},
+          preRun: { code: 'throw new Error("boom");' },
+        },
+      });
+      mockTriggerService.getTrigger.mockResolvedValue(trigger);
+
+      const result = await engine.fireTrigger('trigger-1');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Pre-run script failed');
+    });
+  });
+
+  // ========================================================================
+  // Job chaining (context_from)
+  // ========================================================================
+
+  describe('job chaining (context_from)', () => {
+    it('injects the upstream trigger result into the payload', async () => {
+      let received: Record<string, unknown> | null = null;
+      engine.setChatHandler(async (_msg, payload) => {
+        received = payload;
+        return 'ok';
+      });
+      mockTriggerService.getHistoryForTrigger.mockResolvedValue({
+        history: [{ result: { summary: 'upstream output' } }],
+        total: 1,
+      });
+
+      const trigger = makeTrigger({
+        action: { type: 'chat', payload: { prompt: 'use it' }, contextFrom: 'trigger-up' },
+      });
+      mockTriggerService.getTrigger.mockResolvedValue(trigger);
+
+      await engine.fireTrigger('trigger-1');
+
+      expect(mockTriggerService.getHistoryForTrigger).toHaveBeenCalledWith(
+        'default',
+        'trigger-up',
+        expect.objectContaining({ status: 'success', limit: 1 })
+      );
+      expect((received as unknown as Record<string, unknown>).chainedContext).toEqual({
+        summary: 'upstream output',
+      });
+    });
+
+    it('does not chain from itself (self-reference guard)', async () => {
+      const trigger = makeTrigger({
+        action: { type: 'notification', payload: {}, contextFrom: 'trigger-1' },
+      });
+      mockTriggerService.getTrigger.mockResolvedValue(trigger);
+
+      await engine.fireTrigger('trigger-1');
+
+      expect(mockTriggerService.getHistoryForTrigger).not.toHaveBeenCalled();
     });
   });
 

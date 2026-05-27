@@ -11,9 +11,27 @@ export interface TriggerConfig {
   [key: string]: unknown;
 }
 
+export interface TriggerPreRun {
+  code: string;
+  timeoutMs?: number;
+}
+
 export interface TriggerAction {
-  type: 'chat' | 'tool' | 'notification' | 'goal_check' | 'memory_summary' | 'workflow';
+  type:
+    | 'chat'
+    | 'tool'
+    | 'notification'
+    | 'goal_check'
+    | 'memory_summary'
+    | 'workflow'
+    | 'profile_learn';
   payload: Record<string, unknown>;
+  /** Pre-run gating script for zero-token / no-agent mode. */
+  preRun?: TriggerPreRun;
+  /** When true, deliver pre-run output verbatim and never run the main action. */
+  noAgentMode?: boolean;
+  /** Chain input: inject the most recent successful result of this trigger id. */
+  contextFrom?: string;
 }
 
 export interface Trigger {

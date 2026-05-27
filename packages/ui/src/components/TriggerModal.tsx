@@ -97,6 +97,21 @@ export function TriggerModal({ trigger, onClose, onSave }: TriggerModalProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Advanced: zero-token gating + job chaining
+  const [showAdvanced, setShowAdvanced] = useState(
+    Boolean(trigger?.action.preRun || trigger?.action.contextFrom || trigger?.action.noAgentMode)
+  );
+  const [preRunEnabled, setPreRunEnabled] = useState(Boolean(trigger?.action.preRun));
+  const [preRunCode, setPreRunCode] = useState(
+    trigger?.action.preRun?.code ??
+      '// Runs before the action. __context__.data = { trigger, payload }.\n' +
+        '// Return { wakeAgent: false } to skip the agent (no tokens spent).\n' +
+        '// Optionally return { output, context }.\nreturn { wakeAgent: true };'
+  );
+  const [noAgentMode, setNoAgentMode] = useState(Boolean(trigger?.action.noAgentMode));
+  const [contextFrom, setContextFrom] = useState(trigger?.action.contextFrom ?? '');
+  const [allTriggers, setAllTriggers] = useState<Trigger[]>([]);
+
   // Fetch workflows when action type is 'workflow'
   useEffect(() => {
     if (actionType === 'workflow') {
@@ -106,6 +121,14 @@ export function TriggerModal({ trigger, onClose, onSave }: TriggerModalProps) {
         .catch(silentCatch('triggerModal.workflows'));
     }
   }, [actionType]);
+
+  // Fetch triggers for the "chain from" dropdown
+  useEffect(() => {
+    triggersApi
+      .list()
+      .then((res) => setAllTriggers(res.triggers ?? []))
+      .catch(silentCatch('triggerModal.triggers'));
+  }, []);
 
   // Cron validation
   const cronValidation = type === 'schedule' ? validateCron(cron) : { valid: true };
@@ -164,15 +187,22 @@ export function TriggerModal({ trigger, onClose, onSave }: TriggerModalProps) {
         }
       }
 
+      const action: TriggerAction = {
+        type: actionType,
+        payload,
+      };
+      if (preRunEnabled && preRunCode.trim()) {
+        action.preRun = { code: preRunCode };
+        if (noAgentMode) action.noAgentMode = true;
+      }
+      if (contextFrom) action.contextFrom = contextFrom;
+
       const body = {
         name: name.trim(),
         description: description.trim() || undefined,
         type,
         config,
-        action: {
-          type: actionType,
-          payload,
-        },
+        action,
         enabled: trigger?.enabled ?? true,
       };
 
@@ -382,6 +412,7 @@ export function TriggerModal({ trigger, onClose, onSave }: TriggerModalProps) {
                 <option value="notification">Send Notification</option>
                 <option value="goal_check">Check Goals</option>
                 <option value="memory_summary">Memory Summary</option>
+                <option value="profile_learn">Learn User Profile</option>
               </select>
             </div>
 
@@ -437,6 +468,80 @@ export function TriggerModal({ trigger, onClose, onSave }: TriggerModalProps) {
                 />
               </div>
             )}
+
+            <div className="pt-2 border-t border-border dark:border-dark-border">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                className="text-sm font-medium text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-colors"
+              >
+                {showAdvanced ? '▾' : '▸'} Advanced — gating &amp; chaining
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-3 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">
+                      Chain from (optional)
+                    </label>
+                    <select
+                      value={contextFrom}
+                      onChange={(e) => setContextFrom(e.target.value)}
+                      className="w-full px-3 py-2 bg-bg-tertiary dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg text-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="">None</option>
+                      {allTriggers
+                        .filter((t) => t.id !== trigger?.id)
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                    </select>
+                    <p className="mt-1 text-xs text-text-muted dark:text-dark-text-muted">
+                      Injects the selected trigger's last successful result as{' '}
+                      <code>payload.chainedContext</code>.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-text-secondary dark:text-dark-text-secondary">
+                      <input
+                        type="checkbox"
+                        checked={preRunEnabled}
+                        onChange={(e) => setPreRunEnabled(e.target.checked)}
+                      />
+                      Pre-run gating script (zero-token)
+                    </label>
+                    {preRunEnabled && (
+                      <div className="mt-2 space-y-2">
+                        <textarea
+                          value={preRunCode}
+                          onChange={(e) => setPreRunCode(e.target.value)}
+                          rows={6}
+                          className="w-full px-3 py-2 bg-bg-tertiary dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg text-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono text-xs"
+                        />
+                        <p className="text-xs text-text-muted dark:text-dark-text-muted">
+                          Runs in a sandbox before the action. Return{' '}
+                          <code>{'{ wakeAgent: false }'}</code> to skip the agent and spend no
+                          tokens. <code>__context__.data</code> ={' '}
+                          <code>{'{ trigger, payload }'}</code>.
+                        </p>
+                        <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-dark-text-secondary">
+                          <input
+                            type="checkbox"
+                            checked={noAgentMode}
+                            onChange={(e) => setNoAgentMode(e.target.checked)}
+                          />
+                          No-agent mode — always skip the action; deliver the script's{' '}
+                          <code>output</code> verbatim
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="p-4 border-t border-border dark:border-dark-border">

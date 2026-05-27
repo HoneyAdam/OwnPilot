@@ -40,9 +40,37 @@ export interface WebhookConfig {
 
 export type TriggerConfig = ScheduleConfig | EventConfig | ConditionConfig | WebhookConfig;
 
+/**
+ * Optional pre-run script for zero-token gating ("no-agent mode").
+ * Runs in an isolated JS sandbox before the action. The script body may
+ * `return { wakeAgent, output?, context? }`:
+ *   - `wakeAgent === false` skips the LLM/tool action entirely (optionally
+ *     delivering `output` verbatim) — no tokens spent when state is unchanged.
+ *   - otherwise `context` is merged into the action payload.
+ */
+export interface TriggerPreRun {
+  readonly code: string;
+  readonly timeoutMs?: number;
+}
+
 export interface TriggerAction {
-  readonly type: 'chat' | 'tool' | 'notification' | 'goal_check' | 'memory_summary' | 'workflow';
+  readonly type:
+    | 'chat'
+    | 'tool'
+    | 'notification'
+    | 'goal_check'
+    | 'memory_summary'
+    | 'workflow'
+    | 'profile_learn'
+    | 'memory_extract'
+    | 'memory_consolidate';
   readonly payload: Record<string, unknown>;
+  /** Pre-run gating script — see TriggerPreRun. */
+  readonly preRun?: TriggerPreRun;
+  /** When true, deliver pre-run output verbatim and never run the main action. */
+  readonly noAgentMode?: boolean;
+  /** Chain input: inject the most recent successful result of this trigger id. */
+  readonly contextFrom?: string;
 }
 
 export interface Trigger {
