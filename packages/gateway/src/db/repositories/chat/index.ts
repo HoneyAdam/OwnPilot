@@ -614,6 +614,46 @@ export class ChatRepository extends BaseRepository {
       lastMessageAt: row.last_message_at ? new Date(row.last_message_at) : undefined,
     }));
   }
+
+  // =====================================================
+  // FULL-TEXT SEARCH
+  // =====================================================
+
+  /**
+   * Full-text search across conversations using PostgreSQL tsvector/tsquery.
+   * Searches title, agent_name, and metadata fields.
+   * Returns conversations ranked by relevance score.
+   */
+  async searchConversations(
+    query: string,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<Array<Conversation & { ftsRank: number }>> {
+    const limit = options.limit ?? 50;
+    const offset = options.offset ?? 0;
+
+    const sql = `
+      SELECT *,
+        ts_rank_cd(search_vector, websearch_to_tsquery('english', $1)) AS fts_rank
+      FROM conversations
+      WHERE user_id = $2
+        AND search_vector IS NOT NULL
+        AND search_vector @@ websearch_to_tsquery('english', $1)
+      ORDER BY fts_rank DESC
+      LIMIT $3 OFFSET $4
+    `;
+
+    const rows = await this.query<ConversationRow & { fts_rank: number }>(sql, [
+      query,
+      this.userId,
+      limit,
+      offset,
+    ]);
+
+    return rows.map((row) => ({
+      ...rowToConversation(row),
+      ftsRank: Number(row.fts_rank),
+    }));
+  }
 }
 
 // Factory function

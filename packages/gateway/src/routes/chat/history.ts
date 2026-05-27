@@ -1011,3 +1011,59 @@ chatHistoryRoutes.post('/compact', async (c) => {
     return apiError(c, { code: ERROR_CODES.INTERNAL_ERROR, message: getErrorMessage(err) }, 500);
   }
 });
+
+// =====================================================
+// CONVERSATION SEARCH
+// =====================================================
+
+/**
+ * Full-text search across conversation history.
+ * Uses PostgreSQL tsvector/tsquery for natural language search.
+ */
+chatHistoryRoutes.post('/search', async (c) => {
+  const userId = getUserId(c);
+  const body = await parseJsonBody<{ query: string; limit?: number; offset?: number }>(c);
+
+  if (!body?.query?.trim()) {
+    return apiError(c, { code: ERROR_CODES.INVALID_INPUT, message: 'query is required' }, 400);
+  }
+
+  try {
+    const limit = Math.min(body.limit ?? 50, 100);
+    const offset = body.offset ?? 0;
+    const chatRepo = new ChatRepository(userId);
+
+    const results = await chatRepo.searchConversations(body.query.trim(), { limit, offset });
+
+    return apiResponse(c, {
+      conversations: results.map((conv) => ({
+        id: conv.id,
+        title: conv.title,
+        agentId: conv.agentId,
+        agentName: conv.agentName,
+        provider: conv.provider,
+        model: conv.model,
+        messageCount: conv.messageCount,
+        isArchived: conv.isArchived,
+        createdAt: conv.createdAt.toISOString(),
+        updatedAt: conv.updatedAt.toISOString(),
+        source: conv.metadata?.source === 'channel' ? 'channel' : 'web',
+        ftsRank: conv.ftsRank,
+      })),
+      total: results.length,
+      query: body.query.trim(),
+      limit,
+      offset,
+    });
+  } catch (error) {
+    log.error('Conversation search failed', { error: getErrorMessage(error) });
+    return apiError(
+      c,
+      {
+        code: ERROR_CODES.EXECUTION_ERROR,
+        message: getErrorMessage(error, 'Search failed'),
+      },
+      500
+    );
+  }
+});
