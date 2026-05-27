@@ -168,6 +168,42 @@ describe('FallbackProvider', () => {
       expect(primary.complete).toHaveBeenCalledTimes(1);
       expect(fallback.complete).toHaveBeenCalledTimes(1);
     });
+
+    it('swaps the request model to the fallback config defaultModel on failover', async () => {
+      const primary = makeMockProvider('openai');
+      const fallback = makeMockProvider('anthropic');
+      mockCreateProvider
+        .mockImplementationOnce(() => primary)
+        .mockImplementationOnce(() => fallback);
+
+      const provider = new FallbackProvider({
+        primary: primaryConfig,
+        fallbacks: [{ ...fallbackConfig1, defaultModel: { model: 'claude-sonnet-4-6' } }],
+      });
+
+      primary.complete.mockResolvedValue(err(new InternalError('fail')));
+      const req = { messages: [{ role: 'user', content: 'hi' }], model: { model: 'gpt-4o' } };
+      await provider.complete(req as Record<string, unknown>);
+
+      // Primary saw the original model; fallback saw the swapped model.
+      expect(primary.complete).toHaveBeenCalledWith(
+        expect.objectContaining({ model: { model: 'gpt-4o' } })
+      );
+      expect(fallback.complete).toHaveBeenCalledWith(
+        expect.objectContaining({ model: { model: 'claude-sonnet-4-6' } })
+      );
+    });
+
+    it('leaves the request model unchanged for fallbacks without a defaultModel', async () => {
+      const { provider, primary, fallback } = createTestProvider();
+      primary.complete.mockResolvedValue(err(new InternalError('fail')));
+      const req = { messages: [{ role: 'user', content: 'hi' }], model: { model: 'gpt-4o' } };
+      await provider.complete(req as Record<string, unknown>);
+      // No defaultModel on the fallback → request model passes through untouched.
+      expect(fallback.complete).toHaveBeenCalledWith(
+        expect.objectContaining({ model: { model: 'gpt-4o' } })
+      );
+    });
   });
 
   // -------------------------------------------------------------------------

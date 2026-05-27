@@ -20,6 +20,7 @@ import {
   calculateCost,
   type IProvider,
   createProvider,
+  createFallbackProvider,
   type ProviderConfig,
 } from '@ownpilot/core';
 import type { AIProvider, ToolCall, ToolId, Message } from '@ownpilot/core';
@@ -153,6 +154,9 @@ export interface CreateAgentOptions {
   maxToolCalls?: number;
   temperature?: number;
   toolFilter?: ToolId[];
+  /** Optional backup provider/model for failover (resolved via LLM routing). */
+  fallbackProvider?: string;
+  fallbackModel?: string;
 }
 
 /**
@@ -187,7 +191,43 @@ export async function createConfiguredAgent(opts: CreateAgentOptions): Promise<A
     baseUrl: providerConfig?.baseUrl,
     headers: providerConfig?.headers,
   };
-  const providerInstance = createProvider(agentProviderConfig);
+
+  // Provider failover for autonomous runs: a long-running claw/heartbeat
+  // shouldn't die on a transient primary outage. If a backup provider/model is
+  // configured, wrap in a FallbackProvider (the fallback's defaultModel is
+  // honored on failover). The compaction summarizer inherits failover too,
+  // since it shares this provider instance.
+  let providerInstance: IProvider = createProvider(agentProviderConfig);
+  if (opts.fallbackProvider && opts.fallbackModel) {
+    try {
+      const fbApiKey = await getProviderApiKey(opts.fallbackProvider);
+      if (fbApiKey) {
+        const fbConfig = loadProviderConfig(opts.fallbackProvider);
+        const fbType = NATIVE_PROVIDERS.has(opts.fallbackProvider)
+          ? opts.fallbackProvider
+          : 'openai';
+        providerInstance = createFallbackProvider({
+          primary: agentProviderConfig,
+          fallbacks: [
+            {
+              provider: fbType as AIProvider,
+              apiKey: fbApiKey,
+              baseUrl: fbConfig?.baseUrl,
+              headers: fbConfig?.headers,
+              defaultModel: { model: opts.fallbackModel },
+            },
+          ],
+          onFallback: (failed, error, next) => {
+            log.warn(
+              `[${opts.name}] Provider fallback: ${String(failed)} -> ${String(next)}: ${error.message}`
+            );
+          },
+        });
+      }
+    } catch (fbErr) {
+      log.warn(`[${opts.name}] Failed to build fallback provider: ${getErrorMessage(fbErr)}`);
+    }
+  }
 
   // Compute a model-aware memory cap and output buffer so autonomous runners
   // (claws, etc.) stay inside the model's context window

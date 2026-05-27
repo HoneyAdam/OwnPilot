@@ -104,7 +104,7 @@ export class ClawRunner {
     const startTime = Date.now();
     const cycleNumber = session.cyclesCompleted + 1;
 
-    const { provider, model } = await this.runtime.llm.pick({
+    const { provider, model, fallbackProvider, fallbackModel } = await this.runtime.llm.pick({
       explicitProvider: this.config.provider,
       explicitModel: this.config.model,
       process: 'pulse',
@@ -120,7 +120,7 @@ export class ClawRunner {
     try {
       // Reuse cached agent if provider/model unchanged, otherwise create and cache
       if (!this.agent || this.cachedProvider !== provider || this.cachedModel !== model) {
-        const newAgent = await this.createAgent(provider, model);
+        const newAgent = await this.createAgent(provider, model, fallbackProvider, fallbackModel);
         this.agent = newAgent;
         this.cachedProvider = provider;
         this.cachedModel = model;
@@ -202,7 +202,12 @@ export class ClawRunner {
     }
   }
 
-  private async createAgent(provider: string, model: string) {
+  private async createAgent(
+    provider: string,
+    model: string,
+    fallbackProvider?: string,
+    fallbackModel?: string
+  ) {
     const userId = this.config.userId;
     const conversationId = `claw-${this.config.id}`;
 
@@ -245,6 +250,8 @@ export class ClawRunner {
       maxTurns: this.config.limits.maxTurnsPerCycle,
       maxToolCalls: this.config.limits.maxToolCallsPerCycle,
       toolFilter,
+      fallbackProvider,
+      fallbackModel,
     });
   }
 

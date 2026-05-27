@@ -64,6 +64,8 @@ export class FallbackProvider implements IProvider {
   private readonly primary: IProvider;
   private readonly fallbacks: IProvider[];
   private readonly config: FallbackProviderConfig;
+  /** Provider configs in invocation order: [primary, ...fallbacks]. */
+  private readonly orderedConfigs: ProviderConfig[];
   private currentProviderIndex: number = 0;
   private readonly circuits = new Map<string, CircuitBreakerEntry>();
   private readonly failureThreshold: number;
@@ -78,8 +80,24 @@ export class FallbackProvider implements IProvider {
     this.primary = createProvider(config.primary);
     this.type = config.primary.provider;
     this.fallbacks = config.fallbacks.map((fc) => createProvider(fc));
+    this.orderedConfigs = [config.primary, ...config.fallbacks];
     this.failureThreshold = config.circuitBreakerThreshold ?? CIRCUIT_FAILURE_THRESHOLD;
     this.cooldownMs = config.circuitBreakerCooldown ?? CIRCUIT_COOLDOWN_MS;
+  }
+
+  /**
+   * Build the request for the provider at `index`. A fallback whose config
+   * carries a `defaultModel` gets the request's model swapped to it, because
+   * the incoming request carries the PRIMARY model string which is usually
+   * invalid on a different fallback provider. The primary (index 0) and any
+   * provider without a defaultModel use the request's model unchanged — so
+   * existing callers that don't set a fallback model keep their behavior.
+   */
+  private requestForProvider(request: CompletionRequest, index: number): CompletionRequest {
+    if (index === 0) return request;
+    const fallbackModel = this.orderedConfigs[index]?.defaultModel;
+    if (!fallbackModel) return request;
+    return { ...request, model: fallbackModel };
   }
 
   // ── Circuit Breaker ─────────────────────────────────────────────
@@ -159,7 +177,12 @@ export class FallbackProvider implements IProvider {
   async complete(
     request: CompletionRequest
   ): Promise<Result<CompletionResponse, InternalError | TimeoutError | ValidationError>> {
-    const providers = this.getAllProviders().filter((p) => p.isReady());
+    // Keep each provider's ORIGINAL index (into orderedConfigs) through the
+    // readiness filter, so the per-fallback model swap maps to the right config
+    // even when some providers are filtered out.
+    const providers = this.getAllProviders()
+      .map((provider, origIndex) => ({ provider, origIndex }))
+      .filter((e) => e.provider.isReady());
 
     if (providers.length === 0) {
       return err(new ValidationError('No providers are configured or ready'));
@@ -173,8 +196,9 @@ export class FallbackProvider implements IProvider {
     let lastError: InternalError | TimeoutError | ValidationError | null = null;
 
     for (let i = 0; i < providers.length; i++) {
-      const provider = providers[i];
-      if (!provider) continue;
+      const entry = providers[i];
+      if (!entry) continue;
+      const provider = entry.provider;
 
       // Circuit breaker: skip providers whose circuit is open
       if (this.isCircuitOpen(provider)) {
@@ -187,7 +211,7 @@ export class FallbackProvider implements IProvider {
       try {
         log.info(`Trying provider ${i + 1}/${providers.length}: ${provider.type}`);
 
-        const result = await provider.complete(request);
+        const result = await provider.complete(this.requestForProvider(request, entry.origIndex));
 
         if (result.ok) {
           this.recordSuccess(provider);
@@ -207,7 +231,7 @@ export class FallbackProvider implements IProvider {
 
         // Check if we should try next provider
         if (i < providers.length - 1 && this.shouldFallback(result.error)) {
-          const nextProvider = providers[i + 1];
+          const nextProvider = providers[i + 1]?.provider;
           if (nextProvider) {
             log.info(`Switching to next provider: ${nextProvider.type}`);
 
@@ -238,7 +262,9 @@ export class FallbackProvider implements IProvider {
   async *stream(
     request: CompletionRequest
   ): AsyncGenerator<Result<StreamChunk, InternalError>, void, unknown> {
-    const providers = this.getAllProviders().filter((p) => p.isReady());
+    const providers = this.getAllProviders()
+      .map((provider, origIndex) => ({ provider, origIndex }))
+      .filter((e) => e.provider.isReady());
 
     if (providers.length === 0) {
       yield err(new InternalError('No providers are configured or ready'));
@@ -252,8 +278,9 @@ export class FallbackProvider implements IProvider {
     }
 
     for (let i = 0; i < providers.length; i++) {
-      const provider = providers[i];
-      if (!provider) continue;
+      const entry = providers[i];
+      if (!entry) continue;
+      const provider = entry.provider;
 
       // Circuit breaker: skip providers whose circuit is open
       if (this.isCircuitOpen(provider)) {
@@ -270,7 +297,7 @@ export class FallbackProvider implements IProvider {
         let hasError = false;
         let lastError: InternalError | null = null;
 
-        const generator = provider.stream(request);
+        const generator = provider.stream(this.requestForProvider(request, entry.origIndex));
 
         for await (const result of generator) {
           if (!result.ok) {
@@ -311,7 +338,7 @@ export class FallbackProvider implements IProvider {
           }
 
           if (i < providers.length - 1 && this.shouldFallback(lastError)) {
-            const nextProvider = providers[i + 1];
+            const nextProvider = providers[i + 1]?.provider;
             if (nextProvider) {
               log.info(`Stream: Switching to next provider: ${nextProvider.type}`);
 

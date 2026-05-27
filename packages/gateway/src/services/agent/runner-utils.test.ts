@@ -466,6 +466,36 @@ describe('agent-runner-utils', () => {
       expect(opts).toMatchObject({ threshold: 0.75, keepRecent: 6 });
     });
 
+    it('resolves the fallback provider key when fallback options are given', async () => {
+      await createConfiguredAgent({
+        name: 'TestAgent',
+        provider: 'openai',
+        model: 'gpt-4',
+        systemPrompt: 'You are a test agent.',
+        userId: 'user-1',
+        conversationId: 'conv-1',
+        fallbackProvider: 'anthropic',
+        fallbackModel: 'claude-sonnet-4-6',
+      });
+
+      // Primary + fallback keys both resolved → fallback path exercised.
+      expect(mockGetProviderApiKey).toHaveBeenCalledWith('openai');
+      expect(mockGetProviderApiKey).toHaveBeenCalledWith('anthropic');
+    });
+
+    it('does not resolve a fallback key when no fallback is configured', async () => {
+      await createConfiguredAgent({
+        name: 'TestAgent',
+        provider: 'openai',
+        model: 'gpt-4',
+        systemPrompt: 'You are a test agent.',
+        userId: 'user-1',
+        conversationId: 'conv-1',
+      });
+
+      expect(mockGetProviderApiKey).not.toHaveBeenCalledWith('anthropic');
+    });
+
     it('throws when API key not found', async () => {
       mockGetProviderApiKey.mockResolvedValueOnce(null);
 
