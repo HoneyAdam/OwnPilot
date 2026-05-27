@@ -30,6 +30,7 @@ import {
 } from './trigger-manager.js';
 import { getAllScanDirectories, scanSingleDirectory, type ScanResult } from './scanner.js';
 import { isWithinDirectory } from '../../utils/file-safety.js';
+import { evaluateExtensionGate, describeGateFailure, type ExtensionGateResult } from './gate.js';
 
 const log = getLog('ExtService');
 
@@ -67,6 +68,41 @@ export interface ToolDefinitionForRegistry {
 // =============================================================================
 
 export class ExtensionService implements IExtensionService {
+  /** Cache of host-gate results, keyed by `id@version` (requirements are static per build). */
+  #gateCache = new Map<string, ExtensionGateResult>();
+
+  // --------------------------------------------------------------------------
+  // Host gate (OS / binaries / env requirements)
+  // --------------------------------------------------------------------------
+
+  #evaluateGate(pkg: ExtensionRecord): ExtensionGateResult {
+    const key = `${pkg.id}@${pkg.manifest.version}`;
+    const cached = this.#gateCache.get(key);
+    if (cached) return cached;
+    const result = evaluateExtensionGate(pkg.manifest.requirements);
+    this.#gateCache.set(key, result);
+    if (!result.ok) {
+      log.info('Extension gated out — host requirements unmet', {
+        id: pkg.id,
+        reason: describeGateFailure(result),
+      });
+    }
+    return result;
+  }
+
+  /** Enabled extensions whose host requirements are satisfied on this machine. */
+  #getActiveEnabled(): ExtensionRecord[] {
+    return extensionsRepo.getEnabled().filter((pkg) => this.#evaluateGate(pkg).ok);
+  }
+
+  /** Gate status for every installed extension (for management UI / API). */
+  getGateStatus(): Array<{ id: string; ok: boolean; missing: ExtensionGateResult['missing'] }> {
+    return extensionsRepo.getAll().map((pkg) => {
+      const result = this.#evaluateGate(pkg);
+      return { id: pkg.id, ok: result.ok, missing: result.missing };
+    });
+  }
+
   // --------------------------------------------------------------------------
   // Install
   // --------------------------------------------------------------------------
@@ -426,7 +462,7 @@ export class ExtensionService implements IExtensionService {
   // --------------------------------------------------------------------------
 
   getToolDefinitions(): ToolDefinitionForRegistry[] {
-    const enabled = extensionsRepo.getEnabled();
+    const enabled = this.#getActiveEnabled();
     const defs: ToolDefinitionForRegistry[] = [];
 
     for (const pkg of enabled) {
@@ -525,7 +561,7 @@ export class ExtensionService implements IExtensionService {
   // --------------------------------------------------------------------------
 
   getSystemPromptSections(): string[] {
-    const enabled = extensionsRepo.getEnabled();
+    const enabled = this.#getActiveEnabled();
     return enabled.map((pkg) => this.#buildPromptSection(pkg)).filter(Boolean) as string[];
   }
 
@@ -583,7 +619,7 @@ export class ExtensionService implements IExtensionService {
     toolNames: string[];
     keywords?: string[];
   }> {
-    const enabled = extensionsRepo.getEnabled();
+    const enabled = this.#getActiveEnabled();
     return enabled.map((pkg) => ({
       id: pkg.id,
       name: pkg.manifest.name,
@@ -600,6 +636,8 @@ export class ExtensionService implements IExtensionService {
   // --------------------------------------------------------------------------
 
   async reload(id: string, userId = 'default'): Promise<ExtensionRecord | null> {
+    // Drop cached gate results so changed requirements are re-evaluated.
+    this.#gateCache.clear();
     const record = extensionsRepo.getById(id);
     if (!record || record.userId !== userId) return null;
     if (!record.sourcePath) {

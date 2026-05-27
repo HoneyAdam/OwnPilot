@@ -63,6 +63,13 @@ export interface ExtensionManifest {
   permissions?: SkillPermissionSet;
   /** Runtime sandbox configuration */
   runtime?: ExtensionRuntime;
+  /**
+   * Host gate: the extension's tools and prompt are inactive unless all of
+   * these are satisfied on the current machine. Lets a skill that shells out
+   * to `ffmpeg`, needs `OPENAI_API_KEY`, or only runs on macOS stay dormant
+   * elsewhere instead of failing at call time.
+   */
+  requirements?: ExtensionRequirements;
   /** npm package name (if installed from npm registry) */
   npm_package?: string;
   /** npm version (if installed from npm registry) */
@@ -80,6 +87,16 @@ export interface ExtensionManifest {
 
 /** Manifest format: 'ownpilot' = native tool bundles, 'agentskills' = open standard (SKILL.md) */
 export type ExtensionFormat = 'ownpilot' | 'agentskills';
+
+/** Host requirements that gate whether an extension is active on this machine. */
+export interface ExtensionRequirements {
+  /** Allowed platforms (node `process.platform` values). Empty/undefined = any. */
+  os?: Array<'darwin' | 'linux' | 'win32' | 'freebsd' | 'openbsd' | 'aix' | 'sunos'>;
+  /** Executables that must be on PATH (e.g. "ffmpeg", "git"). */
+  binaries?: string[];
+  /** Environment variables that must be set and non-empty. */
+  env?: string[];
+}
 
 // =============================================================================
 // Skill Permissions (Phase 6: Skills Platform)

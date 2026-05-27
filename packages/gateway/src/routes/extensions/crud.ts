@@ -88,6 +88,17 @@ crudRoutes.get('/', async (c) => {
 });
 
 /**
+ * GET /gate-status - Host-gate status for installed extensions.
+ * Reports which extensions are active vs gated out (unmet OS/binary/env
+ * requirements on this machine) and why.
+ */
+crudRoutes.get('/gate-status', async (c) => {
+  const service = getExtService();
+  const status = service.getGateStatus();
+  return apiResponse(c, { gates: status, total: status.length });
+});
+
+/**
  * POST / - Install from inline manifest
  */
 crudRoutes.post('/', async (c) => {

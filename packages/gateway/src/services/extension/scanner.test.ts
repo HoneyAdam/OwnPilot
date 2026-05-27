@@ -24,6 +24,8 @@ const {
   getWorkspaceSkillsDirectory,
   getAllScanDirectories,
   scanSingleDirectory,
+  orderScanCandidates,
+  SKILL_TIER_RANK,
 } = await import('./scanner.js');
 
 beforeEach(() => {
@@ -52,6 +54,34 @@ describe('path resolution', () => {
     // All bundled dirs return null since existsSync returns false
     // Only non-null dirs are the data dirs (which don't check existsSync)
     expect(Array.isArray(dirs)).toBe(true);
+  });
+});
+
+describe('precedence ordering', () => {
+  it('ranks tiers bundled < managed < personal < project < workspace', () => {
+    expect(SKILL_TIER_RANK.bundled).toBeLessThan(SKILL_TIER_RANK.managed);
+    expect(SKILL_TIER_RANK.managed).toBeLessThan(SKILL_TIER_RANK.personal);
+    expect(SKILL_TIER_RANK.personal).toBeLessThan(SKILL_TIER_RANK.project);
+    expect(SKILL_TIER_RANK.project).toBeLessThan(SKILL_TIER_RANK.workspace);
+  });
+
+  it('orders candidates low → high precedence and drops nulls', () => {
+    const ordered = orderScanCandidates([
+      { dir: '/ws', tier: 'workspace' },
+      { dir: null, tier: 'project' },
+      { dir: '/bundled', tier: 'bundled' },
+      { dir: '/personal', tier: 'personal' },
+      { dir: '/managed', tier: 'managed' },
+    ]);
+    expect(ordered.map((d) => d.dir)).toEqual(['/bundled', '/managed', '/personal', '/ws']);
+  });
+
+  it('puts the highest-precedence (workspace) directory last so it wins last-write', () => {
+    const ordered = orderScanCandidates([
+      { dir: '/bundled', tier: 'bundled' },
+      { dir: '/ws', tier: 'workspace' },
+    ]);
+    expect(ordered[ordered.length - 1]!.tier).toBe('workspace');
   });
 });
 

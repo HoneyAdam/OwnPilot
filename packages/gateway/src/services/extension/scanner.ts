@@ -57,15 +57,67 @@ function getBundledExampleSkillsDirectory(): string | null {
   }
 }
 
-/** Get all directories to scan (bundled + data + workspace). */
+// ============================================================================
+// Precedence Tiers
+// ============================================================================
+
+/**
+ * Skill source tiers, in ascending precedence. When the same extension id is
+ * found in multiple tiers, the higher tier wins (it is installed last, and the
+ * scan uses last-wins upsert). Mirrors OpenClaw's precedence chain:
+ *   bundled < managed < personal < workspace
+ * (`project` reserved for a future repo-local tier).
+ */
+export type SkillTier = 'bundled' | 'managed' | 'personal' | 'project' | 'workspace';
+
+/** Higher number = higher precedence (wins on duplicate id). */
+export const SKILL_TIER_RANK: Record<SkillTier, number> = {
+  bundled: 0,
+  managed: 1,
+  personal: 2,
+  project: 3,
+  workspace: 4,
+};
+
+export interface ScanDirectory {
+  dir: string;
+  tier: SkillTier;
+}
+
+/**
+ * Order tier-tagged candidates from lowest to highest precedence and drop
+ * unresolved (null) directories. Pure — exported for testing.
+ */
+export function orderScanCandidates(
+  candidates: Array<{ dir: string | null; tier: SkillTier }>
+): ScanDirectory[] {
+  return candidates
+    .filter((c): c is ScanDirectory => c.dir !== null)
+    .sort((a, b) => SKILL_TIER_RANK[a.tier] - SKILL_TIER_RANK[b.tier]);
+}
+
+/**
+ * Get all scan directories tagged with their precedence tier, ordered low →
+ * high so that scanning in order makes the highest-precedence source win on
+ * duplicate ids.
+ */
+export function getScanDirectories(): ScanDirectory[] {
+  return orderScanCandidates([
+    { dir: getBundledDefaultExtensionsDirectory(), tier: 'bundled' },
+    { dir: getBundledExampleSkillsDirectory(), tier: 'bundled' },
+    { dir: getDefaultExtensionsDirectory(), tier: 'managed' },
+    { dir: getDefaultSkillsDirectory(), tier: 'personal' },
+    { dir: getWorkspaceSkillsDirectory(), tier: 'workspace' },
+  ]);
+}
+
+/**
+ * Get all directories to scan, ordered from lowest to highest precedence.
+ * Scanning in this order means a workspace skill overrides a personal one,
+ * which overrides a managed one, which overrides a bundled one.
+ */
 export function getAllScanDirectories(): string[] {
-  return [
-    getBundledDefaultExtensionsDirectory(),
-    getDefaultExtensionsDirectory(),
-    getDefaultSkillsDirectory(),
-    getWorkspaceSkillsDirectory(),
-    getBundledExampleSkillsDirectory(),
-  ].filter((d): d is string => d !== null);
+  return getScanDirectories().map((d) => d.dir);
 }
 
 // ============================================================================
