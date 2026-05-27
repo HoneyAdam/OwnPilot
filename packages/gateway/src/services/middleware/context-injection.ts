@@ -19,6 +19,8 @@ import {
   type IExtensionService,
   debugLog,
   getTimeContext,
+  getMemoryService,
+  hasMemoryService,
 } from '@ownpilot/core';
 import { buildEnhancedSystemPrompt } from '../../assistant/index.js';
 import { getErrorMessage } from '../../utils/common.js';
@@ -53,6 +55,51 @@ export function clearInjectionCache(userId?: string): void {
   }
 }
 
+/** Min user-message length before we bother with relevance recall. */
+const RELEVANT_RECALL_MIN_CHARS = 8;
+/** Max query-relevant memories injected per message. */
+const RELEVANT_RECALL_LIMIT = 5;
+
+/**
+ * Build a DYNAMIC (uncached) section of memories relevant to the current user
+ * message via hybrid (vector + FTS) search. Complements the static
+ * importance-ranked memories in the cached orchestrator block: this surfaces
+ * the *right* memory for *this* message. Returns '' on any miss/error so chat
+ * never breaks. `alreadyInjected` is the static block text, used to avoid
+ * repeating memories that are already present.
+ */
+async function buildRelevantMemorySection(
+  userId: string,
+  messageText: string,
+  alreadyInjected: string
+): Promise<string> {
+  const text = messageText.trim();
+  if (text.length < RELEVANT_RECALL_MIN_CHARS) return '';
+  if (!hasMemoryService()) return '';
+
+  try {
+    const hits = await getMemoryService().hybridSearch(userId, text, {
+      limit: RELEVANT_RECALL_LIMIT,
+    });
+    if (hits.length === 0) return '';
+
+    const lines: string[] = [];
+    for (const m of hits) {
+      const content = m.content.trim();
+      if (!content) continue;
+      // Skip memories already present in the static importance block.
+      if (alreadyInjected.includes(content)) continue;
+      lines.push(`- ${content}`);
+    }
+    if (lines.length === 0) return '';
+
+    return '\n\n---\n\n## Relevant to this message (from memory)\n' + lines.join('\n');
+  } catch (err) {
+    log.debug('Relevant memory recall failed (non-fatal)', String(err));
+    return '';
+  }
+}
+
 /**
  * Create middleware that injects memories/goals and relevant extension sections
  * into the agent's system prompt.
@@ -60,7 +107,7 @@ export function clearInjectionCache(userId?: string): void {
  * Expects `ctx.get('agent')` to be set by the route handler before processing.
  */
 export function createContextInjectionMiddleware(): MessageMiddleware {
-  return async (_message, ctx, next) => {
+  return async (message, ctx, next) => {
     const agent = ctx.get<{
       getConversation(): { systemPrompt?: string };
       updateSystemPrompt(p: string): void;
@@ -128,6 +175,15 @@ export function createContextInjectionMiddleware(): MessageMiddleware {
           log.info(`Injected ${stats.memoriesUsed} memories, ${stats.goalsUsed} goals`);
         }
       }
+
+      // 3b. Build query-relevant memory section (per-request, DYNAMIC/uncached).
+      // Complements the static importance-ranked memories with memories relevant
+      // to *this* message via hybrid search.
+      const relevantMemorySuffix = await buildRelevantMemorySection(
+        userId,
+        message.content ?? '',
+        orchestratorSuffix
+      );
 
       // 4. Build tool suggestion and data hint sections (per-request)
       const routing = ctx.get<RequestRouting>('routing');
@@ -202,6 +258,7 @@ export function createContextInjectionMiddleware(): MessageMiddleware {
                 // Dynamic (uncached) block: fresh time + code/file sections + routing
                 freshTimeContext +
                 afterTimeContext +
+                relevantMemorySuffix +
                 pageContextSuffix +
                 toolSuggestionSuffix +
                 dataHintSuffix +
@@ -214,6 +271,7 @@ export function createContextInjectionMiddleware(): MessageMiddleware {
             extensionSuffix +
             skillsSuffix +
             orchestratorSuffix +
+            relevantMemorySuffix +
             pageContextSuffix +
             toolSuggestionSuffix +
             dataHintSuffix +
@@ -230,6 +288,7 @@ export function createContextInjectionMiddleware(): MessageMiddleware {
         { name: 'extensions', content: extensionSuffix },
         { name: 'soul_skills', content: skillsSuffix },
         { name: 'orchestrator [static]', content: orchestratorSuffix },
+        { name: 'relevant_memory [dynamic]', content: relevantMemorySuffix },
         { name: 'page_context', content: pageContextSuffix },
         { name: 'tool_suggestions', content: toolSuggestionSuffix },
         { name: 'data_hints', content: dataHintSuffix },
@@ -417,6 +476,8 @@ function stripInjectedSections(prompt: string): string {
     '\n\n## Available Data',
     // Request focus (from request-preprocessor)
     '\n---\n## Request Focus',
+    // Query-relevant memory section (dynamic, per-message)
+    '\n\n---\n\n## Relevant to this message (from memory)',
     // Orchestrator sections (from buildEnhancedSystemPrompt)
     '\n---\n## User Context (from memory)',
     '\n---\n## Active Goals',

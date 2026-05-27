@@ -162,6 +162,51 @@ export async function executeMemoryTool(
         };
       }
 
+      case 'recall_memory': {
+        const { query, limit: rawLimit = 8 } = params as { query: string; limit?: number };
+        if (!query) {
+          return { success: false, error: 'query is required' };
+        }
+        const limit = Math.max(1, Math.min(30, rawLimit));
+
+        // Build a one-shot, tool-less completion fn for summarization.
+        const { resolveProviderAndModel, createConfiguredAgent } =
+          await import('../services/agent/runner-utils.js');
+        const complete = async (prompt: string): Promise<string> => {
+          const { provider, model } = await resolveProviderAndModel(
+            undefined,
+            undefined,
+            'pulse',
+            'recall_memory'
+          );
+          const agent = await createConfiguredAgent({
+            name: 'memory-recall',
+            provider,
+            model,
+            systemPrompt: 'You answer strictly from the supplied memories. Be concise.',
+            userId,
+            conversationId: `recall-${Date.now()}`,
+            toolFilter: [],
+            maxTurns: 1,
+            temperature: 0,
+          });
+          const res = await agent.chat(prompt);
+          if (!res.ok) throw new Error(getErrorMessage(res.error));
+          return res.value.content;
+        };
+
+        const { getMemoryEngine } = await import('../services/memory/engine.js');
+        const recall = await getMemoryEngine().recall(userId, query, complete, limit);
+
+        return {
+          success: true,
+          result: {
+            summary: recall.summary,
+            sources: recall.sources.map((s) => ({ id: s.id, content: truncate(s.content) })),
+          },
+        };
+      }
+
       case 'delete_memory': {
         const { memoryId } = params as { memoryId: string };
 

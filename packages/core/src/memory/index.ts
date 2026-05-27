@@ -98,3 +98,37 @@ export {
   createPersonalMemoryStore,
   getPersonalMemoryStore,
 } from './personal.js';
+
+// =============================================================================
+// Re-export Profile Learning (dialectic user-modeling loop)
+// =============================================================================
+
+export {
+  type ExtractedFact,
+  type ProfileLearnResult,
+  type CompleteFn,
+  INFERABLE_CATEGORIES,
+  MAX_FACTS_PER_PASS,
+  buildProfileExtractionPrompt,
+  parseExtractedFacts,
+  applyExtractedFacts,
+  learnProfileFromText,
+} from './profile-learning.js';
+
+// =============================================================================
+// Re-export Memory Distillation (memory engine: extract / consolidate / recall)
+// =============================================================================
+
+export {
+  type MemoryCandidate,
+  type ExtractableMemoryType,
+  EXTRACTABLE_MEMORY_TYPES,
+  MAX_MEMORIES_PER_PASS,
+  MAX_MEMORY_CONTENT_CHARS,
+  buildMemoryExtractionPrompt,
+  parseMemoryCandidates,
+  buildConsolidationPrompt,
+  parseConsolidation,
+  buildRecallSummaryPrompt,
+  cosineSimilarity,
+} from './memory-distillation.js';

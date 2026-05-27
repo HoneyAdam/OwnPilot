@@ -144,8 +144,8 @@ describe('Gateway Tool Definitions', () => {
   // ========================================================================
 
   describe('tool counts', () => {
-    it('MEMORY_TOOLS has 7 tools', () => {
-      expect(MEMORY_TOOLS).toHaveLength(7);
+    it('MEMORY_TOOLS has 8 tools', () => {
+      expect(MEMORY_TOOLS).toHaveLength(8);
     });
 
     it('GOAL_TOOLS has 8 tools', () => {

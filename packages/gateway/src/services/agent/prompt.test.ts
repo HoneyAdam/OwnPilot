@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BASE_SYSTEM_PROMPT } from './prompt.js';
+import { BASE_SYSTEM_PROMPT, CLI_SYSTEM_PROMPT } from './prompt.js';
 
 describe('agent-prompt', () => {
   // ---------------------------------------------------------------------------
@@ -10,13 +10,17 @@ describe('agent-prompt', () => {
       expect(typeof BASE_SYSTEM_PROMPT).toBe('string');
     });
 
+    it('exports CLI_SYSTEM_PROMPT as a string', () => {
+      expect(typeof CLI_SYSTEM_PROMPT).toBe('string');
+    });
+
     it('BASE_SYSTEM_PROMPT is not empty', () => {
       expect(BASE_SYSTEM_PROMPT.length).toBeGreaterThan(0);
     });
 
-    it('BASE_SYSTEM_PROMPT is a non-trivial length', () => {
-      // The prompt is ~100 lines; it should be well over 1000 characters
-      expect(BASE_SYSTEM_PROMPT.length).toBeGreaterThan(1000);
+    it('BASE_SYSTEM_PROMPT is a reasonable length (~85 lines)', () => {
+      expect(BASE_SYSTEM_PROMPT.length).toBeGreaterThan(2000);
+      expect(BASE_SYSTEM_PROMPT.length).toBeLessThan(6000);
     });
   });
 
@@ -32,296 +36,88 @@ describe('agent-prompt', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('privacy-first');
     });
 
-    it('contains "personal AI assistant" role', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('personal AI assistant');
-    });
-
-    it('contains "local" data locality', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('local');
-    });
-
     it('starts with "You are OwnPilot"', () => {
       expect(BASE_SYSTEM_PROMPT.startsWith('You are OwnPilot')).toBe(true);
     });
+
+    it('instructs not to claim to be Claude/ChatGPT/Gemini', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('not Claude, ChatGPT, or Gemini');
+    });
   });
 
   // ---------------------------------------------------------------------------
-  // Structure — ## Headings
+  // Core Sections
   // ---------------------------------------------------------------------------
-  describe('structure — major headings', () => {
-    it('contains "## How to Call Tools"', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('## How to Call Tools');
+  describe('core sections', () => {
+    it('contains "## Identity" section', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('## Identity');
     });
 
-    it('contains "## Capabilities & Key Tools"', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('## Capabilities & Key Tools');
+    it('contains "## Decision Rules" section', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('## Decision Rules');
     });
 
-    it('contains "## Memory Protocol"', () => {
+    it('contains "## Tool Calling" section', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('## Tool Calling');
+    });
+
+    it('contains "## Proactive Rules" section', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('## Proactive Rules');
+    });
+
+    it('contains "## Memory Protocol" section', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('## Memory Protocol');
     });
 
-    it('contains "## Behavior"', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('## Behavior');
+    it('contains "## Output Rules" section', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('## Output Rules');
     });
 
-    it('contains "## Chat Widgets"', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('## Chat Widgets');
-    });
-
-    it('contains "## Suggestions"', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('## Suggestions');
-    });
-
-    it('has exactly 7 level-2 headings', () => {
-      const h2Matches = BASE_SYSTEM_PROMPT.match(/^## /gm);
-      expect(h2Matches).not.toBeNull();
-      expect(h2Matches!.length).toBe(7);
+    it('contains "## End Every Response With" section for suggestions', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('## End Every Response With');
     });
   });
 
   // ---------------------------------------------------------------------------
-  // Sub-section headings (### level)
+  // Tool Calling
   // ---------------------------------------------------------------------------
-  describe('sub-section headings', () => {
-    const expectedSubsections = [
-      'Personal Data',
-      'Custom Database',
-      'Custom Tools',
-      'Memory & Goals',
-      'File System',
-      'Automation',
-      'Web & Research',
-      'Code Execution',
-      'Media',
-      'Email',
-      'Utilities',
-      'Configuration & Extensions',
-    ];
-
-    for (const heading of expectedSubsections) {
-      it(`contains "### ${heading}"`, () => {
-        expect(BASE_SYSTEM_PROMPT).toContain(`### ${heading}`);
-      });
-    }
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — meta-tools
-  // ---------------------------------------------------------------------------
-  describe('meta-tools', () => {
-    const metaTools = ['search_tools', 'get_tool_help', 'use_tool', 'batch_use_tool'];
-
-    for (const tool of metaTools) {
-      it(`documents meta-tool: ${tool}`, () => {
-        expect(BASE_SYSTEM_PROMPT).toContain(tool);
-      });
-    }
-
-    it('lists all 4 meta-tools in the How to Call Tools section', () => {
-      const section = BASE_SYSTEM_PROMPT.split('## How to Call Tools')[1]!.split('\n##')[0]!;
-      for (const tool of metaTools) {
-        expect(section).toContain(tool);
-      }
+  describe('tool calling', () => {
+    it('documents use_tool with namespace format', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('use_tool("namespace.tool_name"');
     });
-  });
 
-  // ---------------------------------------------------------------------------
-  // Namespace prefixes
-  // ---------------------------------------------------------------------------
-  describe('namespace prefixes', () => {
-    it('contains core.* namespace', () => {
+    it('documents batch_use_tool', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('batch_use_tool');
+    });
+
+    it('documents _reason field requirement', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('_reason');
+    });
+
+    it('documents namespace prefixes', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('core.*');
-    });
-
-    it('contains custom.* namespace', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('custom.*');
-    });
-
-    it('contains plugin. namespace prefix', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('plugin.');
-    });
-
-    it('contains ext. namespace prefix', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('ext.');
-    });
-
-    it('contains mcp. namespace prefix', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('mcp.');
     });
   });
 
   // ---------------------------------------------------------------------------
-  // Tool Documentation — Personal Data tools
+  // Proactive Rules
   // ---------------------------------------------------------------------------
-  describe('personal data tools', () => {
-    it('contains task tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('add_task');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_tasks');
-      expect(BASE_SYSTEM_PROMPT).toContain('complete_task');
+  describe('proactive rules', () => {
+    it('contains table format for proactive mappings', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('| User says | You do |');
+      expect(BASE_SYSTEM_PROMPT).toContain('remind me...');
     });
 
-    it('contains note tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('add_note');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_notes');
+    it('mentions create_task for reminders', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Create task');
     });
 
-    it('contains calendar tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('add_calendar_event');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_calendar_events');
-    });
-
-    it('contains contact tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('add_contact');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_contacts');
-    });
-
-    it('contains bookmark tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('add_bookmark');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_bookmarks');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Custom Database tools
-  // ---------------------------------------------------------------------------
-  describe('custom database tools', () => {
-    it('contains create_custom_table', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('create_custom_table');
-    });
-
-    it('contains list_custom_records', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('list_custom_records');
-    });
-
-    it('contains search_custom_records', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('search_custom_records');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Memory & Goals tools
-  // ---------------------------------------------------------------------------
-  describe('memory & goals tools', () => {
-    it('contains memory tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('create_memory');
-      expect(BASE_SYSTEM_PROMPT).toContain('search_memories');
-    });
-
-    it('contains goal tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('create_goal');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_goals');
-      expect(BASE_SYSTEM_PROMPT).toContain('decompose_goal');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — File System tools
-  // ---------------------------------------------------------------------------
-  describe('file system tools', () => {
-    it('contains read_file and write_file', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('read_file');
-      expect(BASE_SYSTEM_PROMPT).toContain('write_file');
-    });
-
-    it('contains list_files', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('list_files');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Automation tools
-  // ---------------------------------------------------------------------------
-  describe('automation tools', () => {
-    it('contains trigger tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('create_trigger');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_triggers');
-    });
-
-    it('contains plan tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('create_plan');
-      expect(BASE_SYSTEM_PROMPT).toContain('execute_plan');
-    });
-
-    it('contains heartbeat tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('create_heartbeat');
-      expect(BASE_SYSTEM_PROMPT).toContain('list_heartbeats');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Web & Research tools
-  // ---------------------------------------------------------------------------
-  describe('web & research tools', () => {
-    it('contains search_web', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('search_web');
-    });
-
-    it('contains fetch_web_page', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('fetch_web_page');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Code Execution tools
-  // ---------------------------------------------------------------------------
-  describe('code execution tools', () => {
-    it('contains execute_javascript', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('execute_javascript');
-    });
-
-    it('contains execute_python', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('execute_python');
-    });
-
-    it('contains execute_shell', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('execute_shell');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Media tools
-  // ---------------------------------------------------------------------------
-  describe('media tools', () => {
-    it('contains image tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('analyze_image');
-      expect(BASE_SYSTEM_PROMPT).toContain('generate_image');
-    });
-
-    it('contains audio tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('text_to_speech');
-    });
-
-    it('contains pdf tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('read_pdf');
-      expect(BASE_SYSTEM_PROMPT).toContain('create_pdf');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Email tools
-  // ---------------------------------------------------------------------------
-  describe('email tools', () => {
-    it('contains send_email', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('send_email');
-    });
-
-    it('contains list_emails', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('list_emails');
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Tool Documentation — Configuration & Extensions
-  // ---------------------------------------------------------------------------
-  describe('configuration & extensions tools', () => {
-    it('contains config_list_services', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('config_list_services');
-    });
-
-    it('contains extension tools', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('list_extensions');
-      expect(BASE_SYSTEM_PROMPT).toContain('toggle_extension');
+    it('mentions habits for habit tracking', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('habits');
     });
   });
 
@@ -334,101 +130,137 @@ describe('agent-prompt', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('</memories>');
     });
 
-    it('contains memory types: fact, preference, conversation, event, skill', () => {
-      const memorySection = BASE_SYSTEM_PROMPT.split('## Memory Protocol')[1]!.split('\n##')[0]!;
-      expect(memorySection).toContain('fact');
-      expect(memorySection).toContain('preference');
-      expect(memorySection).toContain('conversation');
-      expect(memorySection).toContain('event');
-      expect(memorySection).toContain('skill');
-    });
-
-    it('contains "search_memories" instruction', () => {
-      const memorySection = BASE_SYSTEM_PROMPT.split('## Memory Protocol')[1]!.split('\n##')[0]!;
-      expect(memorySection).toContain('search_memories');
+    it('contains memory types', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('fact');
+      expect(BASE_SYSTEM_PROMPT).toContain('preference');
+      expect(BASE_SYSTEM_PROMPT).toContain('conversation');
     });
 
     it('instructs to search memories before answering personal questions', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('search_memories` before answering personal questions');
+      expect(BASE_SYSTEM_PROMPT).toContain('search_memories');
     });
   });
 
   // ---------------------------------------------------------------------------
-  // Behavior
+  // Output Rules
   // ---------------------------------------------------------------------------
-  describe('behavior section', () => {
-    it('contains "Concise"', () => {
-      const behaviorSection = BASE_SYSTEM_PROMPT.split('## Behavior')[1]!.split('\n##')[0]!;
-      expect(behaviorSection).toContain('Concise');
+  describe('output rules', () => {
+    it('instructs to be concise', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Concise');
     });
 
-    it('contains "Proactive"', () => {
-      const behaviorSection = BASE_SYSTEM_PROMPT.split('## Behavior')[1]!.split('\n##')[0]!;
-      expect(behaviorSection).toContain('Proactive');
+    it('instructs to use friendly names instead of tool identifiers', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Friendly names');
+      expect(BASE_SYSTEM_PROMPT).toContain('Say "email tool" not "core.send_email"');
     });
 
-    it('instructs to retry on tool error', () => {
-      const behaviorSection = BASE_SYSTEM_PROMPT.split('## Behavior')[1]!.split('\n##')[0]!;
-      expect(behaviorSection).toContain('retry');
-    });
-
-    it('instructs to summarize results after tool operations', () => {
-      const behaviorSection = BASE_SYSTEM_PROMPT.split('## Behavior')[1]!.split('\n##')[0]!;
-      expect(behaviorSection).toContain('summarize results');
-    });
-
-    it('instructs never to expose internal tool names to user', () => {
-      const behaviorSection = BASE_SYSTEM_PROMPT.split('## Behavior')[1]!.split('\n##')[0]!;
-      expect(behaviorSection).toContain('Never expose internal tool names');
-      expect(behaviorSection).toContain('friendly display name');
+    it('instructs to retry on errors', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('On errors');
+      expect(BASE_SYSTEM_PROMPT).toContain('retry');
     });
   });
 
   // ---------------------------------------------------------------------------
   // Chat Widgets
   // ---------------------------------------------------------------------------
-  describe('chat widgets section', () => {
-    it('documents widget tag format and supported widgets', () => {
-      const widgetsSection = BASE_SYSTEM_PROMPT.split('## Chat Widgets')[1]!.split('\n##')[0]!;
-      expect(widgetsSection).toContain('<widget');
-      expect(widgetsSection).toContain('metric_grid');
-      expect(widgetsSection).toContain('table');
-      expect(widgetsSection).toContain('key_value');
-      expect(widgetsSection).toContain('cards');
-      expect(widgetsSection).toContain('steps');
-      expect(widgetsSection).toContain('bar_chart');
-      expect(widgetsSection).toContain('timeline');
-      expect(widgetsSection).toContain('valid JSON');
+  describe('chat widgets', () => {
+    it('documents widget tag format', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('<widget');
+    });
+
+    it('lists supported widget types', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('metric_grid');
+      expect(BASE_SYSTEM_PROMPT).toContain('table');
+      expect(BASE_SYSTEM_PROMPT).toContain('key_value');
+      expect(BASE_SYSTEM_PROMPT).toContain('cards');
     });
   });
 
   // ---------------------------------------------------------------------------
   // Suggestions
   // ---------------------------------------------------------------------------
-  describe('suggestions section', () => {
+  describe('suggestions', () => {
     it('contains <suggestions> tag format', () => {
       expect(BASE_SYSTEM_PROMPT).toContain('<suggestions>');
       expect(BASE_SYSTEM_PROMPT).toContain('</suggestions>');
     });
 
-    it('specifies 2-3 follow-ups', () => {
-      const suggestionsSection = BASE_SYSTEM_PROMPT.split('## Suggestions')[1]!;
-      expect(suggestionsSection).toContain('2-3');
+    it('specifies max 3 suggestions', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Max 3');
     });
 
-    it('specifies max character guidance for title', () => {
-      const suggestionsSection = BASE_SYSTEM_PROMPT.split('## Suggestions')[1]!;
-      expect(suggestionsSection).toContain('40ch');
+    it('marks suggestions as required', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('This is required');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Tool Categories
+  // ---------------------------------------------------------------------------
+  describe('tool categories', () => {
+    it('mentions Personal tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Personal');
     });
 
-    it('specifies max character guidance for detail', () => {
-      const suggestionsSection = BASE_SYSTEM_PROMPT.split('## Suggestions')[1]!;
-      expect(suggestionsSection).toContain('200ch');
+    it('mentions Data tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Data');
     });
 
-    it('specifies max 5 suggestions', () => {
-      const suggestionsSection = BASE_SYSTEM_PROMPT.split('## Suggestions')[1]!;
-      expect(suggestionsSection).toContain('max 5');
+    it('mentions Files tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Files');
+    });
+
+    it('mentions Automation tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Automation');
+    });
+
+    it('mentions Memory tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Memory');
+    });
+
+    it('mentions Goals tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Goals');
+    });
+
+    it('mentions Web tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Web');
+    });
+
+    it('mentions Claw tools', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('Claw');
+    });
+
+    it('mentions search_tools for discovery', () => {
+      expect(BASE_SYSTEM_PROMPT).toContain('search_tools');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // CLI System Prompt
+  // ---------------------------------------------------------------------------
+  describe('CLI_SYSTEM_PROMPT', () => {
+    it('establishes OwnPilot identity', () => {
+      expect(CLI_SYSTEM_PROMPT).toContain('OwnPilot');
+    });
+
+    it('is different from BASE_SYSTEM_PROMPT', () => {
+      expect(CLI_SYSTEM_PROMPT).not.toBe(BASE_SYSTEM_PROMPT);
+    });
+
+    it('contains tool calling documentation', () => {
+      expect(CLI_SYSTEM_PROMPT).toContain('use_tool');
+    });
+
+    it('contains proactive rules', () => {
+      expect(CLI_SYSTEM_PROMPT).toContain('Proactive');
+    });
+
+    it('contains memory protocol', () => {
+      expect(CLI_SYSTEM_PROMPT).toContain('Memory Protocol');
+    });
+
+    it('contains suggestions', () => {
+      expect(CLI_SYSTEM_PROMPT).toContain('suggestions');
     });
   });
 
@@ -436,9 +268,9 @@ describe('agent-prompt', () => {
   // Structural integrity
   // ---------------------------------------------------------------------------
   describe('structural integrity', () => {
-    it('ends with suggestion format guidance (last line mentions "max 5")', () => {
+    it('ends with suggestions section', () => {
       const lastLine = BASE_SYSTEM_PROMPT.trim().split('\n').pop()!;
-      expect(lastLine).toContain('max 5');
+      expect(lastLine).toContain('actionable');
     });
 
     it('has no unclosed backtick code blocks', () => {
@@ -458,40 +290,8 @@ describe('agent-prompt', () => {
       expect(opens).toBe(closes);
     });
 
-    it('section order: identity → tools → capabilities → memory → behavior → suggestions', () => {
-      const identityIdx = BASE_SYSTEM_PROMPT.indexOf('You are OwnPilot');
-      const toolsIdx = BASE_SYSTEM_PROMPT.indexOf('## How to Call Tools');
-      const capabilitiesIdx = BASE_SYSTEM_PROMPT.indexOf('## Capabilities & Key Tools');
-      const memoryIdx = BASE_SYSTEM_PROMPT.indexOf('## Memory Protocol');
-      const behaviorIdx = BASE_SYSTEM_PROMPT.indexOf('## Behavior');
-      const widgetsIdx = BASE_SYSTEM_PROMPT.indexOf('## Chat Widgets');
-      const suggestionsIdx = BASE_SYSTEM_PROMPT.indexOf('## Suggestions');
-
-      expect(identityIdx).toBeLessThan(toolsIdx);
-      expect(toolsIdx).toBeLessThan(capabilitiesIdx);
-      expect(capabilitiesIdx).toBeLessThan(memoryIdx);
-      expect(memoryIdx).toBeLessThan(behaviorIdx);
-      expect(behaviorIdx).toBeLessThan(widgetsIdx);
-      expect(widgetsIdx).toBeLessThan(suggestionsIdx);
-      expect(behaviorIdx).toBeLessThan(suggestionsIdx);
-    });
-
     it('does not contain tab characters (uses spaces)', () => {
       expect(BASE_SYSTEM_PROMPT).not.toContain('\t');
-    });
-
-    it('uses PostgreSQL as the data store reference', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('PostgreSQL');
-    });
-
-    it('capabilities section references core namespace for listed tools', () => {
-      const section = BASE_SYSTEM_PROMPT.split('## Capabilities & Key Tools')[1]!.split('\n##')[0]!;
-      expect(section).toContain('core');
-      expect(section).toContain('core.<tool_name>');
-    });
-
-    it('instructs never to fabricate data', () => {
-      expect(BASE_SYSTEM_PROMPT).toContain('never fabricate data');
     });
   });
 });

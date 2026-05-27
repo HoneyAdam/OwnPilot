@@ -9,13 +9,30 @@ import type { NormalizedMessage, MessageProcessingResult, PipelineContext } from
 // Mocks — vi.hoisted() ensures these are available when vi.mock factories run
 // ---------------------------------------------------------------------------
 
-const { mockBuildEnhancedSystemPrompt, mockGetErrorMessage, mockLog } = vi.hoisted(() => ({
+const {
+  mockBuildEnhancedSystemPrompt,
+  mockGetErrorMessage,
+  mockLog,
+  mockHasMemoryService,
+  mockHybridSearch,
+} = vi.hoisted(() => ({
   mockBuildEnhancedSystemPrompt: vi.fn(),
   mockGetErrorMessage: vi.fn((err: unknown, fallback?: string) =>
     err instanceof Error ? err.message : (fallback ?? String(err))
   ),
   mockLog: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
+  mockHasMemoryService: vi.fn(() => false),
+  mockHybridSearch: vi.fn(async () => []),
 }));
+
+vi.mock('@ownpilot/core', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    hasMemoryService: (...args: unknown[]) => mockHasMemoryService(...args),
+    getMemoryService: () => ({ hybridSearch: mockHybridSearch }),
+  };
+});
 
 vi.mock('../../assistant/index.js', () => ({
   buildEnhancedSystemPrompt: (...args: unknown[]) => mockBuildEnhancedSystemPrompt(...args),
@@ -1068,6 +1085,87 @@ describe('createContextInjectionMiddleware', () => {
       const finalPrompt: string = agent.updateSystemPrompt.mock.calls[0][0];
       // The ## Code Execution section should be preserved in the final prompt
       expect(finalPrompt).toContain('## Code Execution');
+    });
+  });
+
+  // =========================================================================
+  // Query-relevant memory injection (retrieval-augmented)
+  // =========================================================================
+
+  describe('relevant memory injection', () => {
+    it('injects a relevant-memory section from hybridSearch on the user message', async () => {
+      mockHasMemoryService.mockReturnValue(true);
+      mockHybridSearch.mockResolvedValue([
+        { id: 'm1', content: 'User is planning a trip to Japan', score: 0.9 },
+      ]);
+      const agent = createAgent();
+      const ctx = createContext({ store: { agent } });
+
+      await middleware(
+        createMessage({ content: 'what about my travel plans?' }),
+        ctx,
+        vi.fn().mockResolvedValue(createNextResult())
+      );
+
+      expect(mockHybridSearch).toHaveBeenCalledWith(
+        'default',
+        'what about my travel plans?',
+        expect.objectContaining({ limit: expect.any(Number) })
+      );
+      const finalPrompt: string = agent.updateSystemPrompt.mock.calls[0][0];
+      expect(finalPrompt).toContain('## Relevant to this message (from memory)');
+      expect(finalPrompt).toContain('User is planning a trip to Japan');
+    });
+
+    it('skips memories already present in the static block (dedupe)', async () => {
+      mockHasMemoryService.mockReturnValue(true);
+      // 'Memory 1' is already in the static INJECTED_SUFFIX
+      mockHybridSearch.mockResolvedValue([{ id: 'm1', content: 'Memory 1', score: 0.9 }]);
+      const agent = createAgent();
+      const ctx = createContext({ store: { agent } });
+
+      await middleware(createMessage(), ctx, vi.fn().mockResolvedValue(createNextResult()));
+
+      const finalPrompt: string = agent.updateSystemPrompt.mock.calls[0][0];
+      expect(finalPrompt).not.toContain('## Relevant to this message (from memory)');
+    });
+
+    it('does nothing when the memory service is unavailable', async () => {
+      mockHasMemoryService.mockReturnValue(false);
+      const agent = createAgent();
+      const ctx = createContext({ store: { agent } });
+
+      await middleware(createMessage(), ctx, vi.fn().mockResolvedValue(createNextResult()));
+
+      expect(mockHybridSearch).not.toHaveBeenCalled();
+      const finalPrompt: string = agent.updateSystemPrompt.mock.calls[0][0];
+      expect(finalPrompt).not.toContain('## Relevant to this message (from memory)');
+    });
+
+    it('skips recall for very short messages', async () => {
+      mockHasMemoryService.mockReturnValue(true);
+      const agent = createAgent();
+      const ctx = createContext({ store: { agent } });
+
+      await middleware(
+        createMessage({ content: 'hi' }),
+        ctx,
+        vi.fn().mockResolvedValue(createNextResult())
+      );
+
+      expect(mockHybridSearch).not.toHaveBeenCalled();
+    });
+
+    it('fails open when hybridSearch throws', async () => {
+      mockHasMemoryService.mockReturnValue(true);
+      mockHybridSearch.mockRejectedValue(new Error('vector store down'));
+      const agent = createAgent();
+      const ctx = createContext({ store: { agent } });
+
+      await middleware(createMessage(), ctx, vi.fn().mockResolvedValue(createNextResult()));
+
+      const finalPrompt: string = agent.updateSystemPrompt.mock.calls[0][0];
+      expect(finalPrompt).not.toContain('## Relevant to this message (from memory)');
     });
   });
 });

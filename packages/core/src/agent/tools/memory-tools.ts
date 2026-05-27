@@ -140,6 +140,32 @@ Returns matching memories sorted by relevance and importance.`,
 };
 
 /**
+ * Recall a synthesized answer from memory (summarize-then-recall)
+ */
+const recallMemoryTool: ToolDefinition = {
+  name: 'recall_memory',
+  brief: 'Recall a distilled answer from memory (not raw rows)',
+  description: `Recall what is remembered about a topic and get back a concise, synthesized answer
+rather than a raw list. Use this when you need the *answer* (e.g. "what do I know about the user's
+travel plans?") instead of a list of individual memories. It hybrid-searches memory and summarizes
+the most relevant entries into a short response, with the source memories attached.`,
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'The question to answer from memory (natural language)',
+      },
+      limit: {
+        type: 'number',
+        description: 'Max memories to consider before summarizing (default: 8)',
+      },
+    },
+    required: ['query'],
+  },
+};
+
+/**
  * Forget a specific memory
  */
 const deleteMemoryTool: ToolDefinition = {
@@ -242,6 +268,7 @@ export const MEMORY_TOOLS: ToolDefinition[] = [
   createMemoryTool,
   batchCreateMemoriesTool,
   searchMemoriesTool,
+  recallMemoryTool,
   deleteMemoryTool,
   listMemoriesTool,
   updateMemoryImportanceTool,

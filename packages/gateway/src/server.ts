@@ -595,6 +595,13 @@ async function main() {
     setArtifactService(artifact);
   }
 
+  // 24b. Canvas Service (Live Canvas — agent-driven spatial workspace)
+  {
+    const { getCanvasServiceImpl } = await import('./services/canvas/service.js');
+    const { setCanvasService } = await import('@ownpilot/core');
+    setCanvasService(getCanvasServiceImpl());
+  }
+
   // 25. CLI Tool Service — installed on the core capability singleton so
   // consumers can resolve via getCliToolService() without going through the
   // gateway-local accessor. CliTool is not in the service registry; the core
@@ -695,6 +702,158 @@ async function main() {
       if (!agentId) return { success: false, error: 'Missing agentId in payload' };
       const { runAgentHeartbeat } = await import('./services/heartbeat/soul-service.js');
       return await runAgentHeartbeat(agentId);
+    });
+
+    // Register 'profile_learn' action handler — dialectic user-modeling loop.
+    // Reviews recent conversations and writes inferred facts into the personal
+    // profile (always source='ai_inferred', never overwriting user-stated data).
+    triggerEngine.registerActionHandler('profile_learn', async (payload) => {
+      const userId = (payload.userId as string) ?? 'default';
+      const conversationLimit =
+        typeof payload.conversations === 'number' ? Math.min(payload.conversations, 20) : 5;
+      const MAX_TEXT_CHARS = 12000;
+
+      // Gather recent conversation text for this user.
+      const { ChatRepository } = await import('./db/repositories/chat/index.js');
+      const chatRepo = new ChatRepository(userId);
+      const recent = await chatRepo.getRecentConversations(conversationLimit);
+      const parts: string[] = [];
+      let total = 0;
+      for (const conv of recent) {
+        const messages = await chatRepo.getMessages(conv.id, { limit: 50 });
+        for (const m of messages) {
+          if (m.role !== 'user' && m.role !== 'assistant') continue;
+          const line = `${m.role}: ${m.content}`;
+          if (total + line.length > MAX_TEXT_CHARS) break;
+          parts.push(line);
+          total += line.length;
+        }
+        if (total >= MAX_TEXT_CHARS) break;
+      }
+      const conversationText = parts.join('\n');
+
+      // One-shot, tool-less LLM completion (in-memory conversation — not persisted).
+      const complete = async (prompt: string): Promise<string> => {
+        const { resolveProviderAndModel, createConfiguredAgent } =
+          await import('./services/agent/runner-utils.js');
+        const { provider, model } = await resolveProviderAndModel(
+          undefined,
+          undefined,
+          'pulse',
+          'profile_learn'
+        );
+        const agent = await createConfiguredAgent({
+          name: 'profile-learner',
+          provider,
+          model,
+          systemPrompt: 'You extract durable user facts as a JSON array. Output only JSON.',
+          userId,
+          conversationId: `profile-learn-${Date.now()}`,
+          toolFilter: [],
+          maxTurns: 1,
+          temperature: 0,
+        });
+        const res = await agent.chat(prompt);
+        if (!res.ok) throw new Error(getErrorMessage(res.error, 'profile_learn completion failed'));
+        return res.value.content;
+      };
+
+      const { getPersonalMemoryStore, learnProfileFromText } = await import('@ownpilot/core');
+      const store = await getPersonalMemoryStore(userId);
+      const result = await learnProfileFromText(store, conversationText, complete);
+
+      return {
+        success: true,
+        message: `Profile learn: +${result.created} new, ${result.updated} updated, ${result.skipped} skipped${result.reason ? ` (${result.reason})` : ''}`,
+        data: result,
+      };
+    });
+
+    // Shared one-shot, tool-less LLM completion fn for a given user.
+    const makeComplete = (userId: string, label: string) => async (prompt: string) => {
+      const { resolveProviderAndModel, createConfiguredAgent } =
+        await import('./services/agent/runner-utils.js');
+      const { provider, model } = await resolveProviderAndModel(
+        undefined,
+        undefined,
+        'pulse',
+        label
+      );
+      const agent = await createConfiguredAgent({
+        name: label,
+        provider,
+        model,
+        systemPrompt: 'You are a precise memory assistant. Follow the instructions exactly.',
+        userId,
+        conversationId: `${label}-${Date.now()}`,
+        toolFilter: [],
+        maxTurns: 1,
+        temperature: 0,
+      });
+      const res = await agent.chat(prompt);
+      if (!res.ok) throw new Error(getErrorMessage(res.error, `${label} completion failed`));
+      return res.value.content;
+    };
+
+    // Gather recent conversation text for a user (shared by memory_extract).
+    const gatherConversationText = async (userId: string, limit: number, maxChars = 12000) => {
+      const { ChatRepository } = await import('./db/repositories/chat/index.js');
+      const chatRepo = new ChatRepository(userId);
+      const recent = await chatRepo.getRecentConversations(limit);
+      const parts: string[] = [];
+      let total = 0;
+      for (const conv of recent) {
+        const messages = await chatRepo.getMessages(conv.id, { limit: 50 });
+        for (const m of messages) {
+          if (m.role !== 'user' && m.role !== 'assistant') continue;
+          const line = `${m.role}: ${m.content}`;
+          if (total + line.length > maxChars) break;
+          parts.push(line);
+          total += line.length;
+        }
+        if (total >= maxChars) break;
+      }
+      return parts.join('\n');
+    };
+
+    // Register 'memory_extract' — distill recent conversations into long-term memories.
+    triggerEngine.registerActionHandler('memory_extract', async (payload) => {
+      const userId = (payload.userId as string) ?? 'default';
+      const limit =
+        typeof payload.conversations === 'number' ? Math.min(payload.conversations, 20) : 5;
+      const conversationText = await gatherConversationText(userId, limit);
+      const { getMemoryEngine } = await import('./services/memory/engine.js');
+      const result = await getMemoryEngine().extractFromConversations(
+        userId,
+        conversationText,
+        makeComplete(userId, 'memory_extract')
+      );
+      return {
+        success: true,
+        message: `Memory extract: ${result.created} new, ${result.deduplicated} deduplicated (of ${result.extracted})`,
+        data: result,
+      };
+    });
+
+    // Register 'memory_consolidate' — merge near-duplicate memories + decay/cleanup.
+    triggerEngine.registerActionHandler('memory_consolidate', async (payload) => {
+      const userId = (payload.userId as string) ?? 'default';
+      const { getMemoryEngine } = await import('./services/memory/engine.js');
+      const result = await getMemoryEngine().consolidate(
+        userId,
+        makeComplete(userId, 'memory_consolidate'),
+        {
+          similarityThreshold:
+            typeof payload.similarityThreshold === 'number'
+              ? payload.similarityThreshold
+              : undefined,
+        }
+      );
+      return {
+        success: true,
+        message: `Memory consolidate: merged ${result.merged} cluster(s), removed ${result.removed}, decayed ${result.decayed}, cleaned ${result.cleaned}`,
+        data: result,
+      };
     });
 
     // Seed default triggers (only creates if not already present)
