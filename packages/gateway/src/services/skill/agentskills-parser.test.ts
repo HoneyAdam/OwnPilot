@@ -21,6 +21,7 @@ import {
   parseAgentSkillsMd,
   scanSkillDirectory,
   isAgentSkillsDir,
+  parseRequirements,
 } from './agentskills-parser.js';
 
 // =============================================================================
@@ -215,6 +216,43 @@ Use when the user has data to analyze.
     expect(manifest.instructions).toContain('# Data Analysis');
     expect(manifest.instructions).toContain('Use when the user has data to analyze.');
     expect(manifest.system_prompt).toBe(manifest.instructions);
+  });
+
+  it('parseRequirements accepts delimited strings and ignores blanks', () => {
+    expect(parseRequirements({ 'requires-binaries': 'git ffmpeg' })).toEqual({
+      binaries: ['git', 'ffmpeg'],
+    });
+    expect(parseRequirements({})).toBeUndefined();
+    expect(parseRequirements({ 'requires-env': '' })).toBeUndefined();
+  });
+
+  it('maps requires-* frontmatter into host requirements', () => {
+    const content = `---
+name: video-tools
+description: Needs ffmpeg.
+requires-os: [darwin, linux]
+requires-binaries: [ffmpeg, ffprobe]
+requires-env: [OPENAI_API_KEY]
+---
+
+Body.`;
+
+    const manifest = parseAgentSkillsMd(content);
+    expect(manifest.requirements).toEqual({
+      os: ['darwin', 'linux'],
+      binaries: ['ffmpeg', 'ffprobe'],
+      env: ['OPENAI_API_KEY'],
+    });
+  });
+
+  it('omits requirements when none are declared', () => {
+    const content = `---
+name: plain
+description: No requirements.
+---
+
+Body.`;
+    expect(parseAgentSkillsMd(content).requirements).toBeUndefined();
   });
 
   it('extracts metadata version and author', () => {

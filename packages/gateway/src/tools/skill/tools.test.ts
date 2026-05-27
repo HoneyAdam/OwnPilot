@@ -125,7 +125,7 @@ describe('Skill Tools', () => {
 
   describe('Tool Definitions', () => {
     it('exports all skill tools', () => {
-      expect(SKILL_TOOLS).toHaveLength(14);
+      expect(SKILL_TOOLS).toHaveLength(15);
 
       const toolNames = SKILL_TOOLS.map((t) => t.name);
       expect(toolNames).toContain('skill_search');
@@ -142,6 +142,7 @@ describe('Skill Tools', () => {
       expect(toolNames).toContain('skill_get_learning_stats');
       expect(toolNames).toContain('skill_compare');
       expect(toolNames).toContain('skill_suggest_learning');
+      expect(toolNames).toContain('skill_auto_create');
     });
 
     it('all tools have required properties', () => {

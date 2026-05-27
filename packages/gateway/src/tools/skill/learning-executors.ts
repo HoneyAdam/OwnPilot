@@ -331,3 +331,115 @@ export async function executeSuggestLearning(
     return { success: false, error: getErrorMessage(error) };
   }
 }
+
+/**
+ * skill_auto_create — autonomously create a skill from a complex workflow.
+ * Hermes-style procedural memory: the agent saves discovered patterns
+ * after non-trivial tasks (5+ tool calls), errors/dead ends, or user corrections.
+ */
+export async function executeAutoCreateSkill(
+  args: Record<string, unknown>,
+  userId: string
+): Promise<ExecResult> {
+  try {
+    const workflowDescription = String(args.workflowDescription ?? '').trim();
+    const skillName = String(args.skillName ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+    const category = String(args.category ?? 'other');
+    const difficulty = String(args.difficulty ?? 'intermediate');
+
+    if (!workflowDescription) {
+      return { success: false, error: 'workflowDescription is required' };
+    }
+    if (!skillName) {
+      return { success: false, error: 'skillName is required' };
+    }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(skillName)) {
+      return {
+        success: false,
+        error:
+          'skillName must be lowercase alphanumeric with hyphens (e.g., "code-review-workflow")',
+      };
+    }
+
+    const { getDefaultSkillsDirectory } = await import('../../services/extension/scanner.js');
+    const { writeFileSync, mkdirSync, existsSync } = await import('node:fs');
+    const { join } = await import('node:path');
+
+    const skillsDir = getDefaultSkillsDirectory();
+    if (!existsSync(skillsDir)) {
+      mkdirSync(skillsDir, { recursive: true });
+    }
+
+    const skillDir = join(skillsDir, skillName);
+    if (!existsSync(skillDir)) {
+      mkdirSync(skillDir, { recursive: true });
+    }
+
+    const skillMdContent = `---
+name: ${skillName}
+description: ${workflowDescription.split('\n')[0]!.substring(0, 100)}
+version: 1.0.0
+category: ${category}
+tags: [auto-created, procedural-memory]
+metadata:
+  difficulty: ${difficulty}
+  auto-created: true
+  created-from: workflow
+---
+
+# ${skillName.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+
+## Overview
+${workflowDescription}
+
+## When to Use
+This skill is automatically created from a workflow the agent discovered.
+Use it when you encounter similar tasks.
+
+## Instructions
+Follow the workflow described above. Adjust as needed based on context.
+
+## Best Practices
+- Remember this was learned from a real workflow
+- Adapt steps as context changes
+- If workflow changes significantly, update this skill
+`;
+
+    const skillMdPath = join(skillDir, 'SKILL.md');
+    writeFileSync(skillMdPath, skillMdContent, 'utf-8');
+
+    // Install the skill via extension service
+    const service = getExtensionService();
+    const installed = await service.install(skillMdPath, userId);
+
+    // Record the learning event
+    const adapter = await getAdapter();
+    await adapter.execute(
+      `INSERT INTO skill_usage (agent_id, skill_id, skill_name, usage_type, content, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        userId,
+        installed.id,
+        installed.name,
+        'learned',
+        `Auto-created skill: ${skillName}`,
+        JSON.stringify({ category, difficulty, workflowDescription }),
+      ]
+    );
+
+    return {
+      success: true,
+      result: {
+        skillId: installed.id,
+        skillName: installed.name,
+        skillPath: skillMdPath,
+        message: `Skill "${skillName}" created and installed successfully`,
+      },
+    };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}

@@ -326,6 +326,57 @@ const suggestSkillsTool: ToolDefinition = {
   category: 'Skills',
 };
 
+const autoCreateSkillTool: ToolDefinition = {
+  name: 'skill_auto_create',
+  workflowUsable: false,
+  description:
+    'Autonomously create a new skill from a complex workflow or pattern you discovered. ' +
+    'Call this after completing a non-trivial task (5+ tool calls), hitting errors and finding solutions, ' +
+    'or discovering useful patterns. The skill captures the workflow for future reuse. ' +
+    'This is your procedural memory — skills you create will be available in subsequent sessions.',
+  parameters: {
+    type: 'object',
+    properties: {
+      workflowDescription: {
+        type: 'string',
+        description:
+          'Description of the workflow or pattern to capture as a skill. ' +
+          'Include the key steps, tools used, and when this skill should be used.',
+      },
+      skillName: {
+        type: 'string',
+        description:
+          'Name for the new skill (lowercase, hyphens allowed). ' +
+          'E.g., "code-review-workflow", "data-cleaning-pipeline"',
+      },
+      category: {
+        type: 'string',
+        enum: [
+          'developer',
+          'productivity',
+          'communication',
+          'data',
+          'utilities',
+          'integrations',
+          'media',
+          'lifestyle',
+          'other',
+        ],
+        description: 'Category for the skill',
+        default: 'other',
+      },
+      difficulty: {
+        type: 'string',
+        enum: ['beginner', 'intermediate', 'advanced'],
+        description: 'Difficulty level of the skill',
+        default: 'intermediate',
+      },
+    },
+    required: ['workflowDescription', 'skillName'],
+  },
+  category: 'Skills',
+};
+
 export const SKILL_TOOLS: ToolDefinition[] = [
   searchSkillsTool,
   installSkillTool,
@@ -341,4 +392,5 @@ export const SKILL_TOOLS: ToolDefinition[] = [
   getSkillLearningStatsTool,
   compareSkillsTool,
   suggestSkillsTool,
+  autoCreateSkillTool,
 ];

@@ -34,6 +34,7 @@ import {
   executeGetLearningStats,
   executeCompare,
   executeSuggestLearning,
+  executeAutoCreateSkill,
 } from './learning-executors.js';
 
 export { SKILL_TOOLS };
@@ -85,6 +86,9 @@ export async function executeSkillTool(
 
     case 'skill_suggest_learning':
       return executeSuggestLearning(args, userId);
+
+    case 'skill_auto_create':
+      return executeAutoCreateSkill(args, userId);
 
     default:
       return { success: false, error: `Unknown skill tool: ${toolName}` };

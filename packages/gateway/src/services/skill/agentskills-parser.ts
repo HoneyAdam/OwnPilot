@@ -17,7 +17,7 @@
 
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { ExtensionManifest } from '../extension/types.js';
+import type { ExtensionManifest, ExtensionRequirements } from '../extension/types.js';
 import { validateAgentSkillsFrontmatter, type AgentSkillsFrontmatter } from '../extension/types.js';
 import { getLog } from '../log.js';
 
@@ -281,6 +281,9 @@ export function parseAgentSkillsMd(content: string, skillDir?: string): Extensio
     allowed_tools: allowedTools,
     script_paths: scriptPaths.length > 0 ? scriptPaths : undefined,
     reference_paths: referencePaths.length > 0 ? referencePaths : undefined,
+
+    // Host gate (OS / binaries / env). Skill stays dormant where unmet.
+    requirements: parseRequirements(frontmatter),
   };
 
   log.info(`Parsed AgentSkills.io skill: ${fm.name}`, {
@@ -290,6 +293,43 @@ export function parseAgentSkillsMd(content: string, skillDir?: string): Extensio
   });
 
   return manifest;
+}
+
+/**
+ * Map `requires-os` / `requires-binaries` / `requires-env` frontmatter keys
+ * (top-level, kebab- or snake-case) into ExtensionRequirements. Accepts YAML
+ * arrays or whitespace/comma-delimited strings. Returns undefined when none
+ * are declared.
+ */
+export function parseRequirements(
+  frontmatter: Record<string, unknown>
+): ExtensionRequirements | undefined {
+  const toStrArray = (v: unknown): string[] | undefined => {
+    if (Array.isArray(v)) {
+      const arr = v.map((x) => String(x).trim()).filter(Boolean);
+      return arr.length > 0 ? arr : undefined;
+    }
+    if (typeof v === 'string' && v.trim()) {
+      const arr = v
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return arr.length > 0 ? arr : undefined;
+    }
+    return undefined;
+  };
+
+  const os = toStrArray(frontmatter['requires-os'] ?? frontmatter['requires_os']);
+  const binaries = toStrArray(frontmatter['requires-binaries'] ?? frontmatter['requires_binaries']);
+  const env = toStrArray(frontmatter['requires-env'] ?? frontmatter['requires_env']);
+
+  if (!os && !binaries && !env) return undefined;
+
+  const req: ExtensionRequirements = {};
+  if (os) req.os = os as ExtensionRequirements['os'];
+  if (binaries) req.binaries = binaries;
+  if (env) req.env = env;
+  return req;
 }
 
 /**
