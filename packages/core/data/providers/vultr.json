@@ -12,8 +12,41 @@
   },
   "models": [
     {
-      "id": "GLM-5-FP8",
-      "name": "GLM 5 FP8",
+      "id": "nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16",
+      "name": "NVIDIA Nemotron 3 Nano Omni",
+      "contextWindow": 262144,
+      "maxOutput": 131072,
+      "inputPrice": 0.13,
+      "outputPrice": 0.38,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-04-28"
+    },
+    {
+      "id": "moonshotai/Kimi-K2.6",
+      "name": "Kimi K2.6",
+      "contextWindow": 262144,
+      "maxOutput": 131072,
+      "inputPrice": 0.15,
+      "outputPrice": 0.6,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-04-21"
+    },
+    {
+      "id": "zai-org/GLM-5.1-FP8",
+      "name": "GLM-5.1",
       "contextWindow": 200000,
       "maxOutput": 131072,
       "inputPrice": 0.85,
@@ -21,70 +54,74 @@
       "capabilities": [
         "chat",
         "function_calling",
-        "streaming"
-      ],
-      "default": true,
-      "releaseDate": "2026-02-11"
-    },
-    {
-      "id": "Kimi-K2.5",
-      "name": "Kimi K2 Instruct",
-      "contextWindow": 254000,
-      "maxOutput": 32768,
-      "inputPrice": 0.55,
-      "outputPrice": 2.75,
-      "capabilities": [
-        "chat",
-        "function_calling",
+        "json_mode",
+        "reasoning",
         "streaming"
       ],
       "default": false,
-      "releaseDate": "2026-01-27"
+      "releaseDate": "2026-03-27"
     },
     {
-      "id": "DeepSeek-V3.2",
-      "name": "DeepSeek V3.2",
-      "contextWindow": 127000,
-      "maxOutput": 4096,
-      "inputPrice": 0.55,
-      "outputPrice": 1.65,
+      "id": "MiniMaxAI/MiniMax-M2.7",
+      "name": "MiniMax-M2.7",
+      "contextWindow": 204800,
+      "maxOutput": 131072,
+      "inputPrice": 0.3,
+      "outputPrice": 1.2,
       "capabilities": [
         "chat",
         "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-03-18"
+    },
+    {
+      "id": "nvidia/Nemotron-Cascade-2-30B-A3B",
+      "name": "NVIDIA Nemotron Cascade 2",
+      "contextWindow": 262144,
+      "maxOutput": 131072,
+      "inputPrice": 0.15,
+      "outputPrice": 0.6,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "reasoning",
         "streaming"
       ],
       "default": false,
       "releaseDate": "2025-12-01"
     },
     {
-      "id": "gpt-oss-120b",
-      "name": "GPT OSS 120B",
-      "contextWindow": 129000,
-      "maxOutput": 4096,
-      "inputPrice": 0.15,
-      "outputPrice": 0.6,
+      "id": "nvidia/DeepSeek-V3.2-NVFP4",
+      "name": "DeepSeek V3.2",
+      "contextWindow": 131072,
+      "maxOutput": 131072,
+      "inputPrice": 0.55,
+      "outputPrice": 1.65,
       "capabilities": [
         "chat",
         "function_calling",
+        "reasoning",
         "streaming"
       ],
       "default": false,
-      "releaseDate": "2025-08-05"
+      "releaseDate": "2025-12-01"
     },
     {
-      "id": "MiniMax-M2.5",
-      "name": "MiniMax M2.5",
-      "contextWindow": 194000,
+      "id": "nvidia/Llama-3.1-Nemotron-Safety-Guard-8B-v3",
+      "name": "Llama 3.1 Nemotron Safety Guard",
+      "contextWindow": 8192,
       "maxOutput": 4096,
-      "inputPrice": 0.3,
-      "outputPrice": 1.2,
+      "inputPrice": 0.01,
+      "outputPrice": 0.01,
       "capabilities": [
         "chat",
-        "function_calling",
         "streaming"
       ],
       "default": false,
-      "releaseDate": "2025-02-11"
+      "releaseDate": "2025-10-28"
     }
   ],
   "baseUrl": "https://api.vultrinference.com/v1",

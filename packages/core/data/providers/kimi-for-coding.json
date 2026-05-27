@@ -66,5 +66,12 @@
     }
   ],
   "baseUrl": "https://api.kimi.com/coding/v1",
-  "docsUrl": "https://www.kimi.com/coding/docs/en/third-party-agents.html"
+  "docsUrl": "https://www.kimi.com/coding/docs/en/third-party-agents.html",
+  "headers": {
+    "User-Agent": "Claude Code/1.0",
+    "X-Claude-Client": "Claude Code/1.0",
+    "X-Coding-Agent": "Claude Code",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "endpoint": "/messages"
 }

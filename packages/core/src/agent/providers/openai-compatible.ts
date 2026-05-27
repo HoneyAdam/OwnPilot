@@ -223,7 +223,10 @@ export class OpenAICompatibleProvider {
           ''
         );
       }
-      const response = await fetch(`${this.config.baseUrl}/chat/completions`, fetchOptions);
+      const response = await fetch(
+        `${this.config.baseUrl}${this.config.endpoint ?? '/chat/completions'}`,
+        fetchOptions
+      );
       this.clearRequestTimeout();
 
       if (!response.ok) {
@@ -304,7 +307,10 @@ export class OpenAICompatibleProvider {
           ''
         );
       }
-      const response = await fetch(`${this.config.baseUrl}/chat/completions`, fetchOptions);
+      const response = await fetch(
+        `${this.config.baseUrl}${this.config.endpoint ?? '/chat/completions'}`,
+        fetchOptions
+      );
       this.clearRequestTimeout();
 
       if (!response.ok || !response.body) {

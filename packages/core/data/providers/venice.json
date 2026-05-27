@@ -16,8 +16,8 @@
       "name": "Qwen 3.7 Max",
       "contextWindow": 1000000,
       "maxOutput": 65536,
-      "inputPrice": 3.125,
-      "outputPrice": 9.375,
+      "inputPrice": 2.7,
+      "outputPrice": 8.05,
       "capabilities": [
         "chat",
         "function_calling",
@@ -32,8 +32,8 @@
       "name": "Gemini 3.5 Flash",
       "contextWindow": 1000000,
       "maxOutput": 65536,
-      "inputPrice": 1.8,
-      "outputPrice": 11,
+      "inputPrice": 1.55,
+      "outputPrice": 9.45,
       "capabilities": [
         "chat",
         "vision",
@@ -299,8 +299,8 @@
       "name": "Google Gemma 4 31B Instruct",
       "contextWindow": 256000,
       "maxOutput": 8192,
-      "inputPrice": 0.175,
-      "outputPrice": 0.5,
+      "inputPrice": 0.155,
+      "outputPrice": 0.44,
       "capabilities": [
         "chat",
         "vision",
@@ -610,7 +610,7 @@
       "id": "qwen3-5-35b-a3b",
       "name": "Qwen 3.5 35B A3B",
       "contextWindow": 256000,
-      "maxOutput": 65536,
+      "maxOutput": 16384,
       "inputPrice": 0.3125,
       "outputPrice": 1.25,
       "capabilities": [

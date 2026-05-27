@@ -14,6 +14,8 @@ import type { IProvider } from './provider-types.js';
 import { OpenAIProvider } from './providers/openai-provider.js';
 import { AnthropicProvider } from './providers/anthropic-provider.js';
 import { GoogleProvider } from './providers/google.js';
+import { OpenAICompatibleProvider } from './providers/openai-compatible.js';
+import type { ResolvedProviderConfig } from './providers/configs/index.js';
 
 /**
  * Create a provider instance based on configuration
@@ -33,6 +35,11 @@ export function createProvider(config: ProviderConfig): IProvider {
       // Fallback to OpenAI-compatible if Google provider can't be created
       return new OpenAIProvider(config);
     }
+    case 'openai-compatible':
+      return new OpenAICompatibleProvider({
+        ...config,
+        id: config.id ?? config.provider,
+      } as unknown as ResolvedProviderConfig) as unknown as IProvider;
     default:
       return new OpenAIProvider(config);
   }

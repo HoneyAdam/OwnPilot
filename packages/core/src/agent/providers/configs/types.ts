@@ -95,6 +95,8 @@ export interface ProviderConfig {
   features: ProviderFeatures;
   /** Custom headers to include in requests */
   headers?: Record<string, string>;
+  /** Custom endpoint path (defaults to /chat/completions for openai-compatible) */
+  endpoint?: string;
   /** Default timeout in ms */
   timeout?: number;
   /** API version (for versioned APIs) */

@@ -833,7 +833,7 @@
       "id": "big-pickle",
       "name": "Big Pickle",
       "contextWindow": 200000,
-      "maxOutput": 128000,
+      "maxOutput": 32000,
       "inputPrice": 0,
       "outputPrice": 0,
       "capabilities": [

@@ -70,7 +70,8 @@ export type AIProvider =
   | 'openrouter'
   | 'xai'
   | 'local'
-  | 'custom';
+  | 'custom'
+  | 'openai-compatible';
 
 /**
  * Message role in conversation
@@ -416,6 +417,8 @@ export interface ModelConfig {
  * Provider configuration
  */
 export interface ProviderConfig {
+  /** Provider ID (matches the provider field, for openai-compatible routing) */
+  readonly id?: string;
   /** Provider type */
   readonly provider: AIProvider;
   /** API key (should be stored securely) */
@@ -432,6 +435,18 @@ export interface ProviderConfig {
   readonly maxRetries?: number;
   /** Custom headers to include in API requests */
   readonly headers?: Record<string, string>;
+  /** Custom endpoint path (defaults to /chat/completions for openai-compatible) */
+  readonly endpoint?: string;
+  /** Provider features (used by openai-compatible provider) */
+  readonly features?: {
+    readonly streaming?: boolean;
+    readonly toolUse?: boolean;
+    readonly vision?: boolean;
+    readonly jsonMode?: boolean;
+    readonly systemMessage?: boolean;
+    readonly caching?: boolean;
+    readonly batch?: boolean;
+  };
 }
 
 /**

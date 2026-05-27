@@ -82,13 +82,12 @@
     {
       "id": "route/qwen3.6-27b",
       "name": "Qwen3.6 27B",
-      "contextWindow": 262144,
-      "maxOutput": 262144,
+      "contextWindow": 202000,
+      "maxOutput": 32768,
       "inputPrice": 1.1,
       "outputPrice": 3.3,
       "capabilities": [
         "chat",
-        "vision",
         "function_calling",
         "json_mode",
         "streaming"
@@ -99,6 +98,23 @@
     {
       "id": "route/mimo-v2.5-pro",
       "name": "MiMo V2.5 Pro",
+      "contextWindow": 1000000,
+      "maxOutput": 262144,
+      "inputPrice": 0.45,
+      "outputPrice": 1.35,
+      "capabilities": [
+        "chat",
+        "vision",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-04-22"
+    },
+    {
+      "id": "route/mimo-v2.5",
+      "name": "MiMo V2.5",
       "contextWindow": 1000000,
       "maxOutput": 262144,
       "inputPrice": 0.45,
@@ -125,6 +141,22 @@
         "vision",
         "function_calling",
         "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-04-22"
+    },
+    {
+      "id": "route/qwen3.6-27b-202k",
+      "name": "Qwen3.6 27B 202K",
+      "contextWindow": 202000,
+      "maxOutput": 32768,
+      "inputPrice": 1.1,
+      "outputPrice": 3.3,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "json_mode",
         "streaming"
       ],
       "default": false,
@@ -203,7 +235,7 @@
       "id": "route/glm-5.1",
       "name": "GLM 5.1",
       "contextWindow": 202752,
-      "maxOutput": 202752,
+      "maxOutput": 65536,
       "inputPrice": 1,
       "outputPrice": 3,
       "capabilities": [
@@ -220,7 +252,7 @@
       "id": "route/glm-5.1-6bit",
       "name": "GLM 5.1 6bit",
       "contextWindow": 202752,
-      "maxOutput": 202752,
+      "maxOutput": 65536,
       "inputPrice": 1,
       "outputPrice": 3,
       "capabilities": [

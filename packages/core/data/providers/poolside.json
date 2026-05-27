@@ -1,0 +1,49 @@
+{
+  "id": "poolside",
+  "name": "Poolside",
+  "type": "openai-compatible",
+  "apiKeyEnv": "POOLSIDE_API_KEY",
+  "features": {
+    "streaming": true,
+    "toolUse": true,
+    "vision": false,
+    "jsonMode": false,
+    "systemMessage": true
+  },
+  "models": [
+    {
+      "id": "poolside/laguna-xs.2",
+      "name": "Laguna XS.2",
+      "contextWindow": 131040,
+      "maxOutput": 8192,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-04-28"
+    },
+    {
+      "id": "poolside/laguna-m.1",
+      "name": "Laguna M.1",
+      "contextWindow": 131040,
+      "maxOutput": 8192,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-04-28"
+    }
+  ],
+  "baseUrl": "https://inference.poolside.ai/v1",
+  "docsUrl": "https://platform.poolside.ai"
+}

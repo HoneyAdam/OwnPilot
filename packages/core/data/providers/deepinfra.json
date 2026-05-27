@@ -33,8 +33,8 @@
       "name": "DeepSeek V4 Pro",
       "contextWindow": 65536,
       "maxOutput": 65536,
-      "inputPrice": 1.74,
-      "outputPrice": 3.48,
+      "inputPrice": 0.435,
+      "outputPrice": 0.87,
       "capabilities": [
         "chat",
         "function_calling",

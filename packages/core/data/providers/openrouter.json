@@ -2270,10 +2270,10 @@
     {
       "id": "deepseek/deepseek-chat",
       "name": "DeepSeek Chat",
-      "contextWindow": 163840,
-      "maxOutput": 16384,
-      "inputPrice": 0.32,
-      "outputPrice": 0.89,
+      "contextWindow": 128000,
+      "maxOutput": 16000,
+      "inputPrice": 0.2288,
+      "outputPrice": 0.9144,
       "capabilities": [
         "chat",
         "function_calling",
@@ -2969,23 +2969,6 @@
       ],
       "default": false,
       "releaseDate": "2025-09-22"
-    },
-    {
-      "id": "alibaba/tongyi-deepresearch-30b-a3b",
-      "name": "Tongyi DeepResearch 30B A3B",
-      "contextWindow": 131072,
-      "maxOutput": 131072,
-      "inputPrice": 0.09,
-      "outputPrice": 0.45,
-      "capabilities": [
-        "chat",
-        "function_calling",
-        "json_mode",
-        "reasoning",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2025-09-18"
     },
     {
       "id": "qwen/qwen3-coder-flash",

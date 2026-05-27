@@ -14,8 +14,8 @@
     {
       "id": "xpersona-frieren-coder",
       "name": "Xpersona Frieren Coder",
-      "contextWindow": 400000,
-      "maxOutput": 128000,
+      "contextWindow": 1000000,
+      "maxOutput": 384000,
       "inputPrice": 1.5,
       "outputPrice": 6,
       "capabilities": [
