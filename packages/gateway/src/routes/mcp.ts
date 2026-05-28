@@ -27,6 +27,7 @@ import {
   mcpToolSettingsSchema,
 } from '../middleware/validation.js';
 import { PUBLIC_BASE_URL } from '../config/defaults.js';
+import { MCP_SERVER_PRESETS, getMcpPreset, resolvePresetInstall } from '../mcp/presets.js';
 
 const log = getLog('McpRoutes');
 
@@ -217,6 +218,113 @@ mcpRoutes.post('/tool-call', async (c) => {
 // =============================================================================
 // REST MANAGEMENT ENDPOINTS
 // =============================================================================
+
+/**
+ * GET /presets — Curated catalog of recommended external MCP servers
+ *
+ * Returns the static preset list defined in `mcp/presets.ts`. Each entry
+ * includes the transport invocation, declared env vars, install hint, and any
+ * warning the UI should surface.
+ */
+mcpRoutes.get('/presets', (c) => {
+  return apiResponse(c, { presets: MCP_SERVER_PRESETS, count: MCP_SERVER_PRESETS.length });
+});
+
+/**
+ * POST /presets/:id/install — Install a preset as a new MCP server row
+ *
+ * Body (all optional):
+ *   { name?, displayName?, extraArgs?, env?, enabled?, autoConnect? }
+ *
+ * `extraArgs` are appended to the preset's baseline args (filesystem and
+ * sqlite presets require this for the path argument). `env` is filtered to the
+ * preset's declared vars before being persisted.
+ */
+mcpRoutes.post('/presets/:id/install', async (c) => {
+  try {
+    const userId = getUserId(c);
+    const presetId = c.req.param('id');
+    const preset = getMcpPreset(presetId);
+    if (!preset) {
+      return apiError(
+        c,
+        { code: ERROR_CODES.NOT_FOUND, message: `Unknown MCP preset: ${presetId}` },
+        404
+      );
+    }
+
+    const rawBody = (await c.req.json().catch(() => ({}))) as {
+      name?: unknown;
+      displayName?: unknown;
+      extraArgs?: unknown;
+      env?: unknown;
+      enabled?: unknown;
+      autoConnect?: unknown;
+    };
+
+    let resolved;
+    try {
+      resolved = resolvePresetInstall(preset, {
+        name: typeof rawBody.name === 'string' ? rawBody.name : undefined,
+        displayName: typeof rawBody.displayName === 'string' ? rawBody.displayName : undefined,
+        extraArgs: Array.isArray(rawBody.extraArgs)
+          ? rawBody.extraArgs.filter((x): x is string => typeof x === 'string')
+          : undefined,
+        env:
+          rawBody.env && typeof rawBody.env === 'object'
+            ? Object.fromEntries(
+                Object.entries(rawBody.env as Record<string, unknown>).filter(
+                  (entry): entry is [string, string] => typeof entry[1] === 'string'
+                )
+              )
+            : undefined,
+        enabled: typeof rawBody.enabled === 'boolean' ? rawBody.enabled : undefined,
+        autoConnect: typeof rawBody.autoConnect === 'boolean' ? rawBody.autoConnect : undefined,
+      });
+    } catch (validationErr) {
+      return apiError(
+        c,
+        { code: ERROR_CODES.VALIDATION_ERROR, message: getErrorMessage(validationErr) },
+        400
+      );
+    }
+
+    const repo = getMcpServersRepo();
+    const existing = await repo.getByName(resolved.name, userId);
+    if (existing) {
+      return apiError(
+        c,
+        {
+          code: ERROR_CODES.ALREADY_EXISTS,
+          message: `MCP server "${resolved.name}" already exists. Pass a different "name" in the body to install a second copy.`,
+        },
+        409
+      );
+    }
+
+    const server = await repo.create({
+      name: resolved.name,
+      displayName: resolved.displayName,
+      transport: resolved.transport,
+      command: resolved.command,
+      args: resolved.args,
+      env: resolved.env,
+      enabled: resolved.enabled,
+      autoConnect: resolved.autoConnect,
+      userId,
+    });
+
+    wsGateway.broadcast('data:changed', { entity: 'mcp_server', action: 'created', id: server.id });
+    return apiResponse(
+      c,
+      { server, preset: { id: preset.id, displayName: preset.displayName } },
+      201
+    );
+  } catch (err) {
+    log.error('Failed to install MCP preset:', err);
+    return apiError(c, { code: ERROR_CODES.INTERNAL_ERROR, message: getErrorMessage(err) }, 500);
+  }
+});
 
 /**
  * GET / — List all configured MCP servers

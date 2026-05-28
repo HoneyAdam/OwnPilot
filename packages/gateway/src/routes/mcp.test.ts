@@ -1177,4 +1177,137 @@ describe('MCP Routes', () => {
       expect(json.error.code).toBe('INTERNAL_ERROR');
     });
   });
+
+  // ========================================================================
+  // GET /mcp/presets
+  // ========================================================================
+
+  describe('GET /mcp/presets', () => {
+    it('returns the static preset catalog', async () => {
+      const res = await app.request('/mcp/presets');
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        data: { presets: Array<{ id: string; transport: string; command: string }>; count: number };
+      };
+      expect(json.success).toBe(true);
+      expect(json.data.count).toBeGreaterThan(0);
+      expect(json.data.presets.length).toBe(json.data.count);
+      const ids = json.data.presets.map((p) => p.id);
+      expect(ids).toContain('browser-use');
+      expect(ids).toContain('filesystem');
+      expect(ids).toContain('fetch');
+      for (const p of json.data.presets) {
+        expect(p.transport).toBe('stdio');
+        expect(p.command).toBeTruthy();
+      }
+    });
+  });
+
+  // ========================================================================
+  // POST /mcp/presets/:id/install
+  // ========================================================================
+
+  describe('POST /mcp/presets/:id/install', () => {
+    it('rejects unknown preset id', async () => {
+      const res = await app.request('/mcp/presets/does-not-exist/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      expect(res.status).toBe(404);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe('NOT_FOUND');
+    });
+
+    it('refuses to install a preset whose default name is taken', async () => {
+      mockRepo.getByName.mockResolvedValue({ ...sampleServer, name: 'browser-use' });
+      const res = await app.request('/mcp/presets/browser-use/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      expect(res.status).toBe(409);
+      const json = (await res.json()) as { error: { code: string; message: string } };
+      expect(json.error.code).toBe('ALREADY_EXISTS');
+      expect(mockRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('creates a server row from the preset with default values', async () => {
+      mockRepo.getByName.mockResolvedValue(null);
+      mockRepo.create.mockImplementation(async (input: Record<string, unknown>) => ({
+        ...sampleServer,
+        ...input,
+        id: 'mcp-new',
+      }));
+
+      const res = await app.request('/mcp/presets/browser-use/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+
+      expect(res.status).toBe(201);
+      expect(mockRepo.create).toHaveBeenCalledTimes(1);
+      const createArgs = mockRepo.create.mock.calls[0]![0];
+      expect(createArgs.name).toBe('browser-use');
+      expect(createArgs.transport).toBe('stdio');
+      expect(createArgs.command).toBe('uvx');
+      expect(createArgs.args).toEqual(['--from', 'browser-use[cli]', 'browser-use', '--mcp']);
+      expect(createArgs.enabled).toBe(true);
+      expect(createArgs.autoConnect).toBe(true);
+    });
+
+    it('appends extraArgs and applies declared env overrides', async () => {
+      mockRepo.getByName.mockResolvedValue(null);
+      mockRepo.create.mockImplementation(async (input: Record<string, unknown>) => ({
+        ...sampleServer,
+        ...input,
+        id: 'mcp-fs',
+      }));
+
+      const res = await app.request('/mcp/presets/filesystem/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'fs-projects',
+          extraArgs: ['/home/me/projects'],
+          // Env value below should be silently dropped because the filesystem
+          // preset declares no env vars.
+          env: { OPENAI_API_KEY: 'sk-noop' },
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const createArgs = mockRepo.create.mock.calls[0]![0];
+      expect(createArgs.name).toBe('fs-projects');
+      expect(createArgs.args).toEqual([
+        '-y',
+        '@modelcontextprotocol/server-filesystem',
+        '/home/me/projects',
+      ]);
+      expect(createArgs.env).toEqual({});
+    });
+
+    it('persists declared env values when supplied (browser-use)', async () => {
+      mockRepo.getByName.mockResolvedValue(null);
+      mockRepo.create.mockImplementation(async (input: Record<string, unknown>) => ({
+        ...sampleServer,
+        ...input,
+        id: 'mcp-bu',
+      }));
+
+      const res = await app.request('/mcp/presets/browser-use/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          env: { OPENAI_API_KEY: 'sk-real', UNDECLARED_VAR: 'leak' },
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const createArgs = mockRepo.create.mock.calls[0]![0];
+      expect(createArgs.env).toEqual({ OPENAI_API_KEY: 'sk-real' });
+    });
+  });
 });
