@@ -27,6 +27,8 @@ import {
   executeCodingAgentTool,
   CLI_TOOL_TOOLS,
   executeCliToolTool,
+  CLI_WRAPPER_TOOLS,
+  executeCliWrapperTool,
   BROWSER_TOOLS,
   executeBrowserTool,
   EDGE_TOOLS,
@@ -270,6 +272,20 @@ export function createCliToolProvider(userId: string): ToolProvider {
       CLI_TOOL_TOOLS.map((def) => ({
         definition: def,
         executor: wrapGatewayExecutor(def, executeCliToolTool, userId),
+      })),
+  };
+}
+
+/**
+ * Create a provider for named CLI wrappers (gh, git, docker, npm).
+ */
+export function createCliWrapperProvider(userId: string): ToolProvider {
+  return {
+    name: 'cli-wrappers',
+    getTools: () =>
+      CLI_WRAPPER_TOOLS.map((def) => ({
+        definition: def,
+        executor: wrapGatewayExecutor(def, executeCliWrapperTool, userId),
       })),
   };
 }

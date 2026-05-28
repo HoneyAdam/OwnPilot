@@ -12,6 +12,7 @@ export { PULSE_TOOLS, executePulseTool } from './pulse-tools.js';
 export { NOTIFICATION_TOOLS, executeNotificationTool } from './notification-tools.js';
 export { CODING_AGENT_TOOLS, executeCodingAgentTool } from './coding-agent-tools.js';
 export { CLI_TOOL_TOOLS, executeCliToolTool } from './cli-tool-tools.js';
+export { CLI_WRAPPER_TOOLS, executeCliWrapperTool } from './cli-wrapper-tools.js';
 export { EVENT_TOOLS, executeEventTool } from './event-tools.js';
 export { ARTIFACT_TOOLS, executeArtifactTool } from './artifact-tools.js';
 export { BROWSER_TOOLS, executeBrowserTool } from './browser-tools.js';

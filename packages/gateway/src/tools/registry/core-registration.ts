@@ -66,6 +66,10 @@ import {
   executeCanvasTool,
   BROWSER_TOOLS,
   executeBrowserTool,
+  CLI_TOOL_TOOLS,
+  executeCliToolTool,
+  CLI_WRAPPER_TOOLS,
+  executeCliWrapperTool,
 } from '../index.js';
 import { CONFIG_TOOLS, executeConfigTool } from '../config-tools.js';
 import {
@@ -160,6 +164,27 @@ export function registerGatewayTools(tools: ToolRegistry, userId: string, trace:
       // screenshot, extract.
       definitions: BROWSER_TOOLS,
       executor: executeBrowserTool,
+      needsUserId: true,
+    },
+    {
+      // CLI tool execution (catalog-allowlisted spawn). Same chat-only gap as
+      // browser tools: autonomous agents could not call run_cli_tool /
+      // list_cli_tools / install_cli_tool. Registering here lets claws and
+      // heartbeats invoke eslint, tsc, vitest, git, gh, docker, jq, rg, etc.
+      // through the existing safe catalog (no shell injection, per-tool risk
+      // policies enforced by CliToolService).
+      definitions: CLI_TOOL_TOOLS,
+      executor: executeCliToolTool,
+      needsUserId: true,
+    },
+    {
+      // Named CLI wrappers (gh, git, docker, npm) that delegate to
+      // cliToolService.executeTool — same allowlist / policy / spawn guarantees
+      // as run_cli_tool, but with typed subcommand parameters for
+      // discoverability (gh_pr_create vs run_cli_tool('gh', ['pr', 'create',
+      // '--title', ..., '--body', ...])).
+      definitions: CLI_WRAPPER_TOOLS,
+      executor: executeCliWrapperTool,
       needsUserId: true,
     },
   ];

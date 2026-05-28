@@ -176,6 +176,10 @@ vi.mock('./index.js', () => ({
   executeCanvasTool: vi.fn(),
   BROWSER_TOOLS: [],
   executeBrowserTool: vi.fn(),
+  CLI_TOOL_TOOLS: [],
+  executeCliToolTool: vi.fn(),
+  CLI_WRAPPER_TOOLS: [],
+  executeCliWrapperTool: vi.fn(),
 }));
 vi.mock('./config-tools.js', () => ({
   CONFIG_TOOLS: [],
