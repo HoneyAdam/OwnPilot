@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { profileApi, type InferredProfileEntry } from '../../api/endpoints/profile';
 import { useToast } from '../../components/ToastProvider';
-import { Trash2 } from '../../components/icons';
+import { Check, Trash2 } from '../../components/icons';
 
 interface Props {
   /** Optional callback fired after a successful delete (e.g. to refresh parent profile). */
@@ -24,6 +24,7 @@ export function InferredFactsPanel({ onChange }: Props) {
   const [entries, setEntries] = useState<InferredProfileEntry[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
+  const [pendingConfirmKey, setPendingConfirmKey] = useState<string | null>(null);
 
   const fetchEntries = useCallback(async () => {
     setIsLoading(true);
@@ -65,6 +66,25 @@ export function InferredFactsPanel({ onChange }: Props) {
         toast.error('Failed to delete entry');
       } finally {
         setPendingDeleteKey(null);
+      }
+    },
+    [onChange, toast]
+  );
+
+  const handleConfirm = useCallback(
+    async (entry: InferredProfileEntry) => {
+      const composite = `${entry.category}:${entry.key}`;
+      setPendingConfirmKey(composite);
+      try {
+        await profileApi.confirmInferred(entry.category, entry.key);
+        // Promoted out of ai_inferred → drop from this panel.
+        setEntries((prev) => prev?.filter((e) => e.id !== entry.id) ?? null);
+        toast.success(`Confirmed "${entry.key}"`);
+        onChange?.();
+      } catch {
+        toast.error('Failed to confirm entry');
+      } finally {
+        setPendingConfirmKey(null);
       }
     },
     [onChange, toast]
@@ -123,7 +143,9 @@ export function InferredFactsPanel({ onChange }: Props) {
             <ul className="divide-y divide-border dark:divide-dark-border">
               {items.map((e) => {
                 const composite = `${e.category}:${e.key}`;
-                const pending = pendingDeleteKey === composite;
+                const deletePending = pendingDeleteKey === composite;
+                const confirmPending = pendingConfirmKey === composite;
+                const busy = deletePending || confirmPending;
                 const confidencePct = Math.round(e.confidence * 100);
                 return (
                   <li
@@ -162,8 +184,17 @@ export function InferredFactsPanel({ onChange }: Props) {
                       </div>
                     </div>
                     <button
+                      onClick={() => handleConfirm(e)}
+                      disabled={busy}
+                      className="p-1.5 text-text-muted hover:text-success disabled:opacity-50"
+                      aria-label={`Confirm inferred entry ${e.key}`}
+                      title="Confirm — promote to user-confirmed so learning won't change it"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleDelete(e)}
-                      disabled={pending}
+                      disabled={busy}
                       className="p-1.5 text-text-muted hover:text-danger disabled:opacity-50"
                       aria-label={`Delete inferred entry ${e.key}`}
                       title="Delete this inferred entry"

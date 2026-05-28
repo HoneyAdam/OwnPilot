@@ -18,6 +18,7 @@ const mockStore = {
   getProfile: vi.fn(async () => ({ name: 'Test User', categories: {} })),
   getProfileSummary: vi.fn(async () => 'User is a developer based in Istanbul.'),
   getCategory: vi.fn(async () => [{ key: 'name', value: 'Test', confidence: 1.0 }]),
+  get: vi.fn(async () => null),
   set: vi.fn(async () => ({ key: 'name', value: 'Test', category: 'identity' })),
   delete: vi.fn(async () => true),
   search: vi.fn(async () => [{ key: 'name', value: 'Test', category: 'identity' }]),
@@ -263,6 +264,91 @@ describe('Profile Routes', () => {
       const json = await res.json();
       expect(json.data.count).toBe(0);
       expect(json.data.entries).toEqual([]);
+    });
+  });
+
+  describe('POST /profile/inferred/confirm', () => {
+    it('promotes an ai_inferred entry to user_confirmed with confidence=1', async () => {
+      mockStore.get.mockResolvedValueOnce({
+        id: '7',
+        category: 'hobbies',
+        key: 'sport',
+        value: 'climbing',
+        source: 'ai_inferred',
+        confidence: 0.7,
+        sensitive: false,
+        data: undefined,
+        updatedAt: '2026-05-27T10:00:00Z',
+      });
+      mockStore.set.mockResolvedValueOnce({
+        id: '7',
+        category: 'hobbies',
+        key: 'sport',
+        value: 'climbing',
+        source: 'user_confirmed',
+        confidence: 1,
+        sensitive: false,
+        updatedAt: '2026-05-27T11:00:00Z',
+      });
+
+      const res = await app.request('/profile/inferred/confirm?category=hobbies&key=sport', {
+        method: 'POST',
+      });
+      expect(res.status).toBe(200);
+      expect(mockStore.set).toHaveBeenCalledWith(
+        'hobbies',
+        'sport',
+        'climbing',
+        expect.objectContaining({ source: 'user_confirmed', confidence: 1 })
+      );
+    });
+
+    it('also accepts a JSON body', async () => {
+      mockStore.get.mockResolvedValueOnce({
+        id: '8',
+        category: 'food',
+        key: 'breakfast',
+        value: 'oatmeal',
+        source: 'ai_inferred',
+        confidence: 0.6,
+        sensitive: false,
+        updatedAt: '2026-05-27T10:00:00Z',
+      });
+      mockStore.set.mockResolvedValueOnce({});
+
+      const res = await app.request('/profile/inferred/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: 'food', key: 'breakfast' }),
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 404 when the entry does not exist', async () => {
+      mockStore.get.mockResolvedValueOnce(null);
+      const res = await app.request('/profile/inferred/confirm?category=hobbies&key=ghost', {
+        method: 'POST',
+      });
+      expect(res.status).toBe(404);
+      expect(mockStore.set).not.toHaveBeenCalled();
+    });
+
+    it('refuses to confirm an entry that is not ai_inferred', async () => {
+      mockStore.get.mockResolvedValueOnce({
+        id: '9',
+        category: 'identity',
+        key: 'name',
+        value: 'Alice',
+        source: 'user_stated',
+        confidence: 1,
+        sensitive: false,
+        updatedAt: '2026-05-27T10:00:00Z',
+      });
+      const res = await app.request('/profile/inferred/confirm?category=identity&key=name', {
+        method: 'POST',
+      });
+      expect(res.status).toBe(400);
+      expect(mockStore.set).not.toHaveBeenCalled();
     });
   });
 

@@ -299,6 +299,69 @@ app.post('/import', async (c) => {
 });
 
 /**
+ * POST /profile/inferred/confirm — promote an ai_inferred entry to
+ * user_confirmed so subsequent profile-learning passes treat it as
+ * canonical (learnInferred() never overwrites user_confirmed). Accepts
+ * { category, key } as either body or query params (mirrors DELETE /data).
+ * 404 when the entry doesn't exist or isn't currently ai_inferred —
+ * confirming user_stated / user_confirmed / imported is a no-op we
+ * reject so the operator notices the wrong call instead of silently
+ * stamping a confidence change onto unrelated data.
+ */
+app.post('/inferred/confirm', async (c) => {
+  try {
+    const queryCategory = c.req.query('category');
+    const queryKey = c.req.query('key');
+    let input: unknown;
+    if (queryCategory && queryKey) {
+      input = { category: queryCategory, key: queryKey };
+    } else {
+      input = await parseJsonBody(c);
+    }
+    const { profileDeleteDataSchema } = await import('../middleware/validation.js');
+    const parsed = profileDeleteDataSchema.safeParse(input);
+    if (!parsed.success) return zodValidationError(c, parsed.error.issues);
+
+    const { category, key } = parsed.data;
+    const store = await getPersonalMemoryStore(getUserId(c));
+    const existing = await store.get(category as PersonalDataCategory, key);
+    if (!existing) {
+      return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Entry not found' }, 404);
+    }
+    if (existing.source !== 'ai_inferred') {
+      return apiError(
+        c,
+        {
+          code: ERROR_CODES.INVALID_INPUT,
+          message: `Entry source is "${existing.source}", not "ai_inferred"`,
+        },
+        400
+      );
+    }
+
+    const updated = await store.set(category as PersonalDataCategory, key, existing.value, {
+      data: existing.data,
+      source: 'user_confirmed',
+      // Promote confidence — the user has explicitly endorsed this fact.
+      confidence: 1.0,
+      sensitive: existing.sensitive,
+    });
+
+    getMemoryInjector().invalidateCache(getUserId(c));
+    return apiResponse(c, updated);
+  } catch (error) {
+    return apiError(
+      c,
+      {
+        code: ERROR_CODES.DATA_SET_ERROR,
+        message: getErrorMessage(error, 'Failed to confirm entry'),
+      },
+      500
+    );
+  }
+});
+
+/**
  * GET /profile/inferred — list every entry the profile-learning loop wrote
  * with source='ai_inferred'. Lets users audit what the AI assumed about them
  * and delete entries they disagree with, without dumping the whole profile.
