@@ -8,6 +8,7 @@ import {
   searchWebExecutor,
   jsonApiTool,
   jsonApiExecutor,
+  readResponseBodySafely,
   WEB_FETCH_TOOLS,
 } from './web-fetch.js';
 
@@ -52,6 +53,11 @@ function mockResponse(
 
   const headerMap = new Map(Object.entries(headers));
 
+  // Keep text() and json() consistent the way a real Response is: when a json
+  // payload is given, the wire body IS its serialization. readResponseBodySafely
+  // reads text() then parses, so the two must agree.
+  const wireBody = json !== undefined ? JSON.stringify(json) : body;
+
   return {
     ok,
     status,
@@ -65,11 +71,12 @@ function mockResponse(
         headerMap.forEach((v, k) => cb(v, k));
       },
     },
-    text: vi.fn().mockResolvedValue(body),
-    json:
-      json !== undefined
-        ? vi.fn().mockResolvedValue(json)
-        : vi.fn().mockImplementation(() => Promise.resolve(JSON.parse(body || '{}'))),
+    text: vi.fn().mockResolvedValue(wireBody),
+    json: vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(json !== undefined ? json : JSON.parse(body || '{}'))
+      ),
   } as unknown as Response;
 }
 
@@ -427,6 +434,28 @@ describe('httpRequestExecutor', () => {
     );
     const result = await httpRequestExecutor({ url: 'https://example.com' }, ctx);
     expect((result.content as any).body).toBe('hello world');
+  });
+
+  it('returns null body for a HEAD request advertising JSON (no parse error)', async () => {
+    // HEAD has no body even when content-type says JSON — must not throw.
+    fetchMock.mockResolvedValue(
+      mockResponse({ headers: { 'content-type': 'application/json' }, body: '' })
+    );
+    const result = await httpRequestExecutor(
+      { url: 'https://models.dev/api.json', method: 'HEAD' },
+      ctx
+    );
+    expect(result.isError).toBeFalsy();
+    expect((result.content as any).body).toBeNull();
+  });
+
+  it('returns null body for an empty JSON-labeled response instead of throwing', async () => {
+    fetchMock.mockResolvedValue(
+      mockResponse({ headers: { 'content-type': 'application/json' }, body: '   ' })
+    );
+    const result = await httpRequestExecutor({ url: 'https://example.com' }, ctx);
+    expect(result.isError).toBeFalsy();
+    expect((result.content as any).body).toBeNull();
   });
 
   it('returns response headers', async () => {
@@ -1065,6 +1094,28 @@ describe('jsonApiExecutor', () => {
     expect((result.content as any).data).toBe('plain text');
   });
 
+  it('treats a 304 Not Modified (ETag cache hit) as success, not an error', async () => {
+    // If-None-Match cache hit: server replies 304 with an empty body. This must
+    // be reported as a successful cache-hit, not a JSON parse failure.
+    fetchMock.mockResolvedValue(
+      mockResponse({
+        ok: false,
+        status: 304,
+        statusText: 'Not Modified',
+        headers: { 'content-type': 'application/json' },
+        body: '',
+      })
+    );
+    const result = await jsonApiExecutor(
+      { url: 'https://models.dev/api.json', headers: { 'If-None-Match': 'W/"abc"' } },
+      ctx
+    );
+    expect(result.isError).toBeFalsy();
+    expect((result.content as any).status).toBe(304);
+    expect((result.content as any).notModified).toBe(true);
+    expect((result.content as any).data).toBeNull();
+  });
+
   it('merges custom headers with defaults', async () => {
     fetchMock.mockResolvedValue(
       mockResponse({ headers: { 'content-type': 'application/json' }, json: {} })
@@ -1183,11 +1234,11 @@ describe('cross-executor security consistency', () => {
 // =============================================================================
 
 describe('edge cases', () => {
-  it('httpRequestExecutor handles empty response body', async () => {
+  it('httpRequestExecutor normalizes an empty response body to null', async () => {
     fetchMock.mockResolvedValue(mockResponse({ body: '' }));
     const result = await httpRequestExecutor({ url: 'https://example.com' }, ctx);
     expect(result.isError).toBe(false);
-    expect((result.content as any).body).toBe('');
+    expect((result.content as any).body).toBeNull();
   });
 
   it('httpRequestExecutor handles content-length header of 0', async () => {
@@ -1284,5 +1335,59 @@ describe('DNS rebinding protection (isPrivateUrlAsync)', () => {
     const result = await jsonApiExecutor({ url: 'https://public-api.example.com' }, ctx);
     expect(result.isError).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// =============================================================================
+// readResponseBodySafely — empty-body / mislabeled-JSON tolerance
+// =============================================================================
+
+describe('readResponseBodySafely', () => {
+  const resp = (opts: { status?: number; contentType?: string; text?: string }): Response =>
+    ({
+      status: opts.status ?? 200,
+      headers: { get: (n: string) => (n === 'content-type' ? (opts.contentType ?? '') : null) },
+      text: () => Promise.resolve(opts.text ?? ''),
+    }) as unknown as Response;
+
+  it('returns null for a HEAD request without reading the body', async () => {
+    expect(
+      await readResponseBodySafely(resp({ contentType: 'application/json' }), 'HEAD')
+    ).toBeNull();
+  });
+
+  it('returns null for 204 and 304 regardless of method', async () => {
+    expect(await readResponseBodySafely(resp({ status: 204 }), 'GET')).toBeNull();
+    expect(await readResponseBodySafely(resp({ status: 304 }), 'GET')).toBeNull();
+  });
+
+  it('returns null for an empty/whitespace JSON-labeled body', async () => {
+    expect(
+      await readResponseBodySafely(resp({ contentType: 'application/json', text: '   ' }), 'GET')
+    ).toBeNull();
+  });
+
+  it('parses a valid JSON body', async () => {
+    const out = await readResponseBodySafely(
+      resp({ contentType: 'application/json', text: '{"a":1}' }),
+      'GET'
+    );
+    expect(out).toEqual({ a: 1 });
+  });
+
+  it('falls back to raw text when JSON is mislabeled (does not throw)', async () => {
+    const out = await readResponseBodySafely(
+      resp({ contentType: 'application/json', text: 'not json' }),
+      'GET'
+    );
+    expect(out).toBe('not json');
+  });
+
+  it('returns raw text for non-JSON content', async () => {
+    const out = await readResponseBodySafely(
+      resp({ contentType: 'text/plain', text: 'hello' }),
+      'GET'
+    );
+    expect(out).toBe('hello');
   });
 });

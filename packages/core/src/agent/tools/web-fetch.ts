@@ -24,6 +24,37 @@ const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
 // Security: Request timeout (30 seconds)
 const REQUEST_TIMEOUT = 30000;
 
+/**
+ * Read a fetch Response body without throwing on a legitimately empty payload.
+ *
+ * A HEAD request, a 204 No Content, and a 304 Not Modified all carry no body by
+ * spec — yet the server often still advertises `content-type: application/json`.
+ * Calling `response.json()` on that empty payload throws "Unexpected end of JSON
+ * input", which surfaced as a hard tool failure for agents doing the *right*
+ * thing: HEAD for change-detection and `If-None-Match` ETag caching (every
+ * cache-hit returns 304). Returns `null` for an empty body, the parsed object for
+ * JSON, and raw text otherwise — and falls back to raw text if a server mislabels
+ * non-JSON as JSON rather than throwing.
+ */
+export async function readResponseBodySafely(response: Response, method: string): Promise<unknown> {
+  if (method.toUpperCase() === 'HEAD' || response.status === 204 || response.status === 304) {
+    return null;
+  }
+  const text = await response.text();
+  if (text.trim() === '') {
+    return null;
+  }
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+  return text;
+}
+
 // Security: Blocked domains (internal/dangerous)
 const BLOCKED_DOMAINS = [
   'localhost',
@@ -297,18 +328,11 @@ export const httpRequestExecutor: ToolExecutor = async (
       };
     }
 
-    // Read response body
-    const contentType = responseHeaders['content-type'] || '';
-    let responseBody: unknown;
-
-    if (contentType.includes('application/json')) {
-      responseBody = await response.json();
-    } else {
-      let textBody = await response.text();
-      if (textBody.length > MAX_RESPONSE_SIZE) {
-        textBody = textBody.slice(0, MAX_RESPONSE_SIZE) + '\n\n... [Truncated]';
-      }
-      responseBody = textBody;
+    // Read response body — tolerant of empty payloads (HEAD / 204 / 304) and of
+    // servers that mislabel non-JSON as application/json.
+    let responseBody = await readResponseBodySafely(response, method);
+    if (typeof responseBody === 'string' && responseBody.length > MAX_RESPONSE_SIZE) {
+      responseBody = responseBody.slice(0, MAX_RESPONSE_SIZE) + '\n\n... [Truncated]';
     }
 
     return {
@@ -662,21 +686,22 @@ export const jsonApiExecutor: ToolExecutor = async (
       return { content: { error: redirectError }, isError: true };
     }
 
-    let responseData: unknown;
-    const contentType = response.headers.get('content-type') || '';
+    // Tolerant body read: HEAD / 204 / 304 carry no body, and the most common
+    // caller pattern here is If-None-Match ETag caching whose cache-hit is a 304.
+    const responseData = await readResponseBodySafely(response, method);
 
-    if (contentType.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
+    // 304 Not Modified is a success for a caching client — it means "your cached
+    // copy is still valid", not a failure. Flag it explicitly so the agent knows
+    // to reuse its cache instead of treating the empty body as an error.
+    const notModified = response.status === 304;
 
     return {
       content: {
         status: response.status,
+        ...(notModified ? { notModified: true } : {}),
         data: responseData,
       },
-      isError: !response.ok,
+      isError: !response.ok && !notModified,
     };
   } catch (error: unknown) {
     const err = error as Error;
