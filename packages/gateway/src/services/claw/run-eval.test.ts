@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateClawRun } from './run-eval.js';
+import { evaluateClawRun, aggregateFleetEval } from './run-eval.js';
 import type { ClawHistoryEntry, ClawToolCall } from '@ownpilot/core';
 
 function call(over: Partial<ClawToolCall> = {}): ClawToolCall {
@@ -161,5 +161,94 @@ describe('evaluateClawRun', () => {
   it('attaches the claw id when config is provided', () => {
     const r = evaluateClawRun([entry()], { id: 'claw_abc' });
     expect(r.clawId).toBe('claw_abc');
+  });
+});
+
+describe('aggregateFleetEval', () => {
+  const failCall = (tool: string, result: string): ClawToolCall =>
+    call({ tool, success: false, result });
+
+  it('handles an empty fleet', () => {
+    const f = aggregateFleetEval([]);
+    expect(f.clawsEvaluated).toBe(0);
+    expect(f.fleetReliabilityScore).toBeNull();
+    expect(f.fleetToolSuccessRate).toBe(0);
+    expect(f.topRepeatedFailures).toEqual([]);
+  });
+
+  it('sums totals and computes a tool-call-weighted fleet score', () => {
+    const a = evaluateClawRun(
+      [entry({ toolCalls: [call(), call(), call(), call()] })], // 4 calls, all ok -> high score
+      { id: 'a' }
+    );
+    const b = evaluateClawRun(
+      [entry({ success: false, toolCalls: [failCall('core.x', 'boom')] })], // 1 call, fails
+      { id: 'b' }
+    );
+    const f = aggregateFleetEval([
+      { name: 'A', evaluation: a },
+      { name: 'B', evaluation: b },
+    ]);
+    expect(f.clawsEvaluated).toBe(2);
+    expect(f.totals.toolCalls).toBe(5);
+    expect(f.totals.toolsFailed).toBe(1);
+    expect(f.fleetToolSuccessRate).toBe(0.8);
+    // Weighted by calls (4 vs 1), so the healthy claw dominates the fleet score.
+    expect(f.fleetReliabilityScore).toBeGreaterThan(a.reliabilityScore! - 30);
+    expect(f.fleetReliabilityScore).toBeLessThanOrEqual(a.reliabilityScore!);
+  });
+
+  it('ranks the weakest claw first and puts no-data claws last', () => {
+    const strong = evaluateClawRun([entry({ toolCalls: [call(), call()] })], { id: 'strong' });
+    const weak = evaluateClawRun(
+      [
+        entry({
+          success: false,
+          toolCalls: [failCall('core.y', 'err'), failCall('core.y', 'err')],
+        }),
+      ],
+      { id: 'weak' }
+    );
+    const empty = evaluateClawRun([], { id: 'empty' });
+    const f = aggregateFleetEval([
+      { name: 'strong', evaluation: strong },
+      { name: 'empty', evaluation: empty },
+      { name: 'weak', evaluation: weak },
+    ]);
+    expect(f.perClaw[0].name).toBe('weak'); // worst score first
+    expect(f.perClaw[f.perClaw.length - 1].name).toBe('empty'); // null score last
+  });
+
+  it('merges repeated failures across claws and counts affected claws', () => {
+    // Same failure signature in two different claws -> systemic, claws: 2.
+    const c1 = evaluateClawRun(
+      [
+        entry({
+          toolCalls: [
+            failCall('core.edit_file', 'Error: oldText not found near line 1'),
+            failCall('core.edit_file', 'Error: oldText not found near line 2'),
+          ],
+        }),
+      ],
+      { id: 'c1' }
+    );
+    const c2 = evaluateClawRun(
+      [
+        entry({
+          toolCalls: [
+            failCall('core.edit_file', 'Error: oldText not found near line 9'),
+            failCall('core.edit_file', 'Error: oldText not found near line 7'),
+          ],
+        }),
+      ],
+      { id: 'c2' }
+    );
+    const f = aggregateFleetEval([
+      { name: 'c1', evaluation: c1 },
+      { name: 'c2', evaluation: c2 },
+    ]);
+    expect(f.topRepeatedFailures[0].tool).toBe('core.edit_file');
+    expect(f.topRepeatedFailures[0].count).toBe(4); // 2 + 2
+    expect(f.topRepeatedFailures[0].claws).toBe(2); // systemic across the fleet
   });
 });

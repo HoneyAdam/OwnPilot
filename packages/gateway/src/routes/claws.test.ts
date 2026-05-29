@@ -1106,6 +1106,60 @@ describe('Claws Routes', () => {
     });
   });
 
+  describe('GET /claws/fleet/eval', () => {
+    it('aggregates reliability across all claws', async () => {
+      service.listClaws.mockResolvedValue([
+        { id: 'claw-1', name: 'Alpha' },
+        { id: 'claw-2', name: 'Beta' },
+      ]);
+      service.getHistory.mockImplementation((id: string) =>
+        Promise.resolve({
+          entries: [
+            {
+              id: `h-${id}`,
+              clawId: id,
+              cycleNumber: 1,
+              entryType: 'cycle',
+              success: true,
+              toolCalls: [
+                { tool: 'core.read_file', args: {}, result: 'ok', success: true, durationMs: 1 },
+                {
+                  tool: 'core.edit_file',
+                  args: {},
+                  result: 'Error: oldText not found',
+                  success: false,
+                  durationMs: 1,
+                },
+                {
+                  tool: 'core.edit_file',
+                  args: {},
+                  result: 'Error: oldText not found',
+                  success: false,
+                  durationMs: 1,
+                },
+              ],
+              outputMessage: '',
+              durationMs: 100,
+              executedAt: new Date().toISOString(),
+            },
+          ],
+          total: 1,
+        })
+      );
+
+      const res = await app.request('/claws/fleet/eval');
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.data.clawsEvaluated).toBe(2);
+      expect(body.data.totals.toolCalls).toBe(6); // 3 per claw
+      // edit_file repeated failure is systemic across both claws
+      expect(body.data.topRepeatedFailures[0].tool).toBe('core.edit_file');
+      expect(body.data.topRepeatedFailures[0].claws).toBe(2);
+      expect(typeof body.data.fleetReliabilityScore).toBe('number');
+    });
+  });
+
   // ---- Escalation ----
 
   describe('POST /claws/:id/approve-escalation', () => {

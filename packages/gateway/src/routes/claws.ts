@@ -600,6 +600,31 @@ clawRoutes.get('/stats', async (c) => {
   }
 });
 
+// GET /fleet/eval - Fleet-wide reliability: one army-health number plus the
+// repeated failures that hit the most claws (highest-leverage fixes first).
+// Registered before the /:id routes so "fleet" is not parsed as a claw id.
+clawRoutes.get('/fleet/eval', async (c) => {
+  try {
+    const userId = getUserId(c);
+    const { limit } = getPaginationParams(c);
+    const perClawLimit = Math.min(limit || 200, 500);
+    const service = getClawService();
+    const configs = await service.listClaws(userId);
+
+    const { evaluateClawRun, aggregateFleetEval } = await import('../services/claw/run-eval.js');
+    const evals = await Promise.all(
+      configs.map(async (config) => {
+        const { entries } = await service.getHistory(config.id, userId, perClawLimit, 0);
+        return { name: config.name, evaluation: evaluateClawRun(entries, config) };
+      })
+    );
+
+    return apiResponse(c, aggregateFleetEval(evals));
+  } catch (err) {
+    return apiError(c, { code: ERROR_CODES.INTERNAL_ERROR, message: getErrorMessage(err) }, 500);
+  }
+});
+
 // GET /health - Claw health indicators
 clawRoutes.get('/health', async (c) => {
   try {
