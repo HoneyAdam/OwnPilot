@@ -264,6 +264,43 @@ const browserPressKeyDef: ToolDefinition = {
   },
 };
 
+const browserNavigateBackDef: ToolDefinition = {
+  name: 'browser_navigate_back',
+  brief: 'Go back one page in browser history',
+  description:
+    'Navigates back to the previous page in history — the standard way to return ' +
+    'from a detail/article page to the list you came from, so you can continue with ' +
+    'the next item without re-running a search or re-applying filters. Returns ' +
+    'navigated:false when there is no history to go back to (then navigate by URL instead).',
+  category: 'Browser',
+  tags: ['browser', 'navigate', 'back', 'history'],
+  parameters: {
+    type: 'object',
+    properties: {},
+  },
+};
+
+const browserHoverDef: ToolDefinition = {
+  name: 'browser_hover',
+  brief: 'Hover the pointer over an element',
+  description:
+    'Moves the pointer over an element to reveal hover-gated UI — dropdown menus, ' +
+    'tooltips, and controls that only appear on hover — before you click or read them. ' +
+    'Pair with browser_accessibility_tree afterwards to see what the hover revealed.',
+  category: 'Browser',
+  tags: ['browser', 'hover', 'menu', 'tooltip'],
+  parameters: {
+    type: 'object',
+    properties: {
+      selector: {
+        type: 'string',
+        description: 'CSS selector for the element to hover over.',
+      },
+    },
+    required: ['selector'],
+  },
+};
+
 const browserGetStateDef: ToolDefinition = {
   name: 'browser_get_state',
   brief: 'Read the current URL + title without acting on the page',
@@ -314,6 +351,8 @@ export const BROWSER_TOOLS: ToolDefinition[] = [
   browserScrollDef,
   browserSelectDef,
   browserPressKeyDef,
+  browserNavigateBackDef,
+  browserHoverDef,
   browserGetStateDef,
   browserAccessibilityTreeDef,
 ];
@@ -446,6 +485,18 @@ export async function executeBrowserTool(
         if (!key) return { success: false, error: 'key is required' };
         const selector = args.selector as string | undefined;
         const result = await service.pressKey(uid, key, selector);
+        return { success: true, result };
+      }
+
+      case 'browser_navigate_back': {
+        const result = await service.goBack(uid);
+        return { success: true, result };
+      }
+
+      case 'browser_hover': {
+        const selector = args.selector as string;
+        if (!selector) return { success: false, error: 'selector is required' };
+        const result = await service.hover(uid, selector);
         return { success: true, result };
       }
 

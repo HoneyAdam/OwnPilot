@@ -454,6 +454,16 @@ export const TOOL_SEARCH_TAGS: Record<string, readonly string[]> = {
     'scrape',
   ],
   browser_click: ['browser', 'click', 'button', 'link', 'web', 'page', 'tap', 'press'],
+  browser_navigate_back: [
+    'browser',
+    'back',
+    'go back',
+    'history',
+    'previous page',
+    'return',
+    'web',
+  ],
+  browser_hover: ['browser', 'hover', 'mouseover', 'menu', 'tooltip', 'dropdown', 'reveal', 'web'],
   browser_type: ['browser', 'type', 'input', 'text', 'enter', 'fill', 'web', 'form field'],
   browser_fill_form: [
     'browser',

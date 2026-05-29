@@ -53,6 +53,8 @@ const {
   // Mock puppeteer Page
   const mockPage = {
     goto: vi.fn().mockResolvedValue(undefined),
+    goBack: vi.fn().mockResolvedValue({}),
+    hover: vi.fn().mockResolvedValue(undefined),
     waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
     title: vi.fn().mockResolvedValue('Test Page'),
     url: vi.fn().mockReturnValue('https://example.com'),
@@ -184,6 +186,8 @@ describe('BrowserService', () => {
     });
 
     mockPage.goto.mockResolvedValue(undefined);
+    mockPage.goBack.mockResolvedValue({});
+    mockPage.hover.mockResolvedValue(undefined);
     mockPage.waitForNetworkIdle.mockResolvedValue(undefined);
     mockPage.title.mockResolvedValue('Test Page');
     mockPage.url.mockReturnValue('https://example.com');
@@ -523,6 +527,59 @@ describe('BrowserService', () => {
       await expect(service.click('no-session-user', '#btn')).rejects.toThrow(
         'No active browser session'
       );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // goBack
+  // ---------------------------------------------------------------------------
+
+  describe('goBack()', () => {
+    it('navigates back and reports navigated:true when history exists', async () => {
+      const service = await createServiceWithSession('user-back');
+      mockPage.goBack.mockResolvedValueOnce({ ok: true }); // non-null response
+
+      const result = await service.goBack('user-back');
+
+      expect(mockPage.goBack).toHaveBeenCalledWith(
+        expect.objectContaining({ waitUntil: 'domcontentloaded' })
+      );
+      expect(result.navigated).toBe(true);
+      expect(result.url).toBe('https://example.com');
+    });
+
+    it('reports navigated:false when there is no history (null response)', async () => {
+      const service = await createServiceWithSession('user-back2');
+      mockPage.goBack.mockResolvedValueOnce(null);
+
+      const result = await service.goBack('user-back2');
+      expect(result.navigated).toBe(false);
+    });
+
+    it('throws when no active session exists', async () => {
+      const service = new BrowserService();
+      await expect(service.goBack('no-session')).rejects.toThrow('No active browser session');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // hover
+  // ---------------------------------------------------------------------------
+
+  describe('hover()', () => {
+    it('waits for the selector then hovers it', async () => {
+      const service = await createServiceWithSession('user-hover');
+
+      const result = await service.hover('user-hover', 'nav .menu');
+
+      expect(mockPage.waitForSelector).toHaveBeenCalledWith('nav .menu', { timeout: 10000 });
+      expect(mockPage.hover).toHaveBeenCalledWith('nav .menu');
+      expect(result.title).toBe('Test Page');
+    });
+
+    it('throws when no active session exists', async () => {
+      const service = new BrowserService();
+      await expect(service.hover('no-session', '.x')).rejects.toThrow('No active browser session');
     });
   });
 

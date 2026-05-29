@@ -1072,10 +1072,11 @@ describe('TOOL_SEARCH_TAGS — aggregate statistics', () => {
     }
   });
 
-  it('the exact tool count matches the source (230 tools)', () => {
+  it('the exact tool count matches the source (232 tools)', () => {
     // Total entry count is asserted; specific category breakdowns change as
     // tools are added/removed. Keep this assertion in sync with TOOL_SEARCH_TAGS.
     // 226 -> 230: added claw_save_skill, claw_recall_skill, browser_accessibility_tree, claw_execute.
-    expect(Object.keys(TOOL_SEARCH_TAGS).length).toBe(230);
+    // 230 -> 232: added browser_navigate_back, browser_hover.
+    expect(Object.keys(TOOL_SEARCH_TAGS).length).toBe(232);
   });
 });

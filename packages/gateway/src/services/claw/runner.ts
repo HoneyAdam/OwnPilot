@@ -424,6 +424,10 @@ export class ClawRunner {
     parts.push('| browser_press_key | Enter/Tab/Escape — keyboard-driven UIs |');
     parts.push('| browser_wait_for | Wait for SPA content before interacting |');
     parts.push('| browser_scroll | Reveal lazy-loaded content |');
+    parts.push(
+      '| browser_navigate_back | Return to the previous page (e.g. list after a detail) |'
+    );
+    parts.push('| browser_hover | Reveal dropdown menus / tooltips before clicking |');
     parts.push('| browser_get_state | Verify URL/title after navigation |');
     parts.push(
       '| browser_accessibility_tree | Structured role/name outline of the page (better than HTML for navigating) |'

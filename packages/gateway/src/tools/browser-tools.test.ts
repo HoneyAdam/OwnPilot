@@ -24,6 +24,8 @@ const mockService = {
   scroll: vi.fn(),
   select: vi.fn(),
   pressKey: vi.fn(),
+  goBack: vi.fn(),
+  hover: vi.fn(),
   getState: vi.fn(),
   accessibilityTree: vi.fn(),
 };
@@ -42,7 +44,7 @@ const { executeBrowserTool, BROWSER_TOOLS, BROWSER_TOOL_NAMES } =
 
 describe('BROWSER_TOOLS and BROWSER_TOOL_NAMES', () => {
   it('exports 12 tool definitions', () => {
-    expect(BROWSER_TOOLS).toHaveLength(12);
+    expect(BROWSER_TOOLS).toHaveLength(14);
   });
 
   it('BROWSER_TOOL_NAMES matches tool names', () => {
@@ -57,6 +59,8 @@ describe('BROWSER_TOOLS and BROWSER_TOOL_NAMES', () => {
     expect(BROWSER_TOOL_NAMES).toContain('browser_scroll');
     expect(BROWSER_TOOL_NAMES).toContain('browser_select');
     expect(BROWSER_TOOL_NAMES).toContain('browser_press_key');
+    expect(BROWSER_TOOL_NAMES).toContain('browser_navigate_back');
+    expect(BROWSER_TOOL_NAMES).toContain('browser_hover');
     expect(BROWSER_TOOL_NAMES).toContain('browser_get_state');
     expect(BROWSER_TOOL_NAMES).toContain('browser_accessibility_tree');
   });
@@ -381,6 +385,53 @@ describe('executeBrowserTool', () => {
   });
 
   // =========================================================================
+  // browser_navigate_back
+  // =========================================================================
+
+  describe('browser_navigate_back', () => {
+    it('forwards to goBack (no args required)', async () => {
+      mockService.goBack.mockResolvedValueOnce({
+        url: 'https://list',
+        title: 'List',
+        navigated: true,
+      });
+      const result = await executeBrowserTool('browser_navigate_back', {});
+      expect(result.success).toBe(true);
+      expect(mockService.goBack).toHaveBeenCalledWith('default');
+      expect((result.result as { navigated: boolean }).navigated).toBe(true);
+    });
+
+    it('passes through navigated:false when there is no history', async () => {
+      mockService.goBack.mockResolvedValueOnce({
+        url: 'https://a',
+        title: 'A',
+        navigated: false,
+      });
+      const result = await executeBrowserTool('browser_navigate_back', {});
+      expect((result.result as { navigated: boolean }).navigated).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // browser_hover
+  // =========================================================================
+
+  describe('browser_hover', () => {
+    it('rejects a missing selector', async () => {
+      const result = await executeBrowserTool('browser_hover', {});
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('selector');
+    });
+
+    it('forwards the selector to hover', async () => {
+      mockService.hover.mockResolvedValueOnce({ url: 'https://a', title: 'A' });
+      const result = await executeBrowserTool('browser_hover', { selector: 'nav .menu' });
+      expect(result.success).toBe(true);
+      expect(mockService.hover).toHaveBeenCalledWith('default', 'nav .menu');
+    });
+  });
+
+  // =========================================================================
   // browser_get_state
   // =========================================================================
 
@@ -426,7 +477,7 @@ describe('executeBrowserTool', () => {
   });
 
   it('returns error for unknown tool name', async () => {
-    const result = await executeBrowserTool('browser_hover', { selector: '.btn' });
+    const result = await executeBrowserTool('browser_teleport', { selector: '.btn' });
     expect(result.success).toBe(false);
     expect(result.error).toContain('Unknown browser tool');
   });

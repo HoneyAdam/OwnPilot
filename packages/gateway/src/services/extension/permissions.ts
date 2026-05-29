@@ -87,6 +87,8 @@ const PERMISSION_TOOL_MAP: Record<SkillPermission, string[]> = {
     'browser_scroll',
     'browser_select',
     'browser_press_key',
+    'browser_navigate_back',
+    'browser_hover',
     'browser_get_state',
   ],
   config: ['get_config', 'set_config', 'list_config'],

@@ -312,6 +312,42 @@ export class BrowserService {
   }
 
   // --------------------------------------------------------------------------
+  // Back navigation
+  // --------------------------------------------------------------------------
+
+  /**
+   * Go back one entry in the page history. The single most common need after
+   * clicking into a detail/article page: return to the list to continue. Returns
+   * `navigated: false` when there is no history to go back to (the agent then
+   * knows to navigate by URL instead of assuming it moved).
+   */
+  async goBack(userId: string): Promise<{ url: string; title: string; navigated: boolean }> {
+    const page = await this.getExistingPage(userId);
+    const response = await page.goBack({
+      waitUntil: 'domcontentloaded',
+      timeout: DEFAULT_NAVIGATION_TIMEOUT,
+    });
+    return { url: page.url(), title: await page.title(), navigated: response !== null };
+  }
+
+  // --------------------------------------------------------------------------
+  // Hover
+  // --------------------------------------------------------------------------
+
+  /**
+   * Hover the pointer over an element — reveals dropdown menus, tooltips, and
+   * hover-gated controls that must be visible before they can be clicked.
+   */
+  async hover(userId: string, selector: string): Promise<{ url: string; title: string }> {
+    const page = await this.getExistingPage(userId);
+    await waitForSelectorWithHint(page, selector, DEFAULT_ACTION_TIMEOUT);
+    await page.hover(selector);
+    // Brief settle so any hover-triggered menu/animation can render.
+    await new Promise((r) => setTimeout(r, 300));
+    return { url: page.url(), title: await page.title() };
+  }
+
+  // --------------------------------------------------------------------------
   // Type
   // --------------------------------------------------------------------------
 
