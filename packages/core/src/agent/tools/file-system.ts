@@ -1032,7 +1032,10 @@ const editFileTool: ToolDefinition = {
     'must occur exactly once — set `replaceAll:true` to replace every occurrence. ' +
     'Use this for surgical edits to large files where rewriting the whole file ' +
     'with write_file would be expensive. The file must already exist (use ' +
-    'write_file to create new files).',
+    'write_file to create new files). If an exact match is not found, a ' +
+    'whitespace/CRLF-tolerant match is attempted automatically (leading ' +
+    'indentation is still significant); the result reports whitespaceTolerant:true ' +
+    'when that path is taken.',
   parameters: {
     type: 'object',
     properties: {
@@ -1094,6 +1097,71 @@ export function buildEditMismatchHint(original: string, oldText: string): string
   return ' No similar text was found — the file content may differ from what you expect. Re-read the file before editing.';
 }
 
+/**
+ * Build a whitespace/CRLF-normalized projection of `text` plus a map from each
+ * kept character back to its original index. "Normalized" means: trailing spaces,
+ * tabs, and carriage returns before each line break are dropped. This is the only
+ * difference class the flexible matcher tolerates — leading indentation is preserved,
+ * so the match stays semantically faithful. Internal helper for `findFlexibleMatch`.
+ */
+function buildNormalizedWithMap(text: string): { norm: string; map: number[] } {
+  const norm: string[] = [];
+  const map: number[] = [];
+  const lines = text.split('\n');
+  let offset = 0;
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li] ?? '';
+    const trimmed = line.replace(/[ \t\r]+$/, '');
+    for (let c = 0; c < trimmed.length; c++) {
+      norm.push(trimmed.charAt(c));
+      map.push(offset + c);
+    }
+    const nlPos = offset + line.length;
+    if (li < lines.length - 1) {
+      norm.push('\n');
+      map.push(nlPos);
+    }
+    offset = nlPos + 1;
+  }
+  return { norm: norm.join(''), map };
+}
+
+/**
+ * Find `oldText` inside `original` tolerating only trailing-whitespace and
+ * CRLF-vs-LF differences — the single most common reason a model's `edit_file`
+ * call misses by a verbatim comparison. Returns the original-string char span to
+ * replace and how many such spans exist (so the caller can enforce uniqueness),
+ * or null when there is no whitespace-tolerant match at all.
+ *
+ * Exported for direct unit testing.
+ */
+export function findFlexibleMatch(
+  original: string,
+  oldText: string
+): { start: number; end: number; count: number } | null {
+  const { norm: normOrig, map } = buildNormalizedWithMap(original);
+  const { norm: normOld } = buildNormalizedWithMap(oldText);
+  if (normOld.length === 0) return null;
+
+  let count = 0;
+  let firstIdx = -1;
+  let from = 0;
+  for (;;) {
+    const idx = normOrig.indexOf(normOld, from);
+    if (idx === -1) break;
+    if (firstIdx === -1) firstIdx = idx;
+    count++;
+    from = idx + 1; // count overlapping occurrences conservatively
+  }
+  if (count === 0) return null;
+
+  const lastNorm = firstIdx + normOld.length - 1;
+  const start = map[firstIdx];
+  const lastOrig = map[lastNorm];
+  if (start === undefined || lastOrig === undefined) return null;
+  return { start, end: lastOrig + 1, count };
+}
+
 export const editFileExecutor: ToolExecutor = async (
   args,
   context
@@ -1128,12 +1196,60 @@ export const editFileExecutor: ToolExecutor = async (
 
     // Count occurrences (use split for exact substring match, not regex).
     const occurrences = original.split(oldText).length - 1;
+
+    // Exact match missed — try a whitespace/CRLF-tolerant fallback before
+    // giving up. This rescues the most common edit miss (the model copies the
+    // text but with different trailing whitespace or line endings) without
+    // resorting to fuzzy semantic matching, which could edit the wrong region.
     if (occurrences === 0) {
+      const flex = findFlexibleMatch(original, oldText);
+      if (!flex) {
+        return {
+          content: `Error: oldText not found in file. The file was not modified.${buildEditMismatchHint(original, oldText)}`,
+          isError: true,
+        };
+      }
+      if (flex.count > 1 && !replaceAll) {
+        return {
+          content: `Error: oldText occurs ${flex.count} times (whitespace-tolerant match). Set replaceAll:true to replace all, or extend oldText so it matches uniquely.`,
+          isError: true,
+        };
+      }
+
+      let updated: string;
+      let replacements: number;
+      if (replaceAll) {
+        // Re-scan from each match's end so every non-overlapping region is replaced.
+        let result = '';
+        let cursor = 0;
+        replacements = 0;
+        for (;;) {
+          const m = findFlexibleMatch(original.slice(cursor), oldText);
+          if (!m) break;
+          result += original.slice(cursor, cursor + m.start) + newText;
+          cursor += m.end;
+          replacements++;
+        }
+        result += original.slice(cursor);
+        updated = result;
+      } else {
+        updated = original.slice(0, flex.start) + newText + original.slice(flex.end);
+        replacements = 1;
+      }
+
+      await fs.writeFile(filePath, updated, 'utf-8');
       return {
-        content: `Error: oldText not found in file. The file was not modified.${buildEditMismatchHint(original, oldText)}`,
-        isError: true,
+        content: JSON.stringify({
+          success: true,
+          path: filePath,
+          replacements,
+          sizeBefore: original.length,
+          sizeAfter: updated.length,
+          whitespaceTolerant: true,
+        }),
       };
     }
+
     if (occurrences > 1 && !replaceAll) {
       return {
         content: `Error: oldText occurs ${occurrences} times. Set replaceAll:true to replace all, or extend oldText so it matches uniquely.`,

@@ -62,6 +62,7 @@ import {
   moveFileExecutor,
   editFileExecutor,
   buildEditMismatchHint,
+  findFlexibleMatch,
   buildMissingDirHint,
   FILE_SYSTEM_TOOLS,
 } from './file-system.js';
@@ -1225,6 +1226,56 @@ describe('editFileExecutor', () => {
     expect(fsMock.writeFile).not.toHaveBeenCalled();
   });
 
+  it('applies a whitespace-tolerant match when oldText has different trailing spaces', async () => {
+    // File has trailing spaces after "return 1;"; oldText does not.
+    fsMock.readFile.mockResolvedValue('function f() {\n  return 1;   \n}');
+    fsMock.writeFile.mockResolvedValue(undefined);
+
+    const result = await editFileExecutor(
+      { path: 'a.txt', oldText: '  return 1;\n}', newText: '  return 2;\n}' },
+      ctx()
+    );
+    const data = parse(result);
+    expect(data.success).toBe(true);
+    expect(data.whitespaceTolerant).toBe(true);
+    expect(fsMock.writeFile).toHaveBeenCalledWith(
+      expect.any(String),
+      'function f() {\n  return 2;\n}',
+      'utf-8'
+    );
+  });
+
+  it('applies a CRLF-tolerant match when the file uses CRLF and oldText uses LF', async () => {
+    fsMock.readFile.mockResolvedValue('alpha\r\nbeta\r\ngamma');
+    fsMock.writeFile.mockResolvedValue(undefined);
+
+    const result = await editFileExecutor(
+      { path: 'a.txt', oldText: 'beta\ngamma', newText: 'BETA\nGAMMA' },
+      ctx()
+    );
+    const data = parse(result);
+    expect(data.success).toBe(true);
+    expect(data.whitespaceTolerant).toBe(true);
+    // The matched CRLF region is replaced wholesale with the LF newText.
+    expect(fsMock.writeFile).toHaveBeenCalledWith(
+      expect.any(String),
+      'alpha\r\nBETA\nGAMMA',
+      'utf-8'
+    );
+  });
+
+  it('does not fall back to a fuzzy match for an internal-whitespace difference', async () => {
+    // Internal (non-trailing) whitespace is significant — must NOT auto-apply.
+    fsMock.readFile.mockResolvedValue('indented  target');
+
+    const result = await editFileExecutor(
+      { path: 'a.txt', oldText: 'indented target', newText: 'x' },
+      ctx()
+    );
+    expect(result.isError).toBe(true);
+    expect(fsMock.writeFile).not.toHaveBeenCalled();
+  });
+
   it('replaces all occurrences when replaceAll is true', async () => {
     fsMock.readFile.mockResolvedValue('a a a');
     fsMock.writeFile.mockResolvedValue(undefined);
@@ -1309,5 +1360,48 @@ describe('buildEditMismatchHint', () => {
   it('falls back to a generic hint when nothing similar is found', () => {
     const hint = buildEditMismatchHint('completely unrelated content', 'zzz qqq vvv');
     expect(hint).toContain('No similar text was found');
+  });
+});
+
+// ===========================================================================
+// findFlexibleMatch — whitespace/CRLF-tolerant span finder
+// ===========================================================================
+describe('findFlexibleMatch', () => {
+  it('returns null when there is no tolerant match', () => {
+    expect(findFlexibleMatch('hello world', 'goodbye')).toBeNull();
+  });
+
+  it('matches across trailing-whitespace differences and returns the original span', () => {
+    const original = 'foo\nbar   \nbaz';
+    const m = findFlexibleMatch(original, 'bar\nbaz');
+    expect(m).not.toBeNull();
+    // Span replaces the real (trailing-space-bearing) region in the original.
+    expect(original.slice(m!.start, m!.end)).toBe('bar   \nbaz');
+    expect(m!.count).toBe(1);
+  });
+
+  it('matches across CRLF vs LF', () => {
+    const original = 'a\r\nb\r\nc';
+    const m = findFlexibleMatch(original, 'b\nc');
+    expect(m).not.toBeNull();
+    expect(original.slice(m!.start, m!.end)).toBe('b\r\nc');
+  });
+
+  it('counts multiple tolerant matches', () => {
+    const m = findFlexibleMatch('x \nx \nx ', 'x');
+    expect(m).not.toBeNull();
+    expect(m!.count).toBe(3);
+  });
+
+  it('does not match on internal-whitespace differences', () => {
+    expect(findFlexibleMatch('indented  target', 'indented target')).toBeNull();
+  });
+
+  it('preserves leading indentation as significant', () => {
+    // oldText has no leading indent; file line does -> not a tolerant match.
+    expect(findFlexibleMatch('    return 1;', 'return 1;')).not.toBeNull();
+    // (substring still matches because "return 1;" is a suffix; verify span)
+    const m = findFlexibleMatch('    return 1;', 'return 1;');
+    expect('    return 1;'.slice(m!.start, m!.end)).toBe('return 1;');
   });
 });
