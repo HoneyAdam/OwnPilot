@@ -62,6 +62,7 @@ import {
   moveFileExecutor,
   editFileExecutor,
   buildEditMismatchHint,
+  buildMissingDirHint,
   FILE_SYSTEM_TOOLS,
 } from './file-system.js';
 
@@ -445,6 +446,58 @@ describe('listDirectoryExecutor additional coverage', () => {
     // Should stop at depth 5
     expect(data.count).toBeGreaterThan(0);
     expect(callCount).toBeLessThanOrEqual(6); // root + 5 levels
+  });
+
+  it('hints with the nearest existing directory on ENOENT', async () => {
+    const missing = path.resolve(WORKSPACE, 'downloads');
+    fsMock.readdir.mockImplementation(async (dir: string) => {
+      if (path.resolve(dir) === missing) {
+        const err = new Error(`ENOENT: no such file or directory, scandir '${missing}'`);
+        (err as NodeJS.ErrnoException).code = 'ENOENT';
+        throw err;
+      }
+      // Nearest existing ancestor (the workspace root) contents.
+      return [makeDirent('data', 'directory'), makeDirent('README.md', 'file')];
+    });
+
+    const result = await listDirectoryExecutor({ path: 'downloads' }, ctx());
+    expect(result.isError).toBe(true);
+    expect(result.content).toContain('nearest existing directory');
+    expect(result.content).toContain('data/');
+    expect(result.content).toContain('README.md');
+  });
+});
+
+describe('buildMissingDirHint', () => {
+  const dirent = (name: string, isDir: boolean) => ({
+    name,
+    isFile: () => !isDir,
+    isDirectory: () => isDir,
+    isSymbolicLink: () => false,
+  });
+
+  it('lists the nearest existing ancestor, marking directories with a slash', async () => {
+    fsMock.realpath.mockImplementation(async (p: string) => p);
+    fsMock.readdir.mockImplementation(async (dir: string) => {
+      if (path.resolve(dir) === path.resolve(WORKSPACE, 'a')) {
+        const err = new Error('ENOENT');
+        (err as NodeJS.ErrnoException).code = 'ENOENT';
+        throw err;
+      }
+      return [dirent('src', true), dirent('package.json', false), dirent('.hidden', false)];
+    });
+
+    const hint = await buildMissingDirHint(path.resolve(WORKSPACE, 'a', 'missing'), WORKSPACE);
+    expect(hint).toContain('src/');
+    expect(hint).toContain('package.json');
+    expect(hint).not.toContain('.hidden'); // hidden entries excluded
+  });
+
+  it('falls back to a generic hint when no ancestor is listable', async () => {
+    fsMock.realpath.mockImplementation(async (p: string) => p);
+    fsMock.readdir.mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
+    const hint = await buildMissingDirHint(path.resolve(WORKSPACE, 'x', 'y'), WORKSPACE);
+    expect(hint).toContain('List "." to see the workspace root');
   });
 });
 

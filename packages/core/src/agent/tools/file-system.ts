@@ -334,6 +334,37 @@ const listDirectoryTool: ToolDefinition = {
   },
 };
 
+/**
+ * On a "directory not found" (ENOENT) listing the agent has usually guessed a
+ * path that does not exist (e.g. ./downloads). Rather than a bare error that
+ * invites another blind guess, walk up to the nearest existing, allowed ancestor
+ * and show what is actually there so the agent can pick a real path or list ".".
+ * Bounded (≤8 levels, ≤30 names) so it can't flood context. Exported for tests.
+ */
+export async function buildMissingDirHint(dirPath: string, workspaceDir?: string): Promise<string> {
+  let cur = path.dirname(path.resolve(dirPath));
+  for (let i = 0; i < 8; i++) {
+    if (!(await isPathAllowedAsync(cur, workspaceDir))) break;
+    try {
+      const items = await fs.readdir(cur, { withFileTypes: true });
+      const names = items
+        .filter((it) => !it.name.startsWith('.'))
+        .slice(0, 30)
+        .map((it) => (it.isDirectory() ? `${it.name}/` : it.name));
+      const where = workspaceDir ? path.relative(path.resolve(workspaceDir), cur) || '.' : cur;
+      return names.length === 0
+        ? ` The nearest existing directory ("${where}") is empty.`
+        : ` The nearest existing directory ("${where}") contains: ${names.join(', ')}. ` +
+            'Use one of these, or list "." for the workspace root.';
+    } catch {
+      const parent = path.dirname(cur);
+      if (parent === cur) break; // reached the filesystem root
+      cur = parent;
+    }
+  }
+  return ' List "." to see the workspace root before guessing subdirectory names.';
+}
+
 export const listDirectoryExecutor: ToolExecutor = async (
   args,
   context
@@ -416,8 +447,12 @@ export const listDirectoryExecutor: ToolExecutor = async (
       }),
     };
   } catch (error) {
+    const msg = getErrorMessage(error);
+    const hint = /ENOENT|no such file/i.test(msg)
+      ? await buildMissingDirHint(dirPath, context.workspaceDir)
+      : '';
     return {
-      content: `Error listing directory: ${getErrorMessage(error)}`,
+      content: `Error listing directory: ${msg}.${hint}`,
       isError: true,
     };
   }
