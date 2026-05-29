@@ -160,6 +160,14 @@ function mapUpdateBody(body: UpdateClawBody): UpdateClawInput {
   return updates as UpdateClawInput;
 }
 
+/**
+ * lastCycleError values that represent an infrastructure event (process restart
+ * reconciliation) rather than a genuine cycle fault. See orphan-reconciliation.ts —
+ * these are stamped by reconcileOrphanedSessions(), not by a failing tool/LLM call,
+ * so the health scorer must not treat them as "needs attention".
+ */
+const INFRA_RECOVERY_MARKERS = new Set<string>(['orphan_recovery']);
+
 function scoreContract(config: ClawConfig): number {
   let score = 0;
   if (config.missionContract?.successCriteria?.length) score += 35;
@@ -231,6 +239,16 @@ function buildHealthStatus(config: ClawConfig, session: ClawSession | null): Cla
       policyWarnings,
     };
   }
+  // Infrastructure markers are not cycle faults. A claw orphaned by a process
+  // restart (deploy / crash / SIGKILL) did nothing wrong — the reconciler stamps
+  // `orphan_recovery` into lastCycleError and the next successful cycle clears it.
+  // Surface it as a soft signal instead of dropping to 'watch' with a misleading
+  // "adjust tools, model, or permissions" recommendation.
+  const isInfraRecovery =
+    session.lastCycleError != null && INFRA_RECOVERY_MARKERS.has(session.lastCycleError);
+  if (isInfraRecovery) {
+    signals.push('recovered from restart');
+  }
   if (session.state === 'failed') {
     return {
       score: 10,
@@ -244,7 +262,7 @@ function buildHealthStatus(config: ClawConfig, session: ClawSession | null): Cla
       policyWarnings,
     };
   }
-  if (session.lastCycleError) {
+  if (session.lastCycleError && !isInfraRecovery) {
     return {
       score: 35,
       status: 'watch',

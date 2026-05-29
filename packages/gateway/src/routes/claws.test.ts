@@ -419,6 +419,85 @@ describe('Claws Routes', () => {
       expect(body.data.claws[0].session.state).toBe('running');
       expect(body.data.claws[0].session.cyclesCompleted).toBe(5);
     });
+
+    it('treats an orphan_recovery lastCycleError as a soft restart signal, not "watch"', async () => {
+      // A claw orphaned by a process restart is stamped lastCycleError='orphan_recovery'
+      // by the reconciler. It is an infra event, not a cycle fault, so health must stay
+      // healthy (with a soft signal) rather than dropping to 'watch'/35.
+      service.listClawsPaginated.mockResolvedValue({
+        claws: [
+          {
+            id: 'claw-1',
+            name: 'Test',
+            mode: 'interval',
+            // contractScore >= 60 so the final branch is 'healthy' not contract-'watch'
+            missionContract: { successCriteria: ['done'], deliverables: ['report'] },
+          },
+        ],
+        total: 1,
+      });
+      service.listSessions.mockReturnValue([
+        {
+          config: { id: 'claw-1' },
+          state: 'running',
+          cyclesCompleted: 5,
+          totalToolCalls: 20,
+          totalCostUsd: 0,
+          lastCycleAt: null,
+          lastCycleDurationMs: null,
+          lastCycleError: 'orphan_recovery',
+          startedAt: new Date(),
+          stoppedAt: null,
+          artifacts: [],
+          pendingEscalation: null,
+        },
+      ]);
+
+      const res = await app.request('/claws');
+      const body = await res.json();
+      const health = body.data.claws[0].health;
+      expect(health.status).toBe('healthy');
+      expect(health.score).toBe(92);
+      expect(health.signals).toContain('recovered from restart');
+      expect(health.signals.some((s: string) => s.startsWith('last error:'))).toBe(false);
+    });
+
+    it('still flags a genuine lastCycleError as "watch"', async () => {
+      service.listClawsPaginated.mockResolvedValue({
+        claws: [
+          {
+            id: 'claw-1',
+            name: 'Test',
+            mode: 'interval',
+            missionContract: { successCriteria: ['done'], deliverables: ['report'] },
+          },
+        ],
+        total: 1,
+      });
+      service.listSessions.mockReturnValue([
+        {
+          config: { id: 'claw-1' },
+          state: 'running',
+          cyclesCompleted: 5,
+          totalToolCalls: 20,
+          totalCostUsd: 0,
+          lastCycleAt: null,
+          lastCycleDurationMs: null,
+          lastCycleError: 'OpenAI API error: 400',
+          startedAt: new Date(),
+          stoppedAt: null,
+          artifacts: [],
+          pendingEscalation: null,
+        },
+      ]);
+
+      const res = await app.request('/claws');
+      const body = await res.json();
+      const health = body.data.claws[0].health;
+      expect(health.status).toBe('watch');
+      expect(health.score).toBe(35);
+      expect(health.signals[0]).toContain('last error: OpenAI API error');
+    });
   });
 
   // ---- Create ----
