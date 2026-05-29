@@ -53,6 +53,7 @@ const {
   // Mock puppeteer Page
   const mockPage = {
     goto: vi.fn().mockResolvedValue(undefined),
+    waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
     title: vi.fn().mockResolvedValue('Test Page'),
     url: vi.fn().mockReturnValue('https://example.com'),
     click: vi.fn().mockResolvedValue(undefined),
@@ -182,6 +183,7 @@ describe('BrowserService', () => {
     });
 
     mockPage.goto.mockResolvedValue(undefined);
+    mockPage.waitForNetworkIdle.mockResolvedValue(undefined);
     mockPage.title.mockResolvedValue('Test Page');
     mockPage.url.mockReturnValue('https://example.com');
     mockPage.click.mockResolvedValue(undefined);
@@ -319,10 +321,45 @@ describe('BrowserService', () => {
       expect(result.url).toBe('https://example.com');
       expect(result.title).toBe('Test Page');
       expect(result.text).toBe('body text');
+      // Phase 1: require DOM-ready (the real precondition; surfaces nav faults).
       expect(mockPage.goto).toHaveBeenCalledWith('https://example.com', {
-        waitUntil: 'networkidle2',
+        waitUntil: 'domcontentloaded',
         timeout: 30000,
       });
+      // Phase 2: best-effort network settle with a bounded budget.
+      expect(mockPage.waitForNetworkIdle).toHaveBeenCalled();
+    });
+
+    it('still succeeds when the network never goes idle (chatty page)', async () => {
+      const service = new BrowserService();
+      mockPage.$eval.mockResolvedValueOnce('body text');
+      // Simulate a page with long-lived connections: idle wait times out.
+      mockPage.waitForNetworkIdle.mockRejectedValueOnce(
+        new Error('Timeout: waiting for network idle')
+      );
+
+      const result = await service.navigate('user-1', 'https://example.com');
+
+      expect(result.title).toBe('Test Page');
+      expect(result.text).toBe('body text');
+    });
+
+    it('propagates a real navigation fault from goto', async () => {
+      const service = new BrowserService();
+      mockPage.goto.mockRejectedValueOnce(new Error('net::ERR_NAME_NOT_RESOLVED'));
+
+      await expect(service.navigate('user-1', 'https://nope.invalid')).rejects.toThrow(
+        'ERR_NAME_NOT_RESOLVED'
+      );
+    });
+
+    it('does not swallow a non-timeout error from the network-idle wait', async () => {
+      const service = new BrowserService();
+      mockPage.waitForNetworkIdle.mockRejectedValueOnce(new Error('Target closed'));
+
+      await expect(service.navigate('user-1', 'https://example.com')).rejects.toThrow(
+        'Target closed'
+      );
     });
 
     it('throws for SSRF blocked URL', async () => {

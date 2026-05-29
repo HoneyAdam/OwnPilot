@@ -233,10 +233,30 @@ export class BrowserService {
     await this.validateUrl(url);
     const page = await this.getOrCreatePage(userId);
 
+    // Two-phase load. Pages with long-lived connections (analytics beacons,
+    // websockets, SSE, ad trackers) never reach network-idle, so waiting on
+    // `networkidle2` for the whole navigation times out and aborts the task even
+    // though the page is fully usable. Instead: (1) require DOM-ready, which is
+    // the real precondition for reading/acting on the page and surfaces genuine
+    // navigation errors (DNS, connection refused, HTTP abort); (2) then settle
+    // the network best-effort with a short budget, swallowing only a timeout so a
+    // chatty page does not fail the whole navigation.
     await page.goto(url, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded',
       timeout: DEFAULT_NAVIGATION_TIMEOUT,
     });
+
+    try {
+      await page.waitForNetworkIdle({
+        idleTime: 500,
+        timeout: Math.min(DEFAULT_ACTION_TIMEOUT, 5000),
+      });
+    } catch (err) {
+      // Only tolerate the idle wait timing out — anything else is a real fault.
+      if (!(err instanceof Error && /timeout|timed out|waiting for/i.test(err.message))) {
+        throw err;
+      }
+    }
 
     const title = await page.title();
     const text = await this.getPageText(page);
