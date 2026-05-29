@@ -189,6 +189,16 @@ export class ConversationMemory {
         startIndex = i;
       }
 
+      // Never trim away the most recent message. A single over-budget turn —
+      // e.g. a large Claw cycle prompt with .claw/MEMORY.md + workspace state
+      // injected — would otherwise drop to zero messages, leaving getFullContext
+      // to return a system-prompt-only request. Strict providers reject that
+      // ("chat content is empty (2013)" on MiniMax, "messages is empty" etc.).
+      // Better to send one over-budget turn than no turn at all.
+      if (startIndex >= messages.length && messages.length > 0) {
+        startIndex = messages.length - 1;
+      }
+
       return this.truncateOldToolResults(messages.slice(startIndex));
     }
 

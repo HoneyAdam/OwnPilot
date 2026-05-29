@@ -238,6 +238,22 @@ describe('ConversationMemory', () => {
       expect(context.length).toBe(1);
       expect(context[0].role).toBe('user');
     });
+
+    it('never drops the most recent message even if it alone exceeds maxTokens', () => {
+      // Regression: a single over-budget turn (e.g. a large Claw cycle prompt)
+      // must still be sent. Otherwise getFullContext returns a system-only
+      // request and strict providers reject it with "chat content is empty
+      // (2013)" (MiniMax) — the Claw crashed every cycle because of this.
+      const tight = new ConversationMemory({ maxTokens: 1000 });
+      const conversation = tight.create('System prompt');
+      tight.addUserMessage(conversation.id, 'x'.repeat(20000)); // ~5000 tokens >> 1000
+
+      const context = tight.getFullContext(conversation.id);
+
+      expect(context.some((m) => m.role === 'user')).toBe(true);
+      expect(context[0].role).toBe('system');
+      expect(context.length).toBe(2);
+    });
   });
 
   describe('fork', () => {
