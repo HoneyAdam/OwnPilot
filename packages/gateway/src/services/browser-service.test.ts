@@ -137,7 +137,13 @@ vi.mock('fs', () => ({
 // Import the module under test (after all mocks are registered)
 // =============================================================================
 
-import { BrowserService, getBrowserService, renderAxNode } from './browser-service.js';
+import {
+  BrowserService,
+  getBrowserService,
+  renderAxNode,
+  buildActionableElementsHint,
+  waitForSelectorWithHint,
+} from './browser-service.js';
 
 // =============================================================================
 // Helpers
@@ -1225,5 +1231,77 @@ describe('BrowserService', () => {
         '[invalid]'
       );
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildActionableElementsHint / waitForSelectorWithHint — selector recovery
+// ---------------------------------------------------------------------------
+describe('browser selector recovery hints', () => {
+  const axNode = (over: Record<string, unknown>): any => ({ role: 'generic', ...over });
+  const fakePage = (snapshot: unknown): any => ({
+    accessibility: { snapshot: vi.fn().mockResolvedValue(snapshot) },
+  });
+
+  it('lists actionable elements from the accessibility tree', async () => {
+    const page = fakePage(
+      axNode({
+        role: 'document',
+        children: [
+          axNode({ role: 'button', name: 'Submit' }),
+          axNode({ role: 'link', name: 'Home' }),
+          axNode({ role: 'textbox', name: 'Email' }),
+          axNode({ role: 'paragraph', name: 'ignored' }),
+        ],
+      })
+    );
+    const hint = await buildActionableElementsHint(page);
+    expect(hint).toContain('button "Submit"');
+    expect(hint).toContain('link "Home"');
+    expect(hint).toContain('textbox "Email"');
+    expect(hint).not.toContain('paragraph');
+    expect(hint).toContain('browser_accessibility_tree');
+  });
+
+  it('falls back gracefully when there is no snapshot', async () => {
+    const hint = await buildActionableElementsHint(fakePage(null));
+    expect(hint).toContain('browser_accessibility_tree');
+  });
+
+  it('passes through when the selector is found', async () => {
+    const page: any = {
+      waitForSelector: vi.fn().mockResolvedValue({}),
+      accessibility: { snapshot: vi.fn() },
+    };
+    await expect(waitForSelectorWithHint(page, '#ok', 1000)).resolves.toBeUndefined();
+    expect(page.accessibility.snapshot).not.toHaveBeenCalled();
+  });
+
+  it('on timeout throws an error naming the actionable elements', async () => {
+    const timeoutErr = Object.assign(new Error('Waiting for selector `#missing` failed'), {
+      name: 'TimeoutError',
+    });
+    const page: any = {
+      waitForSelector: vi.fn().mockRejectedValue(timeoutErr),
+      accessibility: {
+        snapshot: vi.fn().mockResolvedValue({
+          role: 'document',
+          children: [{ role: 'button', name: 'Login', children: [] }],
+        }),
+      },
+    };
+    await expect(waitForSelectorWithHint(page, '#missing', 500)).rejects.toThrow(
+      /not found after 500ms[\s\S]*button "Login"/
+    );
+  });
+
+  it('rethrows a non-timeout error unchanged', async () => {
+    const boom = new Error('navigation crashed');
+    const page: any = {
+      waitForSelector: vi.fn().mockRejectedValue(boom),
+      accessibility: { snapshot: vi.fn() },
+    };
+    await expect(waitForSelectorWithHint(page, '#x', 500)).rejects.toThrow('navigation crashed');
+    expect(page.accessibility.snapshot).not.toHaveBeenCalled();
   });
 });

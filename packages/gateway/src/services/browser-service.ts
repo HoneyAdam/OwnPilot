@@ -73,6 +73,75 @@ export function renderAxNode(node: SerializedAXNode, depth: number): string {
   return line;
 }
 
+/** Accessibility roles an agent can act on — used to build a recovery hint. */
+const ACTIONABLE_ROLES = new Set([
+  'button',
+  'link',
+  'textbox',
+  'checkbox',
+  'radio',
+  'combobox',
+  'menuitem',
+  'menuitemcheckbox',
+  'tab',
+  'searchbox',
+  'switch',
+  'listbox',
+  'option',
+  'slider',
+]);
+
+/**
+ * Build a short list of the actionable elements actually on the page, for when a
+ * selector is not found. Reuses the accessibility tree so the agent can re-target
+ * by visible text instead of blindly guessing another CSS selector. Bounded to 15.
+ * Exported for unit testing.
+ */
+export async function buildActionableElementsHint(page: Page): Promise<string> {
+  try {
+    const snapshot = await page.accessibility.snapshot({ interestingOnly: true });
+    if (!snapshot) return ' Call browser_accessibility_tree to inspect the page structure.';
+    const found: string[] = [];
+    const walk = (node: SerializedAXNode): void => {
+      if (found.length >= 15) return;
+      if (ACTIONABLE_ROLES.has(node.role)) {
+        found.push(node.name ? `${node.role} "${node.name}"` : node.role);
+      }
+      for (const child of node.children ?? []) walk(child);
+    };
+    walk(snapshot);
+    return found.length > 0
+      ? ` Actionable elements found: ${found.join(', ')}. ` +
+          'Use browser_accessibility_tree for the full structure and target by visible text.'
+      : ' Call browser_accessibility_tree to inspect the page structure.';
+  } catch {
+    return ' Call browser_accessibility_tree to inspect the page structure.';
+  }
+}
+
+/**
+ * waitForSelector that, on timeout (selector never appeared), throws an error
+ * naming the actionable elements that ARE present — turning a dead-end "not
+ * found" into a self-correction cue. Non-timeout errors pass through unchanged.
+ * Exported for unit testing.
+ */
+export async function waitForSelectorWithHint(
+  page: Page,
+  selector: string,
+  timeout: number
+): Promise<void> {
+  try {
+    await page.waitForSelector(selector, { timeout });
+  } catch (err) {
+    const isTimeout =
+      err instanceof Error &&
+      (err.name === 'TimeoutError' || /waiting for selector|timeout/i.test(err.message));
+    if (!isTimeout) throw err;
+    const hint = await buildActionableElementsHint(page);
+    throw new Error(`Selector "${selector}" not found after ${timeout}ms.${hint}`);
+  }
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -181,7 +250,7 @@ export class BrowserService {
 
   async click(userId: string, selector: string): Promise<{ url: string; title: string }> {
     const page = await this.getExistingPage(userId);
-    await page.waitForSelector(selector, { timeout: DEFAULT_ACTION_TIMEOUT });
+    await waitForSelectorWithHint(page, selector, DEFAULT_ACTION_TIMEOUT);
     await page.click(selector);
     // Wait briefly for any navigation or DOM changes
     await new Promise((r) => setTimeout(r, 500));
@@ -198,7 +267,7 @@ export class BrowserService {
     text: string
   ): Promise<{ url: string; title: string }> {
     const page = await this.getExistingPage(userId);
-    await page.waitForSelector(selector, { timeout: DEFAULT_ACTION_TIMEOUT });
+    await waitForSelectorWithHint(page, selector, DEFAULT_ACTION_TIMEOUT);
     // Clear existing value first
     await page.click(selector, { count: 3 });
     await page.type(selector, text);
@@ -226,7 +295,7 @@ export class BrowserService {
         );
       }
 
-      await page.waitForSelector(field.selector, { timeout: DEFAULT_ACTION_TIMEOUT });
+      await waitForSelectorWithHint(page, field.selector, DEFAULT_ACTION_TIMEOUT);
       await page.click(field.selector, { count: 3 });
       await page.type(field.selector, field.value);
     }
@@ -398,7 +467,7 @@ export class BrowserService {
     value: string
   ): Promise<{ url: string; title: string }> {
     const page = await this.getExistingPage(userId);
-    await page.waitForSelector(selector, { timeout: DEFAULT_ACTION_TIMEOUT });
+    await waitForSelectorWithHint(page, selector, DEFAULT_ACTION_TIMEOUT);
     await page.select(selector, value);
     return { url: page.url(), title: await page.title() };
   }
