@@ -1,6 +1,6 @@
 import { type Dispatch, type SetStateAction, useState, useMemo } from 'react';
 import { LoadingSpinner } from '../../../components/LoadingSpinner';
-import { CheckCircle2, XCircle } from '../../../components/icons';
+import { CheckCircle2, XCircle, ShieldAlert } from '../../../components/icons';
 import { ignoreError } from '../../../utils/ignore-error';
 import { formatDuration, timeAgo } from '../utils';
 
@@ -26,8 +26,16 @@ const AUDIT_CAT_COLORS: Record<string, string> = {
   git: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
   filesystem: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
   knowledge: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
+  // Guardrail-denied calls (autonomy policy: destructive/scope/self-modify).
+  // Distinct rose so a policy block is unmistakable vs an ordinary tool error.
+  blocked: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
   tool: 'bg-gray-500/10 text-gray-500',
 };
+
+/** A guardrail-denied call (recorded by the PermissionGate watcher trail). */
+function isBlocked(entry: AuditEntry): boolean {
+  return entry.category === 'blocked';
+}
 
 export function AuditTab({
   auditEntries,
@@ -197,7 +205,9 @@ export function AuditTab({
                   className="w-full flex items-start gap-2 px-3 py-2 hover:bg-white/5 transition-colors"
                 >
                   <div className="mt-0.5 shrink-0">
-                    {entry.success ? (
+                    {isBlocked(entry) ? (
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                    ) : entry.success ? (
                       <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
                     ) : (
                       <XCircle className="w-3.5 h-3.5 text-red-500" />
@@ -221,7 +231,12 @@ export function AuditTab({
                       </span>
                     </div>
                     {!entry.success && entry.toolResult && (
-                      <p className="text-red-400 mt-0.5 truncate font-mono text-[11px]">
+                      <p
+                        className={`mt-0.5 truncate font-mono text-[11px] ${
+                          isBlocked(entry) ? 'text-rose-400' : 'text-red-400'
+                        }`}
+                      >
+                        {isBlocked(entry) ? '⛔ Guardrail denied: ' : ''}
                         {entry.toolResult.slice(0, 120)}
                       </p>
                     )}
@@ -256,11 +271,21 @@ export function AuditTab({
                     {!entry.success && (
                       <>
                         <div className="flex items-center gap-2 pt-1">
-                          <span className="text-[10px] text-red-400 uppercase tracking-wider">
-                            Error
+                          <span
+                            className={`text-[10px] uppercase tracking-wider ${
+                              isBlocked(entry) ? 'text-rose-400' : 'text-red-400'
+                            }`}
+                          >
+                            {isBlocked(entry) ? 'Blocked by guardrail' : 'Error'}
                           </span>
                         </div>
-                        <pre className="text-[11px] text-red-300 font-mono whitespace-pre-wrap bg-red-500/5 rounded p-2 max-h-32 overflow-y-auto">
+                        <pre
+                          className={`text-[11px] font-mono whitespace-pre-wrap rounded p-2 max-h-32 overflow-y-auto ${
+                            isBlocked(entry)
+                              ? 'text-rose-300 bg-rose-500/5'
+                              : 'text-red-300 bg-red-500/5'
+                          }`}
+                        >
                           {entry.toolResult || '(no result)'}
                         </pre>
                       </>
