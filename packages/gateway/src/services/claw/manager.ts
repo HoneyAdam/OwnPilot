@@ -22,14 +22,7 @@ import {
   CLAW_TASK_STALL_AUTO_ESCALATE,
   CLAW_TASK_STALL_FORCE_BLOCK,
 } from '@ownpilot/core';
-import type {
-  ClawSession,
-  ClawCycleResult,
-  ClawEscalation,
-  ClawTask,
-  ClawPlanHistoryEntry,
-  EventHandler,
-} from '@ownpilot/core';
+import type { ClawSession, ClawCycleResult, ClawEscalation, EventHandler } from '@ownpilot/core';
 import { ClawRunner } from './runner.js';
 import { getClawsRepository } from '../../db/repositories/claws.js';
 import {
@@ -39,6 +32,15 @@ import {
 import { getLog } from '../log.js';
 import { scaffoldClawDir, runRetentionCleanup, ensureConversationRow } from './manager-helpers.js';
 import { safeCost, safeDuration } from '../../utils/safe-value.js';
+// Extracted helpers — see sibling files
+import {
+  extractSavedTasks,
+  extractSavedPlanHistory,
+  stripSavedTasks,
+  PRIORITY_DELAY_MULTIPLIER,
+} from './manager-task-plan.js';
+import { stringifyToolResult, truncateForFailureLog } from './manager-failure.js';
+import type { ManagedClaw } from './manager-types.js';
 
 const log = getLog('ClawManager');
 
@@ -61,132 +63,8 @@ const CONTINUOUS_MAX_DELAY_MS = 10_000; // Error: backoff
 const CONTINUOUS_IDLE_DELAY_MS = 5_000; // No tool calls: slow down
 
 // ============================================================================
-// Failure-log helpers
+// Manager
 // ============================================================================
-
-// Tool-result payloads can be enormous (full file contents, MCP responses, ...);
-// truncate aggressively before we stuff them into the reflection prompt or the
-// session row, otherwise the next cycle's prompt explodes in tokens.
-const FAILURE_LOG_MAX_CHARS = 300;
-
-function stringifyToolResult(result: unknown): string {
-  if (typeof result === 'string') return result;
-  try {
-    return JSON.stringify(result);
-  } catch {
-    return String(result);
-  }
-}
-
-function truncateForFailureLog(s: string, max = FAILURE_LOG_MAX_CHARS): string {
-  if (s.length <= max) return s;
-  return `${s.slice(0, max)}… [truncated]`;
-}
-
-// ============================================================================
-// Task-plan persistence helpers
-// ============================================================================
-
-/**
- * Reserved keys inside persistentContext where typed session state rides
- * across restarts without a DB schema migration. The underscore prefix
- * keeps them out of collision with the agent's own context entries.
- */
-const SAVED_TASKS_KEY = '__claw_tasks';
-const SAVED_PLAN_HISTORY_KEY = '__claw_plan_history';
-
-function extractSavedTasks(ctx: Record<string, unknown> | undefined): ClawTask[] {
-  const raw = ctx?.[SAVED_TASKS_KEY];
-  if (!Array.isArray(raw)) return [];
-  // Loose runtime validation so a malformed row can't blow up the manager on
-  // boot — we'd rather drop a bad task than refuse to resume the claw.
-  return raw.filter(
-    (t): t is ClawTask =>
-      typeof t === 'object' &&
-      t !== null &&
-      typeof (t as ClawTask).id === 'string' &&
-      typeof (t as ClawTask).title === 'string' &&
-      typeof (t as ClawTask).status === 'string'
-  );
-}
-
-function extractSavedPlanHistory(ctx: Record<string, unknown> | undefined): ClawPlanHistoryEntry[] {
-  const raw = ctx?.[SAVED_PLAN_HISTORY_KEY];
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (e): e is ClawPlanHistoryEntry =>
-      typeof e === 'object' &&
-      e !== null &&
-      typeof (e as ClawPlanHistoryEntry).at === 'string' &&
-      typeof (e as ClawPlanHistoryEntry).actor === 'string' &&
-      typeof (e as ClawPlanHistoryEntry).kind === 'string'
-  );
-}
-
-function stripSavedTasks(ctx: Record<string, unknown>): Record<string, unknown> {
-  if (!(SAVED_TASKS_KEY in ctx) && !(SAVED_PLAN_HISTORY_KEY in ctx)) return ctx;
-  const next: Record<string, unknown> = { ...ctx };
-  delete next[SAVED_TASKS_KEY];
-  delete next[SAVED_PLAN_HISTORY_KEY];
-  return next;
-}
-
-// Priority multipliers applied to adaptive delays.
-// Priority 1 (highest): multiply by 0.5  → 250ms / 5000ms / 2500ms
-// Priority 3 (normal):  multiply by 1.0  → 500ms / 10000ms / 5000ms
-// Priority 5 (lowest):  multiply by 2.0  → 1000ms / 20000ms / 10000ms
-const PRIORITY_DELAY_MULTIPLIER: Record<number, number> = {
-  1: 0.5,
-  2: 0.75,
-  3: 1.0,
-  4: 1.5,
-  5: 2.0,
-};
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface ManagedClaw {
-  session: ClawSession;
-  runner: ClawRunner;
-  timer: ReturnType<typeof setTimeout> | null;
-  eventSubscriptions: Array<{ eventType: string; handler: EventHandler }>;
-  consecutiveErrors: number;
-  cyclesThisHour: number;
-  hourWindow: number;
-  persistTimer: ReturnType<typeof setInterval> | null;
-  lastCycleToolCalls: number;
-  cycleInProgress: boolean;
-  currentCycleNumber: number;
-  idleCycles: number;
-  /**
-   * AbortController for the current cycle. Allows pause/stop/escalation to
-   * cancel an in-flight agent call instead of waiting for the cycle timeout.
-   */
-  abortController: AbortController | null;
-  /**
-   * Set by steerClaw when it aborts an in-flight cycle: signals the
-   * aborted-cycle path to start a fresh cycle immediately (with the steer
-   * message now in the inbox) instead of leaving the claw idle until the next
-   * scheduled tick.
-   */
-  steerPending: boolean;
-  /**
-   * Tracks whether the session has changes that have not been written to the
-   * database yet. The periodic persist timer uses this to skip no-op writes
-   * (e.g. event-mode claws idling between rare events). Mutating call paths
-   * set this true; persistSession clears it on successful write.
-   */
-  dirty: boolean;
-  /**
-   * Scheduling priority (1=highest, 3=normal, 5=lowest). Higher-priority claws
-   * get shorter adaptive delays, allowing them to complete more cycles per
-   * hour than lower-priority ones when the event loop is under load.
-   * Adjustable at runtime via claw_update_config.
-   */
-  priority: number;
-}
 
 // ============================================================================
 // Manager
