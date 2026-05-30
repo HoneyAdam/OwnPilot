@@ -11,6 +11,7 @@ import {
   ERROR_CODES,
   getErrorMessage,
   getPaginationParams,
+  getUserId,
 } from '../helpers.js';
 import { validateBody, sendAgentMessageSchema } from '../../middleware/validation.js';
 
@@ -72,6 +73,7 @@ agentMessageRoutes.get('/crew/:id', async (c) => {
 agentMessageRoutes.post('/', async (c) => {
   try {
     const body = validateBody(sendAgentMessageSchema, await c.req.json());
+    const userId = getUserId(c);
 
     const message = {
       id: crypto.randomUUID(),
@@ -87,6 +89,7 @@ agentMessageRoutes.post('/', async (c) => {
       deadline: body.deadline ? new Date(body.deadline) : undefined,
       status: 'sent' as const,
       crewId: body.crewId,
+      workspaceId: userId,
       createdAt: new Date(),
       readAt: undefined,
     };

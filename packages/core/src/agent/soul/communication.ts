@@ -47,6 +47,8 @@ export interface AgentMessage {
   status: MessageStatus;
   /** Crew context */
   crewId?: string;
+  /** Workspace isolation */
+  workspaceId?: string;
   createdAt: Date;
   readAt?: Date;
 }
@@ -77,7 +79,11 @@ export interface IAgentCommunicationBus {
   send(msg: Omit<AgentMessage, 'id' | 'status' | 'createdAt'>): Promise<string>;
 
   /** Read inbox messages for an agent */
-  readInbox(agentId: string, options?: MessageQueryOptions): Promise<AgentMessage[]>;
+  readInbox(
+    agentId: string,
+    workspaceId?: string,
+    options?: MessageQueryOptions
+  ): Promise<AgentMessage[]>;
 
   /** Broadcast a message to all crew members. Returns per-member delivery result. */
   broadcast(

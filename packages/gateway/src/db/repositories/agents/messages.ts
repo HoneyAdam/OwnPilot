@@ -21,6 +21,7 @@ interface MessageRow {
   deadline: string | null;
   status: string;
   crew_id: string | null;
+  workspace_id: string;
   created_at: string;
   read_at: string | null;
 }
@@ -42,6 +43,7 @@ function rowToMessage(row: MessageRow): AgentMessage {
     deadline: row.deadline ? new Date(row.deadline) : undefined,
     status: row.status as AgentMessage['status'],
     crewId: row.crew_id ?? undefined,
+    workspaceId: row.workspace_id,
     createdAt: new Date(row.created_at),
     readAt: row.read_at ? new Date(row.read_at) : undefined,
   };
@@ -54,8 +56,8 @@ export class AgentMessagesRepository extends BaseRepository {
     await this.execute(
       `INSERT INTO agent_messages
        (id, from_agent_id, to_agent_id, type, subject, content, attachments,
-        priority, thread_id, requires_response, deadline, status, crew_id, created_at, read_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        priority, thread_id, requires_response, deadline, status, crew_id, workspace_id, created_at, read_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [
         message.id,
         message.from,
@@ -70,6 +72,7 @@ export class AgentMessagesRepository extends BaseRepository {
         message.deadline?.toISOString() ?? null,
         message.status,
         message.crewId ?? null,
+        message.workspaceId ?? message.from ?? 'unknown',
         message.createdAt.toISOString(),
         message.readAt?.toISOString() ?? null,
       ]
@@ -78,32 +81,33 @@ export class AgentMessagesRepository extends BaseRepository {
 
   async findForAgent(
     agentId: string,
-    options: {
+    workspaceId: string = agentId,
+    options?: {
       unreadOnly?: boolean;
       limit?: number;
       types?: AgentMessageType[];
       fromAgent?: string;
     }
   ): Promise<AgentMessage[]> {
-    const conditions: string[] = ['to_agent_id = $1'];
-    const params: unknown[] = [agentId];
-    let paramIdx = 2;
+    const conditions: string[] = ['to_agent_id = $1', 'workspace_id = $2'];
+    const params: unknown[] = [agentId, workspaceId];
+    let paramIdx = 3;
 
-    if (options.unreadOnly) {
+    if (options?.unreadOnly) {
       conditions.push(`status != 'read'`);
     }
-    if (options.types && options.types.length > 0) {
-      conditions.push(`type = ANY($${paramIdx})`);
+    if (options?.types && options.types.length > 0) {
+      conditions.push(`type = ANY(${paramIdx})`);
       params.push(options.types);
       paramIdx++;
     }
-    if (options.fromAgent) {
-      conditions.push(`from_agent_id = $${paramIdx}`);
+    if (options?.fromAgent) {
+      conditions.push(`from_agent_id = ${paramIdx}`);
       params.push(options.fromAgent);
       paramIdx++;
     }
 
-    const limit = options.limit ?? 20;
+    const limit = options?.limit ?? 20;
     params.push(limit);
 
     const rows = await this.query<MessageRow>(

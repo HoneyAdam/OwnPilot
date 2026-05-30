@@ -498,6 +498,7 @@ crewRoutes.post('/:id/message', async (c) => {
           requiresResponse: false,
           status: 'sent',
           crewId: crew.id,
+          workspaceId: crew.workspaceId ?? userId,
           createdAt: new Date(),
         });
         sent.push({
@@ -562,6 +563,7 @@ crewRoutes.post('/:id/delegate', async (c) => {
       requiresResponse: true,
       status: 'sent',
       crewId: crew.id,
+      workspaceId: crew.workspaceId ?? userId,
       createdAt: new Date(),
     });
 

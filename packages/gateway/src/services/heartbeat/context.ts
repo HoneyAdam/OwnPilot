@@ -12,6 +12,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export interface HeartbeatExecutionContext {
   agentId: string;
   crewId?: string;
+  workspaceId?: string;
 }
 
 const storage = new AsyncLocalStorage<HeartbeatExecutionContext>();

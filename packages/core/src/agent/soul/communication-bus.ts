@@ -35,7 +35,8 @@ export interface IAgentMessageRepository {
   create(message: AgentMessage): Promise<void>;
   findForAgent(
     agentId: string,
-    options: {
+    workspaceId?: string,
+    options?: {
       unreadOnly?: boolean;
       limit?: number;
       types?: AgentMessageType[];
@@ -116,8 +117,13 @@ export class AgentCommunicationBus implements IAgentCommunicationBus {
   }
 
   /** Read inbox messages for an agent. Marks them as read. */
-  async readInbox(agentId: string, options?: MessageQueryOptions): Promise<AgentMessage[]> {
-    const messages = await this.messageRepo.findForAgent(agentId, {
+  async readInbox(
+    agentId: string,
+    workspaceId?: string,
+    options?: MessageQueryOptions
+  ): Promise<AgentMessage[]> {
+    const effectiveWorkspaceId = workspaceId ?? agentId;
+    const messages = await this.messageRepo.findForAgent(agentId, effectiveWorkspaceId, {
       unreadOnly: options?.unreadOnly ?? true,
       limit: options?.limit ?? 20,
       types: options?.types,

@@ -22,14 +22,15 @@ export async function executeSoulCommunicationTool(
   // which would otherwise resolve to the human user's ID during heartbeat execution.
   const hbCtx = getHeartbeatContext();
   const agentId = hbCtx?.agentId ?? userId ?? 'unknown';
+  const workspaceId = hbCtx?.workspaceId;
   try {
     switch (toolName) {
       case 'send_agent_message':
-        return await handleSendMessage(args, agentId);
+        return await handleSendMessage(args, agentId, workspaceId);
       case 'read_agent_inbox':
-        return await handleReadInbox(args, agentId);
+        return await handleReadInbox(args, agentId, workspaceId);
       case 'reply_to_agent':
-        return await handleReply(args, agentId);
+        return await handleReply(args, agentId, workspaceId);
       default:
         return { success: false, error: `Unknown soul communication tool: ${toolName}` };
     }
@@ -40,7 +41,8 @@ export async function executeSoulCommunicationTool(
 
 async function handleSendMessage(
   args: Record<string, unknown>,
-  fromAgentId: string
+  fromAgentId: string,
+  workspaceId?: string
 ): Promise<ToolExecutionResult> {
   const toAgent = String(args.to_agent ?? '');
   const type = String(args.type ?? 'coordination');
@@ -68,6 +70,7 @@ async function handleSendMessage(
     threadId,
     requiresResponse,
     status: 'sent',
+    workspaceId: workspaceId ?? fromAgentId,
     createdAt: new Date(),
   };
 
@@ -87,13 +90,14 @@ async function handleSendMessage(
 
 async function handleReadInbox(
   args: Record<string, unknown>,
-  agentId: string
+  agentId: string,
+  workspaceId?: string
 ): Promise<ToolExecutionResult> {
   const unreadOnly = args.unread_only !== false; // default true
   const fromAgent = args.from_agent ? String(args.from_agent) : undefined;
 
   const repo = getAgentMessagesRepository();
-  const messages = await repo.findForAgent(agentId, {
+  const messages = await repo.findForAgent(agentId, workspaceId ?? agentId, {
     unreadOnly,
     fromAgent,
     limit: 20,
@@ -125,7 +129,8 @@ async function handleReadInbox(
 
 async function handleReply(
   args: Record<string, unknown>,
-  agentId: string
+  agentId: string,
+  workspaceId?: string
 ): Promise<ToolExecutionResult> {
   const threadId = String(args.thread_id ?? '');
   const content = String(args.content ?? '');
@@ -158,6 +163,7 @@ async function handleReply(
     threadId,
     requiresResponse: false,
     status: 'sent',
+    workspaceId: workspaceId ?? agentId,
     createdAt: new Date(),
   };
 
