@@ -10,6 +10,7 @@
  *   3. First configured provider (existing fallback in getDefaultProvider)
  */
 
+import { pricingByExactKey } from '@ownpilot/core';
 import { settingsRepo } from '../../db/repositories/index.js';
 import { getDefaultProvider, getDefaultModel } from '../app-settings.js';
 import { getLog } from '../log.js';
@@ -220,6 +221,34 @@ export async function resolveForChannel(
   }
 
   return resolveForProcess('channel');
+}
+
+/**
+ * Infer the provider that owns a bare model name.
+ *
+ * Channel users can override the model via commands like Telegram's `/model gpt-4o`,
+ * which carry only a model name with no provider. We resolve the owning provider from
+ * the pricing catalog so the override targets a real provider:model pair (and so cost
+ * attribution records the right provider).
+ *
+ * Resolution order:
+ *   1. If `preferredProvider` is supplied and it owns `model`, keep it — this avoids
+ *      cross-provider drift when the routed provider already serves the model.
+ *   2. Otherwise scan the catalog for an exact modelId match and return that provider.
+ *   3. Return null when the model is unknown — callers fall back to their routed provider.
+ */
+export function inferProviderForModel(
+  model: string,
+  preferredProvider?: string | null
+): string | null {
+  if (!model) return null;
+  if (preferredProvider && pricingByExactKey.has(`${preferredProvider}:${model}`)) {
+    return preferredProvider;
+  }
+  for (const pricing of pricingByExactKey.values()) {
+    if (pricing.modelId === model) return pricing.provider;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

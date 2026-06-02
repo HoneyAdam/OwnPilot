@@ -39,6 +39,7 @@ vi.mock('../log.js', () => ({
   }),
 }));
 
+import { pricingByExactKey } from '@ownpilot/core';
 import {
   getProcessRouting,
   getAllRouting,
@@ -52,6 +53,7 @@ import {
   getChannelRouting,
   getChannelScopedRouting,
   resolveForChannel,
+  inferProviderForModel,
 } from './model-routing.js';
 
 // ---------------------------------------------------------------------------
@@ -85,6 +87,42 @@ describe('model-routing', () => {
   describe('VALID_PROCESSES', () => {
     it('contains exactly 4 processes', () => {
       expect(VALID_PROCESSES).toEqual(['chat', 'channel', 'channel_media', 'pulse']);
+    });
+  });
+
+  // ── inferProviderForModel ───────────────────────────────────────────
+  // Uses the real pricing catalog (not mocked) — fixtures are derived from
+  // a live entry so the test stays valid as models.dev data changes.
+
+  describe('inferProviderForModel', () => {
+    const [sampleKey, samplePricing] = [...pricingByExactKey.entries()][0]!;
+    const sampleProvider = sampleKey.split(':')[0]!;
+    const sampleModel = samplePricing.modelId;
+
+    it('returns null for an empty model', () => {
+      expect(inferProviderForModel('')).toBeNull();
+      expect(inferProviderForModel('', sampleProvider)).toBeNull();
+    });
+
+    it('returns null for an unknown model', () => {
+      expect(inferProviderForModel('definitely-not-a-real-model-zzz')).toBeNull();
+    });
+
+    it('keeps the preferred provider when it owns the model', () => {
+      expect(inferProviderForModel(sampleModel, sampleProvider)).toBe(sampleProvider);
+    });
+
+    it('infers the owning provider from the catalog when no preference is given', () => {
+      const expected = [...pricingByExactKey.values()].find(
+        (p) => p.modelId === sampleModel
+      )?.provider;
+      expect(inferProviderForModel(sampleModel)).toBe(expected);
+    });
+
+    it('ignores a preferred provider that does not serve the model', () => {
+      const result = inferProviderForModel(sampleModel, 'nonexistent-provider-xyz');
+      expect(result).not.toBe('nonexistent-provider-xyz');
+      expect(result).toBeTruthy();
     });
   });
 

@@ -220,6 +220,11 @@ vi.mock('../services/agent/service.js', () => ({
 vi.mock('../services/llm/model-routing.js', () => ({
   resolveForProcess: mockResolveForProcess,
   resolveForChannel: mockResolveForProcess,
+  // Channel routing now infers a provider for bare per-session model overrides
+  // (e.g. Telegram `/model gpt-4o`). Default messages carry no override so this
+  // is unused in most tests, but the export must exist or vitest's mock proxy
+  // throws on the destructure in processViaBus.
+  inferProviderForModel: vi.fn(() => null),
 }));
 
 vi.mock('../services/app-settings.js', () => ({

@@ -46,7 +46,8 @@ export async function processViaBus(
   progress?: { update(text: string): void }
 ): Promise<string> {
   const { getOrCreateChatAgent, isDemoMode } = await import('../services/agent/service.js');
-  const { resolveForChannel } = await import('../services/llm/model-routing.js');
+  const { resolveForChannel, inferProviderForModel } =
+    await import('../services/llm/model-routing.js');
 
   // Demo mode short-circuit (bus isn't needed for demo)
   if (await isDemoMode()) {
@@ -56,15 +57,26 @@ export async function processViaBus(
   const routing = await resolveForChannel(message.channelPluginId, {
     hasMedia: Boolean(message.attachments?.length),
   });
+
+  // Per-session model override (e.g. Telegram's `/model gpt-4o`). When set it must
+  // drive the agent that actually runs AND the cost/context metadata — resolving it
+  // separately is what previously let `/model` change the reported model without
+  // changing the executing one. A bare model name carries no provider, so infer the
+  // owning provider, preferring the routed provider when it already serves the model.
+  const preferredModel =
+    ((session as { context?: Record<string, unknown> }).context?.preferredModel as
+      | string
+      | undefined) || undefined;
+  const effectiveProvider = preferredModel
+    ? (inferProviderForModel(preferredModel, routing.provider) ?? routing.provider ?? 'openai')
+    : (routing.provider ?? 'openai');
+  const effectiveModel = preferredModel ?? routing.model ?? 'gpt-4o';
+
   const fallback =
     routing.fallbackProvider && routing.fallbackModel
       ? { provider: routing.fallbackProvider, model: routing.fallbackModel }
       : undefined;
-  const agent = await getOrCreateChatAgent(
-    routing.provider ?? 'openai',
-    routing.model ?? 'gpt-4o',
-    fallback
-  );
+  const agent = await getOrCreateChatAgent(effectiveProvider, effectiveModel, fallback);
 
   // Load session conversation for context continuity
   let activeConversationId = session.conversationId;
@@ -113,14 +125,6 @@ export async function processViaBus(
     });
   }
 
-  // Check session for preferred model override
-  const preferredModel = (session as { context?: Record<string, unknown> }).context
-    ?.preferredModel as string | undefined;
-
-  // Resolve provider/model from agent config (or session override)
-  const { resolveDefaultProviderAndModel } = await import('../services/app-settings.js');
-  const resolved = await resolveDefaultProviderAndModel('default', preferredModel ?? 'default');
-
   // Normalize incoming message via channel normalizer
   const { getNormalizer } = await import('./normalizers/index.js');
   const channelNormalizer = getNormalizer(message.platform);
@@ -138,8 +142,8 @@ export async function processViaBus(
       channelPluginId: message.channelPluginId,
       platform: message.platform,
       platformMessageId: message.metadata?.platformMessageId?.toString(),
-      provider: resolved.provider ?? undefined,
-      model: resolved.model ?? undefined,
+      provider: effectiveProvider,
+      model: effectiveModel,
       conversationId: activeConversationId ?? undefined,
       agentId: 'default',
     },
@@ -165,8 +169,8 @@ export async function processViaBus(
         agent,
         userId: channelUser.ownpilotUserId,
         agentId: 'default',
-        provider: resolved.provider ?? 'unknown',
-        model: resolved.model ?? 'unknown',
+        provider: effectiveProvider,
+        model: effectiveModel,
         conversationId: activeConversationId,
         directToolMode: true,
       },
@@ -187,9 +191,7 @@ export async function processViaBus(
     // near the limit. Unknown models stay on a conservative 128K default.
     const inputTokens = result.response.metadata?.tokens?.input ?? 0;
     if (inputTokens > 0) {
-      const providerName = resolved.provider ?? 'openai';
-      const modelName = resolved.model ?? 'gpt-4o';
-      const pricing = pricingByExactKey.get(`${providerName}:${modelName}`);
+      const pricing = pricingByExactKey.get(`${effectiveProvider}:${effectiveModel}`);
       const contextWindow = pricing?.contextWindow ?? 128_000;
       const fillPercent = Math.round((inputTokens / contextWindow) * 100);
       if (fillPercent >= 80) {
