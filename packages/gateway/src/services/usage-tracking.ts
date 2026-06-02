@@ -34,7 +34,7 @@ budgetManager.on('alert', (alert: unknown) => {
       const { getAuditLogger } = await import('../audit/index.js');
       await getAuditLogger().log({
         type: 'config.change',
-        severity: 'warning',
+        severity: 'warn',
         actor: { type: 'system', id: 'budget-manager' },
         resource: { type: 'budget', id: a.type, name: `${a.type} budget` },
         outcome: 'success',
