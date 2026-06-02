@@ -63,7 +63,6 @@ import {
   initServiceRegistry,
   Services,
   getEventSystem,
-  setChannelService,
   setModuleResolver,
   type ServiceToken,
 } from '@ownpilot/core';
@@ -165,6 +164,59 @@ async function main() {
   // ── ServiceRegistry ──────────────────────────────────────────────────────
   const registry = initServiceRegistry();
 
+  // ── R1: pre-import all the core setter functions so we can install services
+  // with a single line below. The previous pattern was:
+  //   {
+  //     const memory = getMemoryService();
+  //     registry.register(Services.Memory, memory);
+  //     const { setMemoryService } = await import('@ownpilot/core');
+  //     setMemoryService(memory);
+  //   }
+  // — repeated 14+ times. `installService` collapses this to one line per
+  // service. The setXService setters are sync (`void`), so importing them
+  // once at the top of main() doesn't block startup any more than the
+  // per-block imports did.
+  const {
+    setConfigCenter,
+    setEmbeddingService,
+    setDatabaseService,
+    setResourceService,
+    setExtensionService,
+    setMcpClientService,
+    setChannelService,
+    setPluginService,
+    setMemoryService,
+    setGoalService,
+    setTriggerService,
+    setPlanService,
+    setToolService,
+    setProviderService,
+    setAuditService,
+    setWorkspaceService,
+    setWorkflowService,
+    setHeartbeatService,
+    setCodingAgentService,
+    setArtifactService,
+    setSessionService,
+    setMessageBus,
+  } = await import('@ownpilot/core');
+
+  /**
+   * Register a service in the ServiceRegistry AND install it on the core
+   * capability singleton in one call. Both have to happen on every service
+   * (registry is for ctx-based lookups; the singleton is for the
+   * `getXService()` helpers used by older code paths). Doing them together
+   * keeps them from drifting out of sync.
+   */
+  function installService<T>(
+    token: import('@ownpilot/core').ServiceToken<T>,
+    instance: T,
+    setter: (instance: T) => void
+  ): void {
+    registry.register(token, instance);
+    setter(instance);
+  }
+
   // 1. Log service (first — everything else can use it)
   const logLevel = (process.env.LOG_LEVEL ?? 'info') as 'debug' | 'info' | 'warn' | 'error';
   const logService = createLogService({ level: logLevel });
@@ -175,20 +227,13 @@ async function main() {
   registry.register(Services.Event, getEventSystem());
 
   // 3. Session service (unified session management) — also installed on the core capability singleton
-  {
-    const session = createSessionService();
-    registry.register(Services.Session, session);
-    const { setSessionService } = await import('@ownpilot/core');
-    setSessionService(session);
-  }
+  installService(Services.Session, createSessionService(), setSessionService);
 
   // 4. Message bus (unified message processing pipeline) — also installed on the core capability singleton
-  const messageBus = createMessageBus();
-  registerPipelineMiddleware(messageBus);
-  registry.register(Services.Message, messageBus);
   {
-    const { setMessageBus } = await import('@ownpilot/core');
-    setMessageBus(messageBus);
+    const messageBus = createMessageBus();
+    registerPipelineMiddleware(messageBus);
+    installService(Services.Message, messageBus, setMessageBus);
   }
 
   log.info('ServiceRegistry initialized', { services: registry.list() });
@@ -276,12 +321,10 @@ async function main() {
   await initializeConfigServicesRepo();
   await seedConfigServices();
 
-  // 5. Config Center
-  registry.register(Services.Config, gatewayConfigCenter);
-  // Also install the direct singleton so callers can use getConfigCenter()
-  // from @ownpilot/core without going through the registry on every call.
-  const { setConfigCenter } = await import('@ownpilot/core');
-  setConfigCenter(gatewayConfigCenter);
+  // 5. Config Center — also installed on the core capability singleton so
+  // callers can use getConfigCenter() from @ownpilot/core without going
+  // through the registry on every call.
+  installService(Services.Config, gatewayConfigCenter, setConfigCenter);
 
   // 5b. LLM Router (matches the channel + config pattern — capability lives in
   // core, gateway provides the impl during boot)
@@ -301,27 +344,14 @@ async function main() {
   // 6. Embedding Service — also installed on the core capability singleton
   {
     const { getEmbeddingService } = await import('./services/embedding/service.js');
-    const embedding = getEmbeddingService();
-    registry.register(Services.Embedding, embedding);
-    const { setEmbeddingService } = await import('@ownpilot/core');
-    setEmbeddingService(embedding);
+    installService(Services.Embedding, getEmbeddingService(), setEmbeddingService);
   }
 
   // 7. Database Service — also installed on the core capability singleton
-  {
-    const database = getCustomDataService();
-    registry.register(Services.Database, database);
-    const { setDatabaseService } = await import('@ownpilot/core');
-    setDatabaseService(database);
-  }
+  installService(Services.Database, getCustomDataService(), setDatabaseService);
 
   // 7. Resource Service (wraps ResourceRegistry) — also installed on the core capability singleton
-  {
-    const resource = createResourceServiceImpl();
-    registry.register(Services.Resource, resource);
-    const { setResourceService } = await import('@ownpilot/core');
-    setResourceService(resource);
-  }
+  installService(Services.Resource, createResourceServiceImpl(), setResourceService);
 
   // Initialize Extensions repository + scan for new extensions
   log.info('Initializing Extensions...');
@@ -343,9 +373,7 @@ async function main() {
     await extService.cleanupOrphanTriggers('default');
 
     // 8. Extension Service — also installed on the core capability singleton
-    registry.register(Services.Extension, extService);
-    const { setExtensionService } = await import('@ownpilot/core');
-    setExtensionService(extService);
+    installService(Services.Extension, extService, setExtensionService);
   } catch (error) {
     log.warn('Extensions initialization failed', { error: String(error) });
   }
@@ -399,9 +427,7 @@ async function main() {
     await mcpClientService.autoConnect();
 
     // 9. MCP Client Service — also installed on the core capability singleton
-    registry.register(Services.McpClient, mcpClientService);
-    const { setMcpClientService } = await import('@ownpilot/core');
-    setMcpClientService(mcpClientService);
+    installService(Services.McpClient, mcpClientService, setMcpClientService);
   } catch (err) {
     log.warn('MCP auto-connect had errors', { error: String(err) });
   }
@@ -412,8 +438,7 @@ async function main() {
   const channelService = createChannelServiceImpl(pluginRegistry);
 
   // 8. Channel Service (unified channel access via plugin registry)
-  setChannelService(channelService);
-  registry.register(Services.Channel, channelService);
+  installService(Services.Channel, channelService, setChannelService);
   log.info('Channel Service initialized.');
 
   // Auto-connect channels that have valid configuration
@@ -438,91 +463,42 @@ async function main() {
   }
 
   // 9. Plugin Service (wraps PluginRegistry) — also installed on the core capability singleton
-  {
-    const plugin = await createPluginService();
-    registry.register(Services.Plugin, plugin);
-    const { setPluginService } = await import('@ownpilot/core');
-    setPluginService(plugin);
-  }
+  installService(Services.Plugin, await createPluginService(), setPluginService);
 
   // 10. Memory Service — also installed on the core capability singleton so
   // runtimes can consume it through `ctx.memory.*` (RuntimeContext bundle)
   // without going through the registry on every call.
-  {
-    const memory = getMemoryService();
-    registry.register(Services.Memory, memory);
-    const { setMemoryService } = await import('@ownpilot/core');
-    setMemoryService(memory);
-  }
+  installService(Services.Memory, getMemoryService(), setMemoryService);
 
   // 11. Goal Service — also installed on the core capability singleton so
   // runtimes can consume it via `getGoalService()` from @ownpilot/core
   // without going through the registry.
-  {
-    const goal = getGoalService();
-    registry.register(Services.Goal, goal);
-    const { setGoalService } = await import('@ownpilot/core');
-    setGoalService(goal);
-  }
+  installService(Services.Goal, getGoalService(), setGoalService);
 
-  // 12. Trigger Service
-  // Trigger Service — also installed on the core capability singleton
-  {
-    const trigger = getTriggerService();
-    registry.register(Services.Trigger, trigger);
-    const { setTriggerService } = await import('@ownpilot/core');
-    setTriggerService(trigger);
-  }
+  // 12. Trigger Service — also installed on the core capability singleton
+  installService(Services.Trigger, getTriggerService(), setTriggerService);
 
   // 13. Plan Service — also installed on the core capability singleton
-  {
-    const plan = getPlanService();
-    registry.register(Services.Plan, plan);
-    const { setPlanService } = await import('@ownpilot/core');
-    setPlanService(plan);
-  }
+  installService(Services.Plan, getPlanService(), setPlanService);
 
   // 14. Tool Service (wraps ToolRegistry) — also installed on the core capability singleton
-  {
-    const tool = createToolService();
-    registry.register(Services.Tool, tool);
-    const { setToolService } = await import('@ownpilot/core');
-    setToolService(tool);
-  }
+  installService(Services.Tool, createToolService(), setToolService);
 
   // 15. Provider Service — also installed on the core capability singleton
-  {
-    const provider = createProviderService();
-    registry.register(Services.Provider, provider);
-    const { setProviderService } = await import('@ownpilot/core');
-    setProviderService(provider);
-  }
+  installService(Services.Provider, createProviderService(), setProviderService);
 
   // 16. Audit Service — also installed on the core capability singleton so
   // runtimes can consume it through `ctx.audit.*` (RuntimeContext bundle)
   // without going through the registry on every call.
-  {
-    const audit = createAuditService();
-    registry.register(Services.Audit, audit);
-    const { setAuditService } = await import('@ownpilot/core');
-    setAuditService(audit);
-  }
+  installService(Services.Audit, createAuditService(), setAuditService);
 
   // 17. Workspace Service (wraps WorkspaceManager) — also installed on the core capability singleton
-  {
-    const workspace = createWorkspaceServiceImpl();
-    registry.register(Services.Workspace, workspace);
-    const { setWorkspaceService } = await import('@ownpilot/core');
-    setWorkspaceService(workspace);
-  }
+  installService(Services.Workspace, createWorkspaceServiceImpl(), setWorkspaceService);
 
   // 18. Workflow Service — also installed on the core capability singleton
   {
     const { getWorkflowService } = await import('./services/workflow/index.js');
-    const workflow = getWorkflowService();
-    registry.register(Services.Workflow, workflow);
-    const { setWorkflowService } = await import('@ownpilot/core');
-    setWorkflowService(workflow);
+    installService(Services.Workflow, getWorkflowService(), setWorkflowService);
   }
 
   // 18.1. Workflow Node Job Worker (gap 24.1 Phase 2 — persistent job queue for nodes)
@@ -568,10 +544,7 @@ async function main() {
   // 19. Heartbeat Service — also installed on the core capability singleton
   {
     const { getHeartbeatService } = await import('./services/heartbeat/service.js');
-    const heartbeat = getHeartbeatService();
-    registry.register(Services.Heartbeat, heartbeat);
-    const { setHeartbeatService } = await import('@ownpilot/core');
-    setHeartbeatService(heartbeat);
+    installService(Services.Heartbeat, getHeartbeatService(), setHeartbeatService);
   }
 
   // 19b. Pulse Metrics Service (claw + soul monitoring) — registered in the ServiceRegistry
@@ -591,19 +564,13 @@ async function main() {
   // 20. Coding Agent Service (external AI coding CLI orchestration) — also installed on the core capability singleton
   {
     const { getCodingAgentService } = await import('./services/coding-agent/service.js');
-    const codingAgent = getCodingAgentService();
-    registry.register(Services.CodingAgent, codingAgent);
-    const { setCodingAgentService } = await import('@ownpilot/core');
-    setCodingAgentService(codingAgent);
+    installService(Services.CodingAgent, getCodingAgentService(), setCodingAgentService);
   }
 
   // 24. Artifact Service (AI-generated interactive content) — also installed on the core capability singleton
   {
     const { getArtifactService } = await import('./services/artifact/service.js');
-    const artifact = getArtifactService();
-    registry.register(Services.Artifact, artifact);
-    const { setArtifactService } = await import('@ownpilot/core');
-    setArtifactService(artifact);
+    installService(Services.Artifact, getArtifactService(), setArtifactService);
   }
 
   // 24b. Canvas Service (Live Canvas — agent-driven spatial workspace)
@@ -1192,94 +1159,13 @@ async function main() {
       log.warn('Session service dispose error', { error: String(e) });
     }
 
-    // 8. Invalidate MCP server (close sessions, stop cleanup timer)
+    // 8. Reset all registered services via centralized cleanup module
+    // (previously 13 individual try/catch blocks — now one call)
     try {
-      const { invalidateMcpServer } = await import('./services/mcp/server.js');
-      invalidateMcpServer();
+      const { shutdownAllServices } = await import('./services/shutdown-cleanup.js');
+      await shutdownAllServices(log);
     } catch (e) {
-      log.warn('MCP server cleanup error', { error: String(e) });
-    }
-
-    // 8.1. Stop metrics service (H-C1: refresh timer queried DB after pool close)
-    try {
-      const { stopMetricsService } = await import('./services/metric/service.js');
-      stopMetricsService();
-    } catch (e) {
-      log.warn('Metrics service stop error', { error: String(e) });
-    }
-
-    // 8.2. Stop claw manager (H-C20: persist & retention timers)
-    try {
-      const { resetClawManager } = await import('./services/claw/manager.js');
-      resetClawManager();
-    } catch (e) {
-      log.warn('Claw manager stop error', { error: String(e) });
-    }
-
-    // 8.4. Shutdown browser service (H-C3: cleanup timer + open Playwright pages)
-    try {
-      const { resetBrowserService } = await import('./services/browser-service.js');
-      resetBrowserService();
-    } catch (e) {
-      log.warn('Browser service shutdown error', { error: String(e) });
-    }
-
-    // 8.5. Reset extension sandbox
-    try {
-      const { resetExtensionSandbox } = await import('./services/extension/sandbox.js');
-      resetExtensionSandbox();
-    } catch (e) {
-      log.warn('Extension sandbox reset error', { error: String(e) });
-    }
-
-    // 8.6. Reset remaining legacy singletons
-    try {
-      const { resetEdgeMqttClient } = await import('./services/edge/mqtt-client.js');
-      resetEdgeMqttClient();
-    } catch (e) {
-      log.warn('Edge MQTT client reset error', { error: String(e) });
-    }
-    try {
-      const { resetEmbeddingService } = await import('./services/embedding/service.js');
-      resetEmbeddingService();
-    } catch (e) {
-      log.warn('Embedding service reset error', { error: String(e) });
-    }
-    try {
-      const { resetVoiceService } = await import('./services/voice-service.js');
-      resetVoiceService();
-    } catch (e) {
-      log.warn('Voice service reset error', { error: String(e) });
-    }
-    try {
-      const { resetNpmInstaller } = await import('./services/skill/npm-installer.js');
-      resetNpmInstaller();
-    } catch (e) {
-      log.warn('NPM installer reset error', { error: String(e) });
-    }
-    try {
-      const { resetLlmSemaphore } = await import('./services/llm/semaphore.js');
-      resetLlmSemaphore();
-    } catch (e) {
-      log.warn('LLM semaphore reset error', { error: String(e) });
-    }
-    try {
-      const { resetCustomDataService } = await import('./services/custom/data-service.js');
-      resetCustomDataService();
-    } catch (e) {
-      log.warn('Custom data service reset error', { error: String(e) });
-    }
-    try {
-      const { resetTriggerService } = await import('./services/trigger-service.js');
-      resetTriggerService();
-    } catch (e) {
-      log.warn('Trigger service reset error', { error: String(e) });
-    }
-    try {
-      const { resetResourceRegistry } = await import('./services/resource/registry.js');
-      resetResourceRegistry();
-    } catch (e) {
-      log.warn('Resource registry reset error', { error: String(e) });
+      log.warn('Service shutdown error', { error: String(e) });
     }
 
     // 9. Close DB connection pool
