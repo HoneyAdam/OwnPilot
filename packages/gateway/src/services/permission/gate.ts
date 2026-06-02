@@ -283,7 +283,20 @@ export function evaluateAutonomyPolicy(
     if (workspaceDir) roots.push(resolveAgainst('', workspaceDir));
     for (const s of scopes) roots.push(resolveAgainst(workspaceDir ?? '', s));
     if (roots.length > 0) {
-      for (const p of extractPaths(args)) {
+      const paths = extractPaths(args);
+      // Fail-closed: a known file tool is operating under filesystem containment
+      // but exposes no recognizable path argument (PATH_ARG_KEYS), so we cannot
+      // verify it stays within scope. Require approval rather than silently allow
+      // it. No built-in file tool hits this — they all use recognized path keys —
+      // so this is a no-op today; it guards future/custom file tools whose path
+      // argument uses an unrecognized key from becoming a silent scope bypass.
+      if (paths.length === 0) {
+        return {
+          type: 'require_approval',
+          reason: `File tool "${base}" runs under a filesystem scope but exposes no verifiable path argument`,
+        };
+      }
+      for (const p of paths) {
         const resolved = resolveAgainst(workspaceDir ?? '', p);
         if (!roots.some((r) => isWithin(resolved, r))) {
           return {

@@ -319,6 +319,23 @@ describe('evaluateAutonomyPolicy (pure)', () => {
     expect(d.type).toBe('deny');
   });
 
+  it('fails closed when a file tool under scope exposes no recognizable path arg', () => {
+    // Path supplied under an unrecognized key (not in PATH_ARG_KEYS) — the gate
+    // cannot verify containment, so it must require approval rather than allow.
+    const d = evaluateAutonomyPolicy(
+      'core.write_file',
+      { unknown_key: '/etc/shadow', content: 'x' },
+      policy(),
+      '/ws'
+    );
+    expect(d.type).toBe('require_approval');
+  });
+
+  it('still allows recognized path args inside scope (no false positive)', () => {
+    const d = evaluateAutonomyPolicy('core.write_file', { path: 'sub/a.txt' }, policy(), '/ws');
+    expect(d.type).toBe('allow');
+  });
+
   it('treats a shell script with rm -rf as destructive', () => {
     const d = evaluateAutonomyPolicy(
       'claw_run_script',
