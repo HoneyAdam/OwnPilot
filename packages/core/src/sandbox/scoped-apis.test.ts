@@ -13,6 +13,7 @@ vi.mock('fs/promises', () => ({
   mkdir: vi.fn(),
   unlink: vi.fn(),
   access: vi.fn(),
+  realpath: vi.fn(),
 }));
 
 // Note: mocking child_process.exec is required here because scoped-apis.ts
@@ -45,6 +46,7 @@ const mockStat = fsPromises.stat as unknown as Mock;
 const mockMkdir = fsPromises.mkdir as unknown as Mock;
 const mockUnlink = fsPromises.unlink as unknown as Mock;
 const mockAccess = fsPromises.access as unknown as Mock;
+const mockRealpath = fsPromises.realpath as unknown as Mock;
 const mockExec = execRaw as unknown as Mock;
 const mockIsCommandBlocked = isCommandBlocked as unknown as Mock;
 
@@ -90,6 +92,9 @@ describe('scoped-apis', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsCommandBlocked.mockReturnValue(false);
+    // Default: realpath is identity (no symlinks) so containment checks behave
+    // lexically. Individual tests override it to simulate a symlinked entry.
+    mockRealpath.mockImplementation(async (p: string) => p);
   });
 
   afterEach(() => {
@@ -140,6 +145,33 @@ describe('scoped-apis', () => {
       // Construct a sibling: workspace + "-evil/file.txt"
       const siblingPath = WORKSPACE + '-evil/file.txt';
       await expect(fs.readFile(siblingPath)).rejects.toThrow('Path traversal blocked');
+    });
+
+    it('blocks reads through a symlinked entry that escapes the workspace', async () => {
+      // A symlinked entry "evil" inside the workspace points at /etc. The
+      // lexical resolve keeps "evil/passwd" under the workspace prefix, but
+      // realpath reveals the real target is outside, so it must be rejected.
+      const fs = createScopedFs(WORKSPACE);
+      const linkedTarget = path.join(WORKSPACE, 'evil', 'passwd');
+      mockRealpath.mockImplementation(async (p: string) =>
+        p === linkedTarget ? path.resolve('/etc/passwd') : p
+      );
+
+      await expect(fs.readFile('evil/passwd')).rejects.toThrow('Path traversal blocked');
+      expect(mockReadFile).not.toHaveBeenCalled();
+    });
+
+    it('blocks writes through a symlinked entry that escapes the workspace', async () => {
+      const fs = createScopedFs(WORKSPACE);
+      const linkedTarget = path.join(WORKSPACE, 'link', 'evil.sh');
+      mockRealpath.mockImplementation(async (p: string) =>
+        p === linkedTarget ? path.resolve('/outside/evil.sh') : p
+      );
+
+      await expect(fs.writeFile('link/evil.sh', 'payload')).rejects.toThrow(
+        'Path traversal blocked'
+      );
+      expect(mockWriteFile).not.toHaveBeenCalled();
     });
 
     it('allows simple relative path within workspace', async () => {

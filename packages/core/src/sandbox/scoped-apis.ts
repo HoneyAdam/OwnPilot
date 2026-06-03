@@ -41,22 +41,58 @@ export interface ScopedExec {
 const MAX_OUTPUT_SIZE = 512 * 1024; // 512KB for sandbox outputs
 
 /**
+ * Resolve the real path of `target`, following symlinks. `fs.realpath` only
+ * resolves paths that exist, so for a not-yet-existing target (writeFile/mkdir)
+ * we resolve the nearest existing ancestor and re-attach the missing remainder.
+ * This ensures a symlinked PARENT cannot be used to escape the workspace.
+ */
+async function realpathAllowingMissing(target: string): Promise<string> {
+  let current = target;
+  const trailing: string[] = [];
+  for (;;) {
+    try {
+      const real = await fs.realpath(current);
+      return trailing.length ? path.join(real, ...trailing) : real;
+    } catch {
+      const parent = path.dirname(current);
+      if (parent === current) return path.normalize(target);
+      trailing.unshift(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
+/**
  * Resolve a path within the workspace, preventing traversal attacks.
  * Throws if the resolved path escapes the workspace directory.
+ *
+ * The lexical resolve below blocks `../` traversal, but `path.resolve` does NOT
+ * follow symlinks — a symlinked entry inside the workspace (e.g. pnpm's
+ * node_modules links, or a checked-out repo) could otherwise be used to read or
+ * write outside the jail. We therefore resolve symlinks on both the target and
+ * the workspace before the containment check, and operate on the real path.
  */
-function resolveSafePath(workspaceDir: string, userPath: string): string {
+async function resolveSafePath(workspaceDir: string, userPath: string): Promise<string> {
   // Normalize backslashes to forward slashes before resolution so that
   // Windows-style traversal (e.g. "..\\..\\secret") is caught on all platforms.
   const sanitized = userPath.replace(/\\/g, '/');
   const resolved = path.resolve(workspaceDir, sanitized);
   const normalizedWorkspace = path.resolve(workspaceDir);
 
-  // Check that resolved path is within workspace
+  // Reject lexical escapes early (cheap, and covers the common case).
   if (!resolved.startsWith(normalizedWorkspace + path.sep) && resolved !== normalizedWorkspace) {
     throw new Error(`Path traversal blocked: '${userPath}' resolves outside workspace.`);
   }
 
-  return resolved;
+  // Then resolve symlinks and re-check, so a symlinked entry inside the
+  // workspace cannot redirect the real target outside it.
+  const realTarget = await realpathAllowingMissing(resolved);
+  const realWorkspace = await realpathAllowingMissing(normalizedWorkspace);
+  if (!realTarget.startsWith(realWorkspace + path.sep) && realTarget !== realWorkspace) {
+    throw new Error(`Path traversal blocked: '${userPath}' resolves outside workspace.`);
+  }
+
+  return realTarget;
 }
 
 // =============================================================================
@@ -71,25 +107,25 @@ function resolveSafePath(workspaceDir: string, userPath: string): string {
 export function createScopedFs(workspaceDir: string): ScopedFs {
   return {
     async readFile(filePath: string, encoding?: string): Promise<string> {
-      const safePath = resolveSafePath(workspaceDir, filePath);
+      const safePath = await resolveSafePath(workspaceDir, filePath);
       return fs.readFile(safePath, { encoding: (encoding || 'utf-8') as BufferEncoding });
     },
 
     async writeFile(filePath: string, content: string): Promise<void> {
-      const safePath = resolveSafePath(workspaceDir, filePath);
+      const safePath = await resolveSafePath(workspaceDir, filePath);
       // Ensure parent directory exists
       await fs.mkdir(path.dirname(safePath), { recursive: true });
       await fs.writeFile(safePath, content, 'utf-8');
     },
 
     async readdir(dirPath?: string): Promise<string[]> {
-      const safePath = dirPath ? resolveSafePath(workspaceDir, dirPath) : workspaceDir;
+      const safePath = dirPath ? await resolveSafePath(workspaceDir, dirPath) : workspaceDir;
       const entries = await fs.readdir(safePath);
       return entries;
     },
 
     async stat(filePath: string) {
-      const safePath = resolveSafePath(workspaceDir, filePath);
+      const safePath = await resolveSafePath(workspaceDir, filePath);
       const stats = await fs.stat(safePath);
       return {
         size: stats.size,
@@ -100,18 +136,18 @@ export function createScopedFs(workspaceDir: string): ScopedFs {
     },
 
     async mkdir(dirPath: string, recursive?: boolean): Promise<void> {
-      const safePath = resolveSafePath(workspaceDir, dirPath);
+      const safePath = await resolveSafePath(workspaceDir, dirPath);
       await fs.mkdir(safePath, { recursive: recursive ?? true });
     },
 
     async unlink(filePath: string): Promise<void> {
-      const safePath = resolveSafePath(workspaceDir, filePath);
+      const safePath = await resolveSafePath(workspaceDir, filePath);
       await fs.unlink(safePath);
     },
 
     async exists(filePath: string): Promise<boolean> {
       try {
-        const safePath = resolveSafePath(workspaceDir, filePath);
+        const safePath = await resolveSafePath(workspaceDir, filePath);
         await fs.access(safePath);
         return true;
       } catch {
