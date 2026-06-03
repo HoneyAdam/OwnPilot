@@ -49,23 +49,13 @@ export class TelegramBot {
    * Setup message handlers
    */
   private setupHandlers(): void {
-    // Handle text messages
-    this.bot.on('message:text', async (ctx) => {
-      // Check if user is allowed
-      if (!this.isUserAllowed(ctx)) {
-        return;
-      }
-
-      const incoming = this.parseIncomingMessage(ctx);
-      if (this.messageHandler) {
-        try {
-          await this.messageHandler(incoming);
-        } catch (err) {
-          log.error('Error handling Telegram message', err);
-          await ctx.reply('Sorry, I encountered an error processing your message.');
-        }
-      }
-    });
+    // IMPORTANT: command handlers MUST be registered BEFORE the catch-all
+    // `bot.on('message:text')` below. grammy runs middleware in registration
+    // order and does not auto-call next() for these single-argument handlers,
+    // so a message:text handler registered first would consume "/start" etc.
+    // (commands are text messages too) and the command handlers would never
+    // fire — the bot would reply to "/start" with an AI response instead of the
+    // welcome text. Same gotcha already fixed in the gateway Telegram plugin.
 
     // Handle /start command
     this.bot.command('start', async (ctx) => {
@@ -104,6 +94,25 @@ export class TelegramBot {
 
       // In a real implementation, this would reset the agent conversation
       await ctx.reply('Conversation reset. Send me a new message to start fresh!');
+    });
+
+    // Catch-all text handler — registered AFTER the commands (see note above) so
+    // it only sees non-command messages.
+    this.bot.on('message:text', async (ctx) => {
+      // Check if user is allowed
+      if (!this.isUserAllowed(ctx)) {
+        return;
+      }
+
+      const incoming = this.parseIncomingMessage(ctx);
+      if (this.messageHandler) {
+        try {
+          await this.messageHandler(incoming);
+        } catch (err) {
+          log.error('Error handling Telegram message', err);
+          await ctx.reply('Sorry, I encountered an error processing your message.');
+        }
+      }
     });
 
     // Error handling
