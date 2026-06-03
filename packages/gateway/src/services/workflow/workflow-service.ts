@@ -144,11 +144,23 @@ export class WorkflowService implements IWorkflowService {
       throw new Error('Workflow is already running');
     }
 
-    const wfLog = await repo.createLog(workflowId, workflow.name);
     const startTime = Date.now();
 
-    // Emit started event so consumers (e.g. API endpoint) can capture the logId
-    onProgress?.({ type: 'started', logId: wfLog.id });
+    // The execution lock is already held (tryAcquireExecutionLock above). Log
+    // creation and the 'started' callback run before the main try/finally, so a
+    // throw here — a DB error in createLog, or a throwing onProgress consumer —
+    // would leak the lock and wedge the workflow as permanently "running"
+    // ("Workflow is already running" on every later run until the gateway
+    // restarts). Release the lock explicitly on that setup path.
+    let wfLog: WorkflowLog;
+    try {
+      wfLog = await repo.createLog(workflowId, workflow.name);
+      // Emit started event so consumers (e.g. API endpoint) can capture the logId
+      onProgress?.({ type: 'started', logId: wfLog.id });
+    } catch (setupError) {
+      this.activeExecutions.delete(workflowId);
+      throw setupError;
+    }
 
     try {
       // Filter out trigger nodes (they define when the workflow starts, not what it does)
@@ -608,10 +620,18 @@ export class WorkflowService implements IWorkflowService {
     }
     const startTime = Date.now();
 
-    // Update log status to running for resume
-    await repo.updateLog(logId, { status: 'running', nodeResults: savedNodeOutputs });
-
-    onProgress?.({ type: 'started', logId });
+    // The execution lock is already held (tryAcquireExecutionLock above). The
+    // status update and 'started' callback run before the main try/finally, so
+    // a throw here would leak the lock and wedge the workflow as permanently
+    // "running" — and it would be stuck un-resumable. Release on the setup path.
+    try {
+      // Update log status to running for resume
+      await repo.updateLog(logId, { status: 'running', nodeResults: savedNodeOutputs });
+      onProgress?.({ type: 'started', logId });
+    } catch (setupError) {
+      this.activeExecutions.delete(workflowId);
+      throw setupError;
+    }
 
     try {
       // Filter out trigger nodes

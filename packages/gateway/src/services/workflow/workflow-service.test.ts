@@ -287,6 +287,18 @@ describe('executeWorkflow', () => {
     await expect(service.executeWorkflow('wf-1', 'user1')).rejects.toThrow('Workflow has no nodes');
   });
 
+  it('releases the execution lock when createLog throws (no permanent wedge)', async () => {
+    mockRepo.get.mockResolvedValue({ id: 'wf-1', nodes: [makeNode('n1', 'toolNode')], edges: [] });
+    // createLog runs AFTER the lock is acquired but BEFORE the main try/finally.
+    mockRepo.createLog.mockRejectedValueOnce(new Error('DB down'));
+
+    await expect(service.executeWorkflow('wf-1', 'user1')).rejects.toThrow('DB down');
+
+    // Without releasing the lock on this path the workflow is wedged forever:
+    // every later run throws "Workflow is already running" until restart.
+    expect(service.isRunning('wf-1')).toBe(false);
+  });
+
   it('throws when workflow is already running', async () => {
     const map = (service as unknown as { activeExecutions: Map<string, AbortController> })
       .activeExecutions;
@@ -1298,6 +1310,21 @@ describe('approvalNode', () => {
     await service.executeWorkflow('wf-1', 'user1', undefined, { dryRun: true });
 
     expect(mockApprovalsRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('releases the lock when the resume status update throws (no permanent wedge)', async () => {
+    mockRepo.get.mockResolvedValue(makeWorkflow([makeNode('n1', 'toolNode')]));
+    mockRepo.getLog.mockResolvedValue(makeLog({ status: 'awaiting_approval', nodeResults: {} }));
+    // The 'running' status update runs after the lock is acquired but before the
+    // main try/finally; a throw there must still release the lock, otherwise the
+    // paused workflow is wedged "running" and can never be resumed.
+    mockRepo.updateLog.mockRejectedValueOnce(new Error('DB down'));
+
+    await expect(
+      service.resumeFromApproval('wf-1', 'user1', 'ap1', 'approved', 'log-1')
+    ).rejects.toThrow('DB down');
+
+    expect(service.isRunning('wf-1')).toBe(false);
   });
 });
 
