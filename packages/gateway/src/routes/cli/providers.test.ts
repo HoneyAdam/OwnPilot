@@ -50,6 +50,7 @@ function createApp() {
 
 const sampleProvider = {
   id: 'prov-1',
+  userId: 'user-1',
   name: 'prettier',
   displayName: 'Prettier',
   binary: 'prettier',
@@ -57,6 +58,9 @@ const sampleProvider = {
   isActive: true,
   createdAt: '2026-01-01T00:00:00Z',
 };
+
+/** A provider owned by a DIFFERENT OwnPilot user (for IDOR checks). */
+const foreignProvider = { ...sampleProvider, userId: 'someone-else' };
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -224,6 +228,17 @@ describe('CLI Providers Routes', () => {
       });
       expect(res.status).toBe(400);
     });
+
+    it('returns 404 and does not update a provider owned by another user (IDOR)', async () => {
+      mockRepo.getById.mockResolvedValueOnce(foreignProvider);
+      const res = await app.request('/cli-providers/prov-1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ binary: '/tmp/evil', display_name: 'hijacked' }),
+      });
+      expect(res.status).toBe(404);
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
   });
 
   // ========================================================================
@@ -248,6 +263,13 @@ describe('CLI Providers Routes', () => {
       mockRepo.delete.mockRejectedValueOnce(new Error('DB error'));
       const res = await app.request('/cli-providers/prov-1', { method: 'DELETE' });
       expect(res.status).toBe(500);
+    });
+
+    it('returns 404 and does not delete a provider owned by another user (IDOR)', async () => {
+      mockRepo.getById.mockResolvedValueOnce(foreignProvider);
+      const res = await app.request('/cli-providers/prov-1', { method: 'DELETE' });
+      expect(res.status).toBe(404);
+      expect(mockRepo.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -303,6 +325,15 @@ describe('CLI Providers Routes', () => {
       mockRepo.getById.mockRejectedValueOnce(new Error('DB error'));
       const res = await app.request('/cli-providers/prov-1/test', { method: 'POST' });
       expect(res.status).toBe(500);
+    });
+
+    it("returns 404 and never executes another user's provider binary (IDOR)", async () => {
+      mockRepo.getById.mockResolvedValueOnce(foreignProvider);
+      const res = await app.request('/cli-providers/prov-1/test', { method: 'POST' });
+      expect(res.status).toBe(404);
+      // The /test endpoint runs `which <binary>` + `<binary> --version`; a
+      // cross-owner request must not reach execFileSync at all.
+      expect(mockExecFileSync).not.toHaveBeenCalled();
     });
   });
 });

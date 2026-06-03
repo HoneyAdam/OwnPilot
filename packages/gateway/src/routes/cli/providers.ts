@@ -19,6 +19,20 @@ import {
 
 export const cliProvidersRoutes = new Hono();
 
+/**
+ * Load a CLI provider by id and enforce that it belongs to the authenticated
+ * user. cli_providers is owner-scoped (UNIQUE(user_id, name)), but the repo's
+ * getById/update/delete operate by id alone, so the routes must gate on
+ * ownership — otherwise any user could read (and /test even executes), modify,
+ * or delete another user's provider config by guessing the id. Returns null on
+ * missing OR cross-owner so both map to 404 (no existence leak).
+ */
+async function getOwnedProvider(id: string, ownerUserId: string) {
+  const provider = await cliProvidersRepo.getById(id);
+  if (!provider || provider.userId !== ownerUserId) return null;
+  return provider;
+}
+
 // =============================================================================
 // GET / - List all CLI providers for the user
 // =============================================================================
@@ -114,6 +128,7 @@ cliProvidersRoutes.post('/', async (c) => {
 // =============================================================================
 
 cliProvidersRoutes.put('/:id', async (c) => {
+  const userId = getUserId(c);
   const id = c.req.param('id');
 
   const body = await parseJsonBody(c);
@@ -124,6 +139,10 @@ cliProvidersRoutes.put('/:id', async (c) => {
   const b = body as Record<string, unknown>;
 
   try {
+    if (!(await getOwnedProvider(id, userId))) {
+      return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Provider not found' }, 404);
+    }
+
     const updated = await cliProvidersRepo.update(id, {
       name: b.name as string | undefined,
       displayName: b.display_name as string | undefined,
@@ -158,9 +177,14 @@ cliProvidersRoutes.put('/:id', async (c) => {
 // =============================================================================
 
 cliProvidersRoutes.delete('/:id', async (c) => {
+  const userId = getUserId(c);
   const id = c.req.param('id');
 
   try {
+    if (!(await getOwnedProvider(id, userId))) {
+      return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Provider not found' }, 404);
+    }
+
     const deleted = await cliProvidersRepo.delete(id);
     if (!deleted) {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Provider not found' }, 404);
@@ -176,10 +200,11 @@ cliProvidersRoutes.delete('/:id', async (c) => {
 // =============================================================================
 
 cliProvidersRoutes.post('/:id/test', async (c) => {
+  const userId = getUserId(c);
   const id = c.req.param('id');
 
   try {
-    const provider = await cliProvidersRepo.getById(id);
+    const provider = await getOwnedProvider(id, userId);
     if (!provider) {
       return apiError(c, { code: ERROR_CODES.NOT_FOUND, message: 'Provider not found' }, 404);
     }
