@@ -465,6 +465,29 @@ describe('NpmSkillInstaller', () => {
       expect(info.author).toBe('Object Author');
     });
 
+    it('rejects instead of recursing forever on a redirect loop', async () => {
+      // Persistent (not Once) mock: every request answers with a redirect back
+      // to itself. Without a redirect cap, fetchJson would recurse indefinitely.
+      mockHttpsGet.mockImplementation(
+        (_url: string, optsOrCallback: unknown, maybeCallback?: unknown) => {
+          const callback =
+            typeof optsOrCallback === 'function'
+              ? (optsOrCallback as (res: unknown) => void)
+              : (maybeCallback as (res: unknown) => void);
+          const res = new EventEmitter() as EventEmitter & {
+            statusCode: number;
+            headers: Record<string, string>;
+          };
+          res.statusCode = 301;
+          res.headers = { location: 'https://registry.npmjs.org/loop' };
+          callback(res);
+          return createMockRequest();
+        }
+      );
+
+      await expect(installer.getPackageInfo('looping-pkg')).rejects.toThrow(/too many redirects/i);
+    });
+
     it('handles author as string form', async () => {
       setupFetchJsonResponse(200, makeRegistryResponse({ author: 'String Author' }));
 

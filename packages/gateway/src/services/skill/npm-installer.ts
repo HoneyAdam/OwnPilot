@@ -21,6 +21,8 @@ const log = getLog('NpmInstaller');
 const NPM_REGISTRY = 'https://registry.npmjs.org';
 const NPM_SEARCH = 'https://registry.npmjs.org/-/v1/search';
 const SKILL_KEYWORD = 'ownpilot-skill';
+/** Max HTTP redirects to follow for registry/tarball requests (loop guard). */
+const MAX_DOWNLOAD_REDIRECTS = 5;
 
 // =============================================================================
 // Types
@@ -264,13 +266,19 @@ export class NpmSkillInstaller {
     return null;
   }
 
-  private fetchJson(url: string): Promise<unknown> {
+  private fetchJson(url: string, redirectsLeft = MAX_DOWNLOAD_REDIRECTS): Promise<unknown> {
     return new Promise((resolve, reject) => {
       httpsGet(url, { headers: { Accept: 'application/json' } }, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           const redirectUrl = res.headers.location;
           if (redirectUrl) {
-            this.fetchJson(redirectUrl).then(resolve, reject);
+            // Bound the redirect chain — a server (or registry misconfig)
+            // returning a redirect loop would otherwise recurse forever.
+            if (redirectsLeft <= 0) {
+              reject(new Error(`Too many redirects fetching ${url}`));
+              return;
+            }
+            this.fetchJson(redirectUrl, redirectsLeft - 1).then(resolve, reject);
             return;
           }
         }
@@ -294,13 +302,22 @@ export class NpmSkillInstaller {
     });
   }
 
-  private downloadFile(url: string, destPath: string): Promise<void> {
+  private downloadFile(
+    url: string,
+    destPath: string,
+    redirectsLeft = MAX_DOWNLOAD_REDIRECTS
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       httpsGet(url, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           const redirectUrl = res.headers.location;
           if (redirectUrl) {
-            this.downloadFile(redirectUrl, destPath).then(resolve, reject);
+            // Bound the redirect chain so a redirect loop can't recurse forever.
+            if (redirectsLeft <= 0) {
+              reject(new Error(`Too many redirects downloading ${url}`));
+              return;
+            }
+            this.downloadFile(redirectUrl, destPath, redirectsLeft - 1).then(resolve, reject);
             return;
           }
         }
