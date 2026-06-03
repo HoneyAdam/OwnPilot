@@ -228,6 +228,15 @@ describe('createSanitizedEnv', () => {
       ADMIN_KEY: 'admin',
       CLAUDECODE: '1',
       CLAUDE_CODE: '1',
+      // Third-party secrets that must NOT leak to a spawned coding-agent CLI.
+      OPENAI_API_KEY: 'sk-openai',
+      ANTHROPIC_API_KEY: 'sk-anthropic-ambient',
+      AWS_SECRET_ACCESS_KEY: 'aws-secret',
+      AWS_ACCESS_KEY_ID: 'aws-id',
+      SMTP_PASS: 'smtp-pw',
+      GITHUB_TOKEN: 'gh-token',
+      ENCRYPTION_KEY: 'enc',
+      REDIS_URL: 'redis://...',
       PATH: '/usr/bin',
       NODE_ENV: 'test',
     };
@@ -272,6 +281,25 @@ describe('createSanitizedEnv', () => {
     const env = createSanitizedEnv('unknown');
     expect(env.PATH).toBe('/usr/bin');
     expect(env.NODE_ENV).toBe('test');
+  });
+
+  it('strips third-party provider keys, cloud creds, and other secrets', () => {
+    const env = createSanitizedEnv('unknown');
+    expect(env.OPENAI_API_KEY).toBeUndefined();
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(env.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+    expect(env.AWS_ACCESS_KEY_ID).toBeUndefined();
+    expect(env.SMTP_PASS).toBeUndefined();
+    expect(env.GITHUB_TOKEN).toBeUndefined();
+    expect(env.ENCRYPTION_KEY).toBeUndefined();
+    expect(env.REDIS_URL).toBeUndefined();
+  });
+
+  it('re-injects the target provider key even when an ambient one was stripped', () => {
+    // ANTHROPIC_API_KEY is present in the ambient env and gets stripped, but the
+    // explicitly-resolved key for this provider must still be injected.
+    const env = createSanitizedEnv('claude-code', 'sk-anthropic-resolved');
+    expect(env.ANTHROPIC_API_KEY).toBe('sk-anthropic-resolved');
   });
 
   it('injects API key for claude-code provider', () => {

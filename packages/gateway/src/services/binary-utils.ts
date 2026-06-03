@@ -114,16 +114,49 @@ export function createSanitizedEnv(
 ): Record<string, string> {
   const env = { ...process.env } as Record<string, string>;
 
-  // Remove sensitive OwnPilot variables
-  const sensitivePatterns = [
-    /^OWNPILOT_/i,
-    /^DATABASE_/i,
-    /^ADMIN_KEY$/i,
-    /^JWT_SECRET$/i,
-    /^SESSION_SECRET$/i,
+  // Strip anything that looks like a secret. A spawned coding-agent CLI runs
+  // arbitrary shell commands and is steered by the model, so it must not inherit
+  // the gateway's ambient credentials (other providers' API keys, cloud creds,
+  // SMTP passwords, DB URLs, …) — otherwise a prompt-injected or malicious task
+  // can simply `env`/`echo $OPENAI_API_KEY` to exfiltrate them. The target
+  // provider's own key is re-injected below. Mirrors the local-executor
+  // sanitizer; coding-agent CLIs are at least as powerful, so the filter must be
+  // at least as strict (the previous 5-pattern list leaked everything else).
+  const SENSITIVE_FRAGMENTS = [
+    'OWNPILOT_',
+    'API_KEY',
+    'APIKEY',
+    'SECRET',
+    'TOKEN',
+    'PASSWORD',
+    'PASSWD',
+    'CREDENTIAL',
+    'PRIVATE_KEY',
+    'ACCESS_KEY',
+    'OPENAI_',
+    'ANTHROPIC_',
+    'GOOGLE_',
+    'GEMINI_',
+    'AZURE_',
+    'AWS_',
+    'DEEPSEEK_',
+    'GROQ_',
+    'MISTRAL_',
+    'COHERE_',
+    'OPENROUTER_',
+    'XAI_',
+    'PERPLEXITY_',
+    'SMTP_',
+    'IMAP_',
+    'DATABASE_',
+    'DB_',
+    'REDIS',
+    'ENCRYPTION',
+    'ADMIN_KEY',
   ];
   for (const key of Object.keys(env)) {
-    if (sensitivePatterns.some((p) => p.test(key))) {
+    const upper = key.toUpperCase();
+    if (SENSITIVE_FRAGMENTS.some((frag) => upper.includes(frag))) {
       delete env[key];
     }
   }
