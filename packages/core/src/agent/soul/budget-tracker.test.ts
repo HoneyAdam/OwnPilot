@@ -55,6 +55,41 @@ describe('BudgetTracker.checkBudget()', () => {
     await tracker.checkBudget('my-agent', makeAutonomy());
     expect(db.query).toHaveBeenCalledWith(expect.any(String), ['my-agent']);
   });
+
+  it('returns false when the monthly cap is exceeded even if the day is under budget', async () => {
+    // Daily query under limit, monthly query over limit. Without monthly
+    // enforcement a soul could spend maxCostPerDay every day and blow past
+    // maxCostPerMonth.
+    const db = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce([{ total: '2.00' }]) // daily: under 10
+        .mockResolvedValueOnce([{ total: '120.00' }]), // monthly: over 100
+    };
+    const tracker = new BudgetTracker(db);
+    const result = await tracker.checkBudget(
+      'agent-1',
+      makeAutonomy({ maxCostPerDay: 10, maxCostPerMonth: 100 })
+    );
+    expect(result).toBe(false);
+  });
+
+  it('treats a monthly cap of 0 as no monthly limit (and skips the monthly query)', async () => {
+    const db = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce([{ total: '2.00' }]) // daily: under 10
+        .mockResolvedValueOnce([{ total: '9999.00' }]), // monthly: would be over, but cap is 0
+    };
+    const tracker = new BudgetTracker(db);
+    const result = await tracker.checkBudget(
+      'agent-1',
+      makeAutonomy({ maxCostPerDay: 10, maxCostPerMonth: 0 })
+    );
+    expect(result).toBe(true);
+    // Daily blocked nothing and the monthly cap is disabled — only one query runs.
+    expect(db.query).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ---------------------------------------------------------------------------

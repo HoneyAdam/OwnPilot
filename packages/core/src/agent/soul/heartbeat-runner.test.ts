@@ -310,7 +310,7 @@ describe('HeartbeatRunner.runHeartbeat() — budget', () => {
     );
     const result = await runner.runHeartbeat('agent-1');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.message).toContain('budget');
+    if (!result.ok) expect(result.error.message).toMatch(/budget/i);
   });
 
   it('calls setHeartbeatEnabled(false) when pauseOnBudgetExceeded=true', async () => {

@@ -140,7 +140,7 @@ export class HeartbeatRunner {
     // Budget check
     const budgetOk = await this.budgetTracker.checkBudget(agentId, soul.autonomy);
     if (!budgetOk) {
-      log.warn(`[Heartbeat ${agentId}] Skipped: daily budget exceeded`);
+      log.warn(`[Heartbeat ${agentId}] Skipped: budget exceeded (daily or monthly)`);
       await this.handleBudgetExceeded(agentId, soul);
       // Log the skipped run so history is complete
       await this.heartbeatLogRepo.create({
@@ -156,7 +156,7 @@ export class HeartbeatRunner {
         tokenUsage: { input: 0, output: 0 },
         cost: 0,
       });
-      return { ok: false, error: new Error('Daily budget exceeded') };
+      return { ok: false, error: new Error('Budget exceeded') };
     }
 
     const result: HeartbeatResult = {
@@ -712,7 +712,8 @@ Be concise and focused. Report your findings clearly.`.trim();
     if (soul.autonomy.notifyUserOnPause) {
       await this.agentEngine.sendToChannel?.(
         'telegram',
-        `${soul.identity.name} ${soul.identity.emoji} paused — daily budget ($${soul.autonomy.maxCostPerDay}) exceeded.`
+        `${soul.identity.name} ${soul.identity.emoji} paused — budget exceeded ` +
+          `(daily $${soul.autonomy.maxCostPerDay} / monthly $${soul.autonomy.maxCostPerMonth}).`
       );
     }
   }

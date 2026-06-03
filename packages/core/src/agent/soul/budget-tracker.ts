@@ -21,11 +21,24 @@ export class BudgetTracker {
   constructor(private db: IBudgetDatabase) {}
 
   /**
-   * Check if the agent has remaining daily budget.
+   * Check whether the agent is within budget for another cycle.
+   *
+   * Enforces BOTH the daily and the monthly cap. Previously only the daily cap
+   * gated execution, so a soul could spend up to maxCostPerDay every day and
+   * sail past maxCostPerMonth (e.g. $5/day × 30 = $150 over a $100/month cap) —
+   * the monthly limit was configured and surfaced in the UI but never actually
+   * stopped spending. A cap of 0 is treated as "no limit" for that period.
    */
   async checkBudget(agentId: string, autonomy: SoulAutonomy): Promise<boolean> {
     const dailySpend = await this.getDailySpend(agentId);
-    return dailySpend < autonomy.maxCostPerDay;
+    if (dailySpend >= autonomy.maxCostPerDay) return false;
+
+    if (autonomy.maxCostPerMonth > 0) {
+      const monthlySpend = await this.getMonthlySpend(agentId);
+      if (monthlySpend >= autonomy.maxCostPerMonth) return false;
+    }
+
+    return true;
   }
 
   /**
