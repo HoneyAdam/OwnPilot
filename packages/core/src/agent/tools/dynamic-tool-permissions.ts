@@ -120,20 +120,27 @@ const DNS_CACHE_TTL_MS = 60_000; // 1 minute cache
  * Comprehensive check for IPv4 and IPv6 addresses.
  */
 function isPrivateIp(ip: string): boolean {
-  // IPv6 loopback
-  if (ip === '::1') return true;
+  let addr = ip.toLowerCase();
 
-  // IPv4-mapped IPv6 loopback
-  if (ip === '::ffff:127.0.0.1') return true;
+  // IPv4-mapped / IPv4-compatible IPv6 (e.g. ::ffff:169.254.169.254, ::10.0.0.1).
+  // Reduce to the embedded IPv4 so the IPv4 rules below catch ANY mapped private
+  // address — not just mapped loopback. A hostname can publish an AAAA record of
+  // ::ffff:169.254.169.254 and the dual-stack OS will connect it to the IPv4
+  // metadata endpoint, so a mapped form must not bypass the private-range check.
+  const mappedV4 = addr.match(/^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (mappedV4) addr = mappedV4[1]!;
+
+  // IPv6 loopback
+  if (addr === '::1') return true;
 
   // IPv6 unique local addresses (fc00::/7)
-  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
+  if (addr.startsWith('fc') || addr.startsWith('fd')) return true;
 
   // IPv6 link-local (fe80::/10)
-  if (ip.startsWith('fe80')) return true;
+  if (addr.startsWith('fe80')) return true;
 
   // IPv4 checks
-  const ipv4Match = ip.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  const ipv4Match = addr.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (!ipv4Match) {
     // Could be IPv6 public address or other format
     return false;

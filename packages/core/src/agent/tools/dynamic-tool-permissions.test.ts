@@ -4,9 +4,13 @@
  * Covers: isToolCallAllowed, isPrivateUrl
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { isToolCallAllowed, isPrivateUrl } from './dynamic-tool-permissions.js';
+// Mock DNS so isPrivateUrlAsync resolves test hostnames to controlled IPs.
+const dnsLookupMock = vi.hoisted(() => vi.fn());
+vi.mock('node:dns/promises', () => ({ lookup: dnsLookupMock }));
+
+import { isToolCallAllowed, isPrivateUrl, isPrivateUrlAsync } from './dynamic-tool-permissions.js';
 import type { DynamicToolPermission } from './dynamic-tool-types.js';
 
 // =============================================================================
@@ -373,5 +377,36 @@ describe('isPrivateUrl', () => {
     it('handles case-insensitive metadata hostname', () => {
       expect(isPrivateUrl('http://METADATA.GOOGLE.INTERNAL')).toBe(true);
     });
+  });
+});
+
+// =============================================================================
+// isPrivateUrlAsync — DNS-resolution SSRF checks (incl. IPv4-mapped IPv6)
+// =============================================================================
+describe('isPrivateUrlAsync', () => {
+  beforeEach(() => {
+    dnsLookupMock.mockReset();
+  });
+
+  it('blocks a host that resolves to a normal private IPv4', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '10.0.0.5', family: 4 }]);
+    expect(await isPrivateUrlAsync('https://rebind-a.example.com')).toBe(true);
+  });
+
+  it('blocks a host whose AAAA record is an IPv4-mapped IPv6 metadata address', async () => {
+    // ::ffff:169.254.169.254 is the cloud-metadata endpoint in mapped form; the
+    // dual-stack OS connects it to 169.254.169.254. It must be treated as private.
+    dnsLookupMock.mockResolvedValue([{ address: '::ffff:169.254.169.254', family: 6 }]);
+    expect(await isPrivateUrlAsync('https://rebind-b.example.com')).toBe(true);
+  });
+
+  it('blocks an IPv4-mapped IPv6 private (::ffff:10.x) address', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '::ffff:10.1.2.3', family: 6 }]);
+    expect(await isPrivateUrlAsync('https://rebind-c.example.com')).toBe(true);
+  });
+
+  it('allows a host that resolves to a public IP', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    expect(await isPrivateUrlAsync('https://public-d.example.com')).toBe(false);
   });
 });
