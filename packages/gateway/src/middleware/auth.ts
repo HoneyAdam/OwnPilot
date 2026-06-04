@@ -29,8 +29,12 @@ const MAX_API_KEY_LENGTH = 256;
  * an attacker can't distinguish key lengths via comparison timing.
  *
  * Returns true if `candidate` matches any key in `validKeys`.
+ *
+ * Exported so non-HTTP entry points (e.g. the WebSocket upgrade handler)
+ * share the same hardened comparison instead of re-implementing a
+ * length-leaking variant.
  */
-function apiKeyMatches(candidate: string, validKeys: string[]): boolean {
+export function apiKeyMatches(candidate: string, validKeys: string[]): boolean {
   if (candidate.length === 0 || candidate.length > MAX_API_KEY_LENGTH) return false;
   const candidateDigest = createHash('sha256').update(candidate, 'utf8').digest();
   let result = false;

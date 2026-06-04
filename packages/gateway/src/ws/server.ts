@@ -9,7 +9,7 @@ import type { IncomingMessage } from 'node:http';
 import type { Server as HttpServer } from 'node:http';
 import type { Server as HttpsServer } from 'node:https';
 import type { Http2SecureServer, Http2Server } from 'node:http2';
-import { timingSafeEqual } from 'node:crypto';
+import { apiKeyMatches } from '../middleware/auth.js';
 import {
   validateSession as validateUiSession,
   isPasswordConfigured,
@@ -78,12 +78,10 @@ async function validateWsAuth(auth: WsAuth): Promise<boolean> {
 
   // Auth enabled but no token provided
   if (!auth.apiToken) return false;
-  // Timing-safe comparison against all valid keys
-  const tokenBuf = Buffer.from(auth.apiToken);
-  return apiKeys.some((key) => {
-    const keyBuf = Buffer.from(key);
-    return tokenBuf.length === keyBuf.length && timingSafeEqual(tokenBuf, keyBuf);
-  });
+  // Shared H-S14 hardened compare: hashes both sides to a fixed-size digest
+  // before timingSafeEqual, so neither the match nor the key length leaks via
+  // timing (the previous raw length-gated compare revealed valid-key lengths).
+  return apiKeyMatches(auth.apiToken, apiKeys);
 }
 
 function getCookieValue(cookieHeader: string | undefined, name: string): string | null {
