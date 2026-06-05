@@ -40,7 +40,7 @@ export interface LlmSlotInfo {
  * (empty string = slot is free). The semaphore guarantees that at any
  * moment no more than `maxSlots` callers hold the lock simultaneously.
  */
-export class LlmSemaphore {
+class LlmSemaphore {
   /**
    * slot[i] = agentId occupying slot i, or '' if free.
    *

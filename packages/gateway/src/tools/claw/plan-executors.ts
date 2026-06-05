@@ -30,13 +30,13 @@ const VALID_STATUSES: readonly ClawTaskStatus[] = [
   'completed',
   'blocked',
 ] as const;
-export const MAX_TITLE_LEN = 200;
-export const MAX_NOTES_LEN = 1000;
-export const MAX_CRITERIA_LEN = 500;
-export const MAX_EVIDENCE_LEN = 1000;
-export const ID_RE = /^[a-zA-Z0-9_.\-]{1,64}$/;
+const MAX_TITLE_LEN = 200;
+const MAX_NOTES_LEN = 1000;
+const MAX_CRITERIA_LEN = 500;
+const MAX_EVIDENCE_LEN = 1000;
+const ID_RE = /^[a-zA-Z0-9_.\-]{1,64}$/;
 
-export function isValidTaskStatus(s: unknown): s is ClawTaskStatus {
+function isValidTaskStatus(s: unknown): s is ClawTaskStatus {
   return typeof s === 'string' && (VALID_STATUSES as readonly string[]).includes(s);
 }
 

@@ -257,17 +257,6 @@ export function getEmbeddingQueue(): EmbeddingQueue {
 }
 
 /**
- * Returns the instance for ServiceRegistry factory use.
- * Does NOT auto-start — caller is responsible for lifecycle.
- */
-export function getEmbeddingQueueForRegistry(): EmbeddingQueue {
-  if (!instance) {
-    instance = new EmbeddingQueue();
-  }
-  return instance;
-}
-
-/**
  * Stop and null the singleton. Call during shutdown or reset.
  */
 export function resetEmbeddingQueue(): void {

@@ -13,9 +13,9 @@ import type { ClawTask, ClawPlanHistoryEntry } from '@ownpilot/core';
 // ============================================================================
 
 /** Reserved key inside persistentContext for serialized task list */
-export const SAVED_TASKS_KEY = '__claw_tasks';
+const SAVED_TASKS_KEY = '__claw_tasks';
 /** Reserved key inside persistentContext for serialized plan history */
-export const SAVED_PLAN_HISTORY_KEY = '__claw_plan_history';
+const SAVED_PLAN_HISTORY_KEY = '__claw_plan_history';
 
 // ============================================================================
 // Priority delay multipliers

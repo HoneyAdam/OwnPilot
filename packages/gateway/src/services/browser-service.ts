@@ -909,12 +909,6 @@ export function getBrowserService(): BrowserService {
   return instance;
 }
 
-/** Returns the current singleton without constructing one. Used by graceful
- *  shutdown to avoid instantiating an idle service just to tear it down. */
-export function tryGetBrowserService(): BrowserService | null {
-  return instance;
-}
-
 /**
  * Stop and null the singleton. Call during shutdown or reset.
  */

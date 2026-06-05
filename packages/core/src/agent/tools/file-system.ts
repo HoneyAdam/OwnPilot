@@ -69,7 +69,7 @@ function getWorkspaceDir(workspaceDir?: string): string {
  * non-existent trailing segments so the caller range-checks the real location.
  * Exported for unit testing.
  */
-export async function realpathNearestExistingAncestor(target: string): Promise<string> {
+async function realpathNearestExistingAncestor(target: string): Promise<string> {
   let current = path.resolve(target);
   const trailing: string[] = [];
   for (;;) {

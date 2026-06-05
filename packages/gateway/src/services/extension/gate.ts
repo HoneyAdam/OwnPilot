@@ -29,7 +29,7 @@ export interface GateDeps {
 const binaryCache = new Map<string, boolean>();
 
 /** Default PATH lookup — `which` (POSIX) / `where` (Windows), cached. */
-export function defaultHasBinary(bin: string): boolean {
+function defaultHasBinary(bin: string): boolean {
   const cached = binaryCache.get(bin);
   if (cached !== undefined) return cached;
 
@@ -49,11 +49,6 @@ export function defaultHasBinary(bin: string): boolean {
   }
   binaryCache.set(bin, ok);
   return ok;
-}
-
-/** Clear the cached binary-availability results (e.g. on PATH change / tests). */
-export function clearBinaryCache(): void {
-  binaryCache.clear();
 }
 
 /**

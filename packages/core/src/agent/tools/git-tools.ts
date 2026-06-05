@@ -720,7 +720,7 @@ export const gitCheckoutExecutor: ToolExecutor = async (
 // GIT SHOW TOOL — inspect a specific commit
 // ============================================================================
 
-export const gitShowTool: ToolDefinition = {
+const gitShowTool: ToolDefinition = {
   name: 'git_show',
   brief: 'Show a commit (message + diff) or a file at a specific revision',
   description:
@@ -791,7 +791,7 @@ export const gitShowExecutor: ToolExecutor = async (
 // GIT BLAME TOOL — line-by-line authorship
 // ============================================================================
 
-export const gitBlameTool: ToolDefinition = {
+const gitBlameTool: ToolDefinition = {
   name: 'git_blame',
   brief: 'Show who last modified each line of a file (and when)',
   description:
@@ -860,7 +860,7 @@ export const gitBlameExecutor: ToolExecutor = async (
 // GIT STASH TOOL — save / restore / list WIP
 // ============================================================================
 
-export const gitStashTool: ToolDefinition = {
+const gitStashTool: ToolDefinition = {
   name: 'git_stash',
   brief: 'Save, restore, or list stashed working-directory changes',
   description:

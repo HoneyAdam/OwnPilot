@@ -52,7 +52,7 @@ export interface RouteMetrics {
   sampleCount: number;
 }
 
-export class ProviderMetricsRepository extends BaseRepository {
+class ProviderMetricsRepository extends BaseRepository {
   /**
    * Record a provider call metric.
    */

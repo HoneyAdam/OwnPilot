@@ -65,7 +65,7 @@ export interface JobStats {
   cancelled: number;
 }
 
-export class JobsRepository extends BaseRepository {
+class JobsRepository extends BaseRepository {
   /**
    * Claim the next available job using FOR UPDATE SKIP LOCKED.
    * Returns null if no jobs are available to claim.

@@ -12,7 +12,7 @@
 // ============================================================================
 
 /** Maximum characters per tool result in the failure log */
-export const FAILURE_LOG_MAX_CHARS = 300;
+const FAILURE_LOG_MAX_CHARS = 300;
 
 // ============================================================================
 // Helpers
