@@ -8,7 +8,10 @@
     "strict": true,
     "composite": true,
     "isolatedModules": true,
-    "noEmit": false
+    "noEmit": false,
+    "outDir": "./node_modules/.cache/tsconfig-node",
+    "declarationDir": "./node_modules/.cache/tsconfig-node",
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig-node/tsconfig.node.tsbuildinfo"
   },
   "include": ["vite.config.ts"]
 }

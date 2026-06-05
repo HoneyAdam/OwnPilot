@@ -117,3 +117,7 @@ security-reports/*
 .wrongstack/
 # Root-level debug screenshots
 /provider_screenshot.png
+
+# UI vite config is authored in vite.config.ts; never commit compiled output
+packages/ui/vite.config.js
+packages/ui/vite.config.d.ts
