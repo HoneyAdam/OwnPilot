@@ -522,20 +522,26 @@ describe('LEGITIMATE code must still work', () => {
     );
   });
 
-  it('ALLOWED: Fetch (when network is allowed)', { timeout: 15000 }, async () => {
+  it('ALLOWED: Fetch (when network is allowed)', async () => {
     const executor = createSandbox({ ...SANDBOX_CONFIG, permissions: { network: true } });
+    // Hermetic: fetching a private IP literal makes the SSRF-safe wrapper
+    // reject immediately with NO network round-trip. This proves both that
+    // `fetch` is exposed under network:true AND that it is the safe wrapper
+    // rather than raw globalThis.fetch. (The previous version did a real
+    // round-trip to httpbin.org, which flaked CI/release runs on slow days;
+    // actual fetch behavior is covered by dynamic-tool-sandbox.test.ts.)
     const result = await executor.execute(`
+      if (typeof fetch !== 'function') return 'missing';
       try {
-        const res = await fetch('https://httpbin.org/get');
-        return 'status:' + res.status;
+        await fetch('http://10.255.255.1/');
+        return 'unexpected-success';
       } catch(e) {
         return 'error:' + e.message;
       }
     `);
     expect(result.ok).toBe(true);
-    const value = result.ok ? result.value!.value : '';
-    // fetch is available when network permission is granted
-    expect(String(value)).toMatch(/^status:/);
+    const value = String(result.ok ? result.value!.value : '');
+    expect(value).toMatch(/^error:.*SSRF blocked/);
   });
 });
 
