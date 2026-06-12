@@ -83,6 +83,37 @@ jobs:
       - name: Format Check
         run: pnpm format:check
 
+  coverage:
+    name: Coverage report
+    # Coverage instrumentation slows the suite down, so PRs skip it.
+    # Main pushes produce a downloadable report artifact instead.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test with coverage
+        run: TURBO_FORCE=true pnpm test:coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-reports
+          path: packages/*/coverage
+          retention-days: 14
+          if-no-files-found: error
+
   migration-smoke-test:
     name: Migration smoke test (pgvector/pg16)
     runs-on: ubuntu-latest
@@ -131,3 +162,77 @@ jobs:
           POSTGRES_PASSWORD: ownpilot_ci_password
           POSTGRES_DB: ownpilot
         run: pnpm --filter @ownpilot/gateway exec tsx scripts/migration-smoke-test.ts
+
+  gateway-boot-smoke-test:
+    name: Gateway boot smoke test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ownpilot
+          POSTGRES_PASSWORD: ownpilot_ci_password
+          POSTGRES_DB: ownpilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ownpilot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same reason as the migration smoke test: gateway source resolves
+      # `@ownpilot/core` to its compiled dist.
+      - name: Build core dependency
+        run: pnpm --filter @ownpilot/core build
+
+      - name: Boot gateway and probe /health/ready
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: '5432'
+          POSTGRES_USER: ownpilot
+          POSTGRES_PASSWORD: ownpilot_ci_password
+          POSTGRES_DB: ownpilot
+          PORT: '18080'
+        # End-to-end boot check: the gateway must come up against a fresh
+        # database, create its schema (initializeSchema from db/schema/*.ts),
+        # and report ready. /health/ready verifies the critical tables exist,
+        # so a runtime-schema regression fails here even when unit tests pass.
+        run: |
+          pnpm --filter @ownpilot/gateway exec tsx src/server.ts > gateway.log 2>&1 &
+          GATEWAY_PID=$!
+          trap 'kill "$GATEWAY_PID" 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18080/health/ready > ready.json 2>/dev/null; then
+              echo "Gateway ready after ~$((i * 2))s"
+              cat ready.json
+              echo
+              curl -fsS http://127.0.0.1:18080/health
+              exit 0
+            fi
+            if ! kill -0 "$GATEWAY_PID" 2>/dev/null; then
+              echo "Gateway process exited before becoming ready"
+              tail -n 100 gateway.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          echo "Gateway did not become ready within 120s"
+          tail -n 100 gateway.log
+          exit 1
