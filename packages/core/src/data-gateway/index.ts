@@ -23,7 +23,8 @@ export type DataStoreType =
   | 'preferences'
   | 'files'
   | 'calendar'
-  | 'contacts';
+  | 'contacts'
+  | 'tasks';
 
 /**
  * Data access operation types
