@@ -15,7 +15,7 @@
 import { LOCAL_OWNER_ID } from '../config/defaults.js';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { ZodType } from 'zod';
+import type { ZodSchema } from 'zod';
 import { getServiceRegistry, type ServiceToken } from '@ownpilot/core';
 import {
   apiResponse,
@@ -39,7 +39,7 @@ type DataChangedEntity = ServerEvents['data:changed']['entity'];
 type CrudMethod = 'list' | 'get' | 'create' | 'update' | 'delete';
 
 /** Configuration for the CRUD route factory. */
-interface CrudRouteConfig<TService = unknown> {
+interface CrudRouteConfig<TService = unknown, TCreate = unknown, TUpdate = unknown> {
   /** Entity name used for error messages, broadcast events, and response keys. e.g. 'heartbeat' */
   entity: DataChangedEntity;
 
@@ -51,8 +51,8 @@ interface CrudRouteConfig<TService = unknown> {
 
   /** Optional Zod schemas for create and update validation. */
   schemas?: {
-    create?: ZodType;
-    update?: ZodType;
+    create?: ZodSchema<TCreate>;
+    update?: ZodSchema<TUpdate>;
   };
 
   /** Whether to broadcast changes via wsGateway. Default: true. */
@@ -92,9 +92,9 @@ interface CrudRouteConfig<TService = unknown> {
     /** Transform a single item before returning from GET /:id. */
     afterGet?: (item: unknown, c: Context) => unknown;
     /** Transform the body before passing to the create service method. */
-    beforeCreate?: (body: unknown, c: Context) => unknown;
+    beforeCreate?: (body: TCreate, c: Context) => TCreate | Promise<TCreate>;
     /** Transform the body before passing to the update service method. */
-    beforeUpdate?: (body: unknown, c: Context) => unknown;
+    beforeUpdate?: (body: TUpdate, c: Context) => TUpdate | Promise<TUpdate>;
   };
 }
 
@@ -120,10 +120,10 @@ async function parseJsonBody(c: Context): Promise<unknown | null> {
  * Validate a body against a Zod schema.
  * Returns { data } on success, { error } on failure.
  */
-function validateWithSchema(
-  schema: ZodType,
+function validateWithSchema<T>(
+  schema: ZodSchema<T>,
   body: unknown
-): { data: unknown; error?: undefined } | { data?: undefined; error: string } {
+): { data: T; error?: undefined } | { data?: undefined; error: string } {
   const result = schema.safeParse(body);
   if (!result.success) {
     const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
@@ -167,7 +167,9 @@ function broadcastChange(
  *   PATCH /:id   - Update with optional Zod validation
  *   DELETE /:id  - Delete by ID
  */
-export function createCrudRoutes<TService = unknown>(config: CrudRouteConfig<TService>): Hono {
+export function createCrudRoutes<TService = unknown, TCreate = unknown, TUpdate = unknown>(
+  config: CrudRouteConfig<TService, TCreate, TUpdate>
+): Hono {
   const app = new Hono();
 
   const {

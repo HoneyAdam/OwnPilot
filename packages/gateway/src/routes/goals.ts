@@ -188,7 +188,7 @@ goalsRoutes.patch('/:id', async (c) => {
 });
 
 // Factory-generated DELETE /:id route
-const goalCrudRoutes = createCrudRoutes({
+const goalCrudRoutes = createCrudRoutes<ReturnType<typeof getGoalService>>({
   entity: 'goal',
   serviceToken: Services.Goal,
   methods: ['delete'],
