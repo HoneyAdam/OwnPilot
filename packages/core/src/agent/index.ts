@@ -391,6 +391,10 @@ export {
   SOUL_COMMUNICATION_TOOL_NAMES,
 } from './tools/soul-communication-tools.js';
 
+// Crew Templates
+export { listCrewTemplates, getCrewTemplate } from './soul/templates/index.js';
+export type { CrewTemplate, AgentSoulTemplate } from './soul/templates/index.js';
+
 export type {
   AgentSoul,
   SoulIdentity,
