@@ -94,6 +94,54 @@
         "types": "./dist/channels/index.d.ts",
         "default": "./dist/channels/index.js"
       }
+    },
+    "./credentials": {
+      "import": {
+        "types": "./dist/credentials/index.d.ts",
+        "default": "./dist/credentials/index.js"
+      }
+    },
+    "./scheduler": {
+      "import": {
+        "types": "./dist/scheduler/index.d.ts",
+        "default": "./dist/scheduler/index.js"
+      }
+    },
+    "./security": {
+      "import": {
+        "types": "./dist/security/index.d.ts",
+        "default": "./dist/security/index.js"
+      }
+    },
+    "./workspace": {
+      "import": {
+        "types": "./dist/workspace/index.d.ts",
+        "default": "./dist/workspace/index.js"
+      }
+    },
+    "./edge": {
+      "import": {
+        "types": "./dist/edge/index.d.ts",
+        "default": "./dist/edge/index.js"
+      }
+    },
+    "./data-gateway": {
+      "import": {
+        "types": "./dist/data-gateway/index.d.ts",
+        "default": "./dist/data-gateway/index.js"
+      }
+    },
+    "./costs": {
+      "import": {
+        "types": "./dist/costs/index.d.ts",
+        "default": "./dist/costs/index.js"
+      }
+    },
+    "./assistant": {
+      "import": {
+        "types": "./dist/assistant/index.d.ts",
+        "default": "./dist/assistant/index.js"
+      }
     }
   },
   "files": [
