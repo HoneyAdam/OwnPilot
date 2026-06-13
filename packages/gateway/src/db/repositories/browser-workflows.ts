@@ -4,7 +4,7 @@
  * CRUD for browser automation workflow definitions.
  */
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 import { BaseRepository, parseJsonField } from './base.js';
 import type { BrowserAction } from '../../services/browser-service.js';
 

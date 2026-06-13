@@ -4,7 +4,7 @@
  * CRUD for claw configs, session persistence, and execution history.
  */
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 import type {
   ClawConfig,
   ClawLimits,

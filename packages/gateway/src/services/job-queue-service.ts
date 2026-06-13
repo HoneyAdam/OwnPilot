@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { getLog } from './log.js';
 import { getJobsRepository, type CreateJobInput, type JobRecord } from '../db/repositories/jobs.js';
 

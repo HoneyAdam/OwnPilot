@@ -5,7 +5,7 @@
  */
 
 import { BaseRepository, parseJsonField } from '../base.js';
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 
 // ============================================================================
 // Types

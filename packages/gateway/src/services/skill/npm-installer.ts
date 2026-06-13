@@ -13,7 +13,7 @@ import { createWriteStream } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getLog } from '../log.js';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 
 const execFileAsync = promisify(execFile);
 const log = getLog('NpmInstaller');

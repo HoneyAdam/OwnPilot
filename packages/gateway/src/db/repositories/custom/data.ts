@@ -6,7 +6,7 @@
  */
 
 import { BaseRepository, parseJsonField } from '../base.js';
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 
 /**
  * Error thrown when a caller passes a filter key that is not part of the

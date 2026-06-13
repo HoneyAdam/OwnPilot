@@ -5,7 +5,7 @@
  * Scoped by userId + canvasId.
  */
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 import type {
   CanvasElement,
   CanvasElementType,

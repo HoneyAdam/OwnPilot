@@ -9,7 +9,7 @@
 import { parseJsonField } from '../base.js';
 import { CrudRepository, type CreateFields } from '../crud-base.js';
 import type { UpdateField } from '../query-helpers.js';
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 
 // ============================================================================
 // Types

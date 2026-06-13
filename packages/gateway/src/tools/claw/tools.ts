@@ -19,7 +19,7 @@
  * `agent-tool-registry.ts`.
  */
 
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { CLAW_TOOLS, CLAW_TOOL_NAMES } from './definitions.js';
 import { buildSandboxEnv } from './sandbox-env.js';
 import {

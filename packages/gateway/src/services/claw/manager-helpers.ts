@@ -10,7 +10,7 @@
  *   - ensureConversationRow — guarantee a conversations row for the claw's chat tab
  */
 
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { getClawsRepository } from '../../db/repositories/claws.js';
 import {
   writeSessionWorkspaceFile,

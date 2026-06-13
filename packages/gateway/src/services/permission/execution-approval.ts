@@ -5,7 +5,7 @@
  * Flow: SSE event → UI dialog → HTTP POST → resolve promise → execution continues.
  */
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 
 /** Default timeout for approval requests (2 minutes) */
 const APPROVAL_TIMEOUT_MS = 120_000;

@@ -5,7 +5,7 @@
  * Implements the BridgeStore interface from @ownpilot/core.
  */
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 import type { UCPBridgeConfig, BridgeDirection, BridgeStore } from '@ownpilot/core';
 import { BaseRepository } from '../base.js';
 

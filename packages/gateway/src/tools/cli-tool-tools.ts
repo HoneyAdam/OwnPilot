@@ -10,7 +10,7 @@
  */
 
 import type { ToolDefinition, CliInstallMethod } from '@ownpilot/core';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { getCliToolService } from '../services/cli/tool-service.js';
 
 // =============================================================================

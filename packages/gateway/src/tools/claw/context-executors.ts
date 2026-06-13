@@ -8,7 +8,7 @@
  *  - claw_update_config  — mutate this claw's own DB config (self-modification)
  */
 
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { getClawContext } from '../../services/claw/context.js';
 
 type ExecResult = { success: boolean; result?: unknown; error?: string };

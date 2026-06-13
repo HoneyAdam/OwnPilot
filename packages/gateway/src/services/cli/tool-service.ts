@@ -19,7 +19,7 @@ import type {
   CliToolPolicy,
   CliInstallMethod,
 } from '@ownpilot/core';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { CLI_TOOLS_BY_NAME } from './tools-catalog.js';
 import { discoverTools, clearDiscoveryCache } from './tools-discovery.js';
 import { cliToolPoliciesRepo } from '../../db/repositories/cli/tool-policies.js';

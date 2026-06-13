@@ -9,7 +9,7 @@
  */
 
 import type { ToolDefinition } from '@ownpilot/core';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { HabitsRepository } from '../db/repositories/habits.js';
 import type { ToolExecutionResult } from '../services/tool/executor.js';
 import { wsGateway } from '../ws/server.js';

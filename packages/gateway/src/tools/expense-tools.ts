@@ -8,7 +8,7 @@
  * are overridden here to use the DB.
  */
 
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { ExpensesRepository } from '../db/repositories/expenses.js';
 import type { ToolExecutionResult } from '../services/tool/executor.js';
 import { wsGateway } from '../ws/server.js';

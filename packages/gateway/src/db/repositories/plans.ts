@@ -6,7 +6,7 @@
 
 import { BaseRepository, parseJsonField, parseJsonFieldNullable } from './base.js';
 import { buildUpdateStatement } from './query-helpers.js';
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 
 // ============================================================================
 // Types

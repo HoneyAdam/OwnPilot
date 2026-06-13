@@ -15,7 +15,7 @@ vi.mock('@ownpilot/core', () => ({
   generateId: vi.fn((prefix: string) => `${prefix}_test_123`),
 }));
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 import {
   createApprovalRequest,
   resolveApproval,

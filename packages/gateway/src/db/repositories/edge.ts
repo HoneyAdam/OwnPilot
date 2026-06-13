@@ -4,7 +4,7 @@
  * CRUD for edge devices, commands, and telemetry data.
  */
 
-import { generateId } from '@ownpilot/core';
+import { generateId } from '@ownpilot/core/services';
 import type {
   EdgeDevice,
   EdgeCommand,

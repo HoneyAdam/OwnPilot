@@ -11,7 +11,7 @@ import { getBrowserService } from '../services/browser-service.js';
 import { getTriggerService } from '../services/index.js';
 import { BrowserWorkflowsRepository } from '../db/repositories/browser-workflows.js';
 import { apiResponse, apiError, ERROR_CODES, getPaginationParams } from './helpers.js';
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import {
   validateBody,
   browserNavigateSchema,

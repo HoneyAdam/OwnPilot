@@ -20,7 +20,7 @@
  * dev process that restarts 20×/day must not decay a memory 20×).
  */
 
-import { getErrorMessage } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { getMemoryService } from '../memory-service.js';
 import { getLog } from '../log.js';
 
