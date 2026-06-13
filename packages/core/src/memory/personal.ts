@@ -843,8 +843,11 @@ export function createPersonalMemoryStore(
 }
 
 /**
- * Store cache (one per user)
+ * Store cache (one per user). Capped at MAX_CACHE_SIZE entries; oldest
+ * entries are evicted when the cap is reached to prevent unbounded growth
+ * in long-running gateways.
  */
+const PERSONAL_STORE_CACHE_MAX = 1000;
 const personalStoreCache = new Map<string, PersonalMemoryStore>();
 
 /**
@@ -855,7 +858,26 @@ export async function getPersonalMemoryStore(userId: string): Promise<PersonalMe
   if (!store) {
     store = createPersonalMemoryStore(userId);
     await store.initialize();
+    // Insertion order is preserved by Map, so the first key is the oldest.
+    // Evict from the front when we exceed the cap.
+    if (personalStoreCache.size >= PERSONAL_STORE_CACHE_MAX) {
+      const oldestKey = personalStoreCache.keys().next().value;
+      if (oldestKey !== undefined) personalStoreCache.delete(oldestKey);
+    }
     personalStoreCache.set(userId, store);
   }
   return store;
+}
+
+/**
+ * Clear cached stores. If userId is provided, only that entry is removed;
+ * otherwise the whole cache is cleared. Call from assistant shutdown paths
+ * to release memory when the gateway goes idle.
+ */
+export function clearPersonalStoreCache(userId?: string): void {
+  if (userId !== undefined) {
+    personalStoreCache.delete(userId);
+  } else {
+    personalStoreCache.clear();
+  }
 }
