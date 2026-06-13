@@ -65,7 +65,7 @@ vi.mock('./log.js', () => ({
 
 import { getExtensionService } from './extension/service.js';
 import { auditSkillSecurity } from './skill/security-audit.js';
-import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core';
+import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core/sandbox';
 import {
   createCustomToolsRepo,
   createTriggersRepository,

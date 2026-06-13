@@ -22,7 +22,7 @@
  */
 
 import { z } from 'zod';
-import { isSafeRegexPattern } from '@ownpilot/core';
+import { isSafeRegexPattern } from '@ownpilot/core/channels';
 
 // ─── Bridges ─────────────────────────────────────────────────────
 

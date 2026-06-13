@@ -12,7 +12,7 @@ import {
   type CreateStepInput,
 } from '../db/repositories/plans.js';
 import { getPlanExecutor } from '../plans/index.js';
-import { getPlanService, Services } from '@ownpilot/core';
+import { getPlanService, Services } from '@ownpilot/core/services';
 import {
   apiResponse,
   apiError,

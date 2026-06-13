@@ -26,7 +26,7 @@ import {
   traceError as recordTraceError,
   getTraceSummary,
 } from '../../tracing/index.js';
-import { debugLog } from '@ownpilot/core';
+import { debugLog } from '@ownpilot/core/agent';
 import {
   extractSuggestions,
   extractMemoriesFromResponse,

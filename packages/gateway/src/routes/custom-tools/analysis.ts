@@ -6,7 +6,7 @@
  */
 
 import { Hono } from 'hono';
-import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core';
+import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core/sandbox';
 import { apiResponse, apiError, ERROR_CODES, parseJsonBody } from '../helpers.js';
 
 export const analysisRoutes = new Hono();

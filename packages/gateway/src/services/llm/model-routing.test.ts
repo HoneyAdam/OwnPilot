@@ -39,7 +39,7 @@ vi.mock('../log.js', () => ({
   }),
 }));
 
-import { pricingByExactKey } from '@ownpilot/core';
+import { pricingByExactKey } from '@ownpilot/core/costs';
 import {
   getProcessRouting,
   getAllRouting,

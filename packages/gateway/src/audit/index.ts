@@ -6,7 +6,7 @@
  */
 
 import { join } from 'node:path';
-import { createAuditLogger, type AuditLogger, type AuditEventInput } from '@ownpilot/core';
+import { createAuditLogger, type AuditLogger, type AuditEventInput } from '@ownpilot/core/audit';
 import { getDataPaths } from '../paths/index.js';
 
 // Audit log path will be initialized lazily

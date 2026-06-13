@@ -11,7 +11,7 @@
  * Produces a single health score with per-section breakdowns.
  */
 
-import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core';
+import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core/sandbox';
 import type { CliToolCatalogEntry, CliToolPolicy } from '@ownpilot/core';
 import { getExtensionService } from './extension/service.js';
 import { auditSkillSecurity } from './skill/security-audit.js';

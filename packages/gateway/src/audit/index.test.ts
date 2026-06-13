@@ -40,7 +40,7 @@ async function freshModule() {
 // Import after mocks are in place (used for non-singleton tests)
 // ---------------------------------------------------------------------------
 
-import { createAuditLogger } from '@ownpilot/core';
+import { createAuditLogger } from '@ownpilot/core/audit';
 import { getDataPaths } from '../paths/index.js';
 import { logToolExecution, logChatEvent, logAgentEvent, logSystemEvent } from './index.js';
 

@@ -16,7 +16,8 @@ import {
   type ToolPermission,
   type ToolStatus,
 } from '../db/repositories/custom/tools.js';
-import { validateToolCode, type ToolDefinition } from '@ownpilot/core';
+import { validateToolCode } from '@ownpilot/core/sandbox';
+import type { ToolDefinition } from '@ownpilot/core/agent';
 import { invalidateAgentCache } from '../services/agent/cache.js';
 import {
   registerToolConfigRequirements,

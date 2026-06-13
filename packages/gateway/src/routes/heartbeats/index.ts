@@ -10,7 +10,7 @@
 
 import { LOCAL_OWNER_ID } from '../../config/defaults.js';
 import { Hono } from 'hono';
-import { getHeartbeatService, Services } from '@ownpilot/core';
+import { getHeartbeatService, Services } from '@ownpilot/core/services';
 import { HeartbeatServiceError } from '../../services/heartbeat/service.js';
 import type { HeartbeatService } from '../../services/heartbeat/service.js';
 import {

@@ -8,7 +8,7 @@
  * services/chat/streaming.ts and service-impl.ts.
  */
 
-import { debugLog } from '@ownpilot/core';
+import { debugLog } from '@ownpilot/core/agent';
 import { ChatRepository, LogsRepository } from '../db/repositories/index.js';
 import { channelSessionsRepo } from '../db/repositories/channels/sessions.js';
 import { wsGateway } from '../ws/server.js';

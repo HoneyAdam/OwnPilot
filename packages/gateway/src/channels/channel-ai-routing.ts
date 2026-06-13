@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { pricingByExactKey } from '@ownpilot/core';
+import { pricingByExactKey } from '@ownpilot/core/costs';
 import type {
   ChannelIncomingMessage,
   ChannelPluginAPI,

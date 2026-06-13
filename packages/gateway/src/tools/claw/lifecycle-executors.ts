@@ -11,7 +11,8 @@
  * Each is a pure handler that returns a uniform { success, result?, error? }.
  */
 
-import { getErrorMessage, validateToolCode } from '@ownpilot/core';
+import { getErrorMessage } from '@ownpilot/core/services';
+import { validateToolCode } from '@ownpilot/core/sandbox';
 import { getClawContext } from '../../services/claw/context.js';
 import { validatePackageName, validateToolName, truncateScriptOutput } from './validation.js';
 import { buildSandboxEnv } from './sandbox-env.js';

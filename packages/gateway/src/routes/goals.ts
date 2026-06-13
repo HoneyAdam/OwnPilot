@@ -16,7 +16,7 @@ import type {
   CreateStepInput,
 } from '../db/repositories/goals.js';
 import { GoalServiceError } from '../services/goal-service.js';
-import { getGoalService, Services } from '@ownpilot/core';
+import { getGoalService, Services } from '@ownpilot/core/services';
 import {
   apiResponse,
   apiError,

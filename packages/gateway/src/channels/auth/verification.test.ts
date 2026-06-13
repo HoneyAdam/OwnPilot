@@ -15,7 +15,7 @@ vi.mock('../../db/repositories/channels/users.js', () => ({
   channelUsersRepo: {},
 }));
 
-import { getEventBus } from '@ownpilot/core';
+import { getEventBus } from '@ownpilot/core/events';
 import { ChannelVerificationService, getChannelVerificationService } from './verification.js';
 import type { ChannelVerificationRepository } from '../../db/repositories/channels/verification.js';
 import type { ChannelUsersRepository } from '../../db/repositories/channels/users.js';

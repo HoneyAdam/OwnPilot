@@ -10,7 +10,7 @@
  *   3. First configured provider (existing fallback in getDefaultProvider)
  */
 
-import { pricingByExactKey } from '@ownpilot/core';
+import { pricingByExactKey } from '@ownpilot/core/costs';
 import { settingsRepo } from '../../db/repositories/index.js';
 import { getDefaultProvider, getDefaultModel } from '../app-settings.js';
 import { getLog } from '../log.js';

@@ -10,8 +10,8 @@
  * - None:    Provider doesn't support ACP yet
  */
 
-import type { BuiltinCodingAgentProvider, CodingAgentProvider } from '@ownpilot/core';
-import { isBuiltinProvider } from '@ownpilot/core';
+import type { BuiltinCodingAgentProvider, CodingAgentProvider } from '@ownpilot/core/agent';
+import { isBuiltinProvider } from '@ownpilot/core/agent';
 
 // =============================================================================
 // ACP SUPPORT DETECTION

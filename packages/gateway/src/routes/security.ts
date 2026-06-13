@@ -11,7 +11,7 @@
 
 import { LOCAL_OWNER_ID } from '../config/defaults.js';
 import { Hono } from 'hono';
-import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core';
+import { analyzeToolCode, calculateSecurityScore } from '@ownpilot/core/sandbox';
 import {
   scanPlatform,
   scanExtensions,
