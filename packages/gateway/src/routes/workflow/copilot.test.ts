@@ -40,7 +40,7 @@ vi.mock('../../services/agent/cache.js', () => ({
   NATIVE_PROVIDERS: new Set(['openai', 'anthropic', 'google']),
 }));
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/agent', () => ({
   createProvider: vi.fn(() => ({
     stream: mockStream,
     complete: mockComplete,

@@ -69,7 +69,7 @@ vi.mock('../../db/repositories/workflows/index.js', () => ({
   createWorkflowsRepository: vi.fn(() => mockRepo),
 }));
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@ownpilot/core')>();
   return {
     ...actual,
@@ -77,6 +77,13 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
       get: () => mockToolService,
     })),
     getToolService: vi.fn(() => mockToolService),
+  };
+});
+
+vi.mock('@ownpilot/core/types', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     sleep: vi.fn(async () => {}),
     withTimeout: vi.fn(async (promise: Promise<unknown>) => promise),
   };

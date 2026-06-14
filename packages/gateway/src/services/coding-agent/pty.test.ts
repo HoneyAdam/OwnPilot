@@ -15,7 +15,7 @@ const { mockTryImport, mockLog } = vi.hoisted(() => ({
   mockLog: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/agent', () => ({
   tryImport: mockTryImport,
   getLog: vi.fn(() => mockLog),
 }));

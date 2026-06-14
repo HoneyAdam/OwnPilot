@@ -99,9 +99,12 @@ vi.mock('../../services/extension/scanner.js', () => ({
   getAllScanDirectories: () => ['/path/to'],
 }));
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/agent', () => ({
   createProvider: vi.fn(() => ({ complete: mockComplete })),
   getProviderConfig: vi.fn(() => null),
+}));
+
+vi.mock('@ownpilot/core/services', () => ({
   getServiceRegistry: () => ({
     get: (token: { key: string }) => {
       if (token.key === 'extension') return mockService;
@@ -116,6 +119,9 @@ vi.mock('@ownpilot/core', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
+}));
+
+vi.mock('@ownpilot/core/events', () => ({
   // AUDIT-003 added emit() calls — stub the event system so the
   // install/uninstall/enable/disable paths don't crash on emit.
   getEventSystem: vi.fn(() => ({ emit: vi.fn() })),

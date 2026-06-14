@@ -42,11 +42,18 @@ vi.mock('../../workspace/file-workspace.js', () => ({
   writeSessionWorkspaceFile: vi.fn(),
 }));
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/events', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     getEventSystem: (...args: unknown[]) => mockGetEventSystem(...args),
+  };
+});
+
+vi.mock('@ownpilot/core/services', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     getErrorMessage: (e: unknown) => String(e instanceof Error ? e.message : e),
     generateId: vi.fn().mockReturnValue('gen-id'),
   };

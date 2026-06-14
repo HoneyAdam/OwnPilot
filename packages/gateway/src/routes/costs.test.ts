@@ -79,7 +79,7 @@ const mockBudgetManager = {
   emit: vi.fn(),
 };
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/costs', async (importOriginal) => {
   const original = await importOriginal<Record<string, unknown>>();
   return {
     ...original,

@@ -281,7 +281,7 @@ vi.mock('../../channels/service-impl.js', () => ({
 // getChannelServiceImpl. Mirror both onto the same underlying mock so the
 // existing per-test setup (mockGetChannelServiceImpl.mockReturnValue) still
 // drives the route's view of "what does channelService.send() return?".
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/channels', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@ownpilot/core')>();
   return {
     ...actual,

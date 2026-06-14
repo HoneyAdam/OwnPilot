@@ -28,11 +28,18 @@ const mockStore = {
 
 const mockInjector = { invalidateCache: vi.fn() };
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/memory', async (importOriginal) => {
   const original = await importOriginal<Record<string, unknown>>();
   return {
     ...original,
     getPersonalMemoryStore: vi.fn(async () => mockStore),
+  };
+});
+
+vi.mock('@ownpilot/core/agent', async (importOriginal) => {
+  const original = await importOriginal<Record<string, unknown>>();
+  return {
+    ...original,
     getMemoryInjector: vi.fn(() => mockInjector),
   };
 });

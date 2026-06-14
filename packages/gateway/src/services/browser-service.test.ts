@@ -114,9 +114,12 @@ vi.mock('../utils/ssrf.js', () => ({
   isPrivateUrlAsync: (...args: unknown[]) => mockIsPrivateUrlAsync(...args),
 }));
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/privacy', () => ({
   hasPII: (...args: unknown[]) => mockHasPII(...args),
   detectPII: (...args: unknown[]) => mockDetectPII(...args),
+}));
+
+vi.mock('@ownpilot/core/services', () => ({
   getLog: (...args: unknown[]) => mockGetLog(...args),
   // BrowserService now reads allowed-domains config through the
   // ConfigCenter capability instead of the repo directly.

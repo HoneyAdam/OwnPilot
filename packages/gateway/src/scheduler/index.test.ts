@@ -62,7 +62,7 @@ const mockResolveForProcess = vi.hoisted(() =>
   }))
 );
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/scheduler', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -71,7 +71,21 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
       capturedNotificationHandler = handler as (...args: unknown[]) => Promise<void>;
       return { handler };
     }),
+  };
+});
+
+vi.mock('@ownpilot/core/channels', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     getChannelService: vi.fn(() => mockChannelService),
+  };
+});
+
+vi.mock('@ownpilot/core/services', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     // scheduler/index.ts migrated from resolveForProcess() to
     // getLLMRouter().pick({ process }). Route the new accessor through the
     // existing mock so test assertions and mockResolvedValueOnce calls

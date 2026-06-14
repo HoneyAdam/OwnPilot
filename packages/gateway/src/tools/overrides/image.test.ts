@@ -62,8 +62,11 @@ vi.mock('../../services/agent/cache.js', () => ({
   NATIVE_PROVIDERS: mockNativeProviders,
 }));
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/agent', () => ({
   createProvider: (...args: unknown[]) => mockCreateProvider(...args),
+}));
+
+vi.mock('@ownpilot/core/services', () => ({
   // Image-gen config now resolves through ConfigCenter; route to the same
   // mockGetFieldValue the repo mock already drives.
   getConfigCenter: () => ({

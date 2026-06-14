@@ -54,7 +54,7 @@ vi.mock('../../db/repositories/index.js', () => ({
   },
 }));
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/agent', () => ({
   getAllProviderConfigs: mockGetAllProviderConfigs,
   getProviderConfig: mockGetProviderConfig,
   getAllAggregatorProviders: mockGetAllAggregatorProviders,

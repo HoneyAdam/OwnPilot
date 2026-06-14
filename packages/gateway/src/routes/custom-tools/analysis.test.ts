@@ -41,7 +41,7 @@ const mockCalculateSecurityScore = vi.fn((_code: string, _perms?: string[]) => (
   factors: {},
 }));
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/sandbox', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,

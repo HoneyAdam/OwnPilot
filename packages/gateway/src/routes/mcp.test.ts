@@ -55,11 +55,18 @@ vi.mock('../ws/server.js', () => ({
   wsGateway: { broadcast: vi.fn() },
 }));
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/agent', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     getBaseName: vi.fn((name: string) => name.split('.').pop() ?? name),
+  };
+});
+
+vi.mock('@ownpilot/core/services', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     getServiceRegistry: () => ({
       get: (token: { key: string }) => {
         if (token.key === 'mcp-client') return mockMcpClientService;

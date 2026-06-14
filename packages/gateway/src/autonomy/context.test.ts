@@ -47,7 +47,7 @@ const mockCalendarRepo = {
   getUpcoming: vi.fn(),
 };
 
-vi.mock('@ownpilot/core', () => ({
+vi.mock('@ownpilot/core/services', () => ({
   getServiceRegistry: vi.fn(() => ({
     get: vi.fn((service: { name: string }) => {
       const services: Record<string, unknown> = {

@@ -72,12 +72,26 @@ const mockRegistry = {
   getAll: vi.fn(() => [mockPlugin]),
 };
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/channels', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     getChannelService: () => mockService,
+  };
+});
+
+vi.mock('@ownpilot/core/plugins', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     getDefaultPluginRegistry: async () => mockRegistry,
+  };
+});
+
+vi.mock('@ownpilot/core/services', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     // chatId fallback resolution now goes through ConfigCenter; route to the
     // same mockConfigServicesRepo.getFieldValue spy the repo mock already
     // drives so existing assertions keep working.

@@ -35,7 +35,7 @@ vi.mock('../db/repositories/index.js', () => ({
   localProvidersRepo: mockLocalProvidersRepo,
 }));
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/agent', async (importOriginal) => {
   const original = await importOriginal<Record<string, unknown>>();
   return {
     ...original,
@@ -44,6 +44,13 @@ vi.mock('@ownpilot/core', async (importOriginal) => {
       { id: 'anthropic', name: 'Anthropic' },
     ]),
     getDefaultModelForProvider: vi.fn(() => ({ id: 'gpt-4' })),
+  };
+});
+
+vi.mock('@ownpilot/core/sandbox', async (importOriginal) => {
+  const original = await importOriginal<Record<string, unknown>>();
+  return {
+    ...original,
     DEFAULT_SANDBOX_SETTINGS: {
       enabled: false,
       basePath: '/tmp/sandbox',

@@ -36,7 +36,7 @@ vi.mock('../services/log.js', () => ({
 const mockEventEmit = vi.fn();
 const mockEventEmitRaw = vi.fn();
 
-vi.mock('@ownpilot/core', async (importOriginal) => {
+vi.mock('@ownpilot/core/events', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
