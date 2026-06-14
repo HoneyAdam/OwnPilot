@@ -58,6 +58,14 @@ vi.mock('@ownpilot/core/services', async (importOriginal) => {
       Goal: { name: 'goal' },
       Plugin: { name: 'plugin' },
     },
+    generateId: (prefix: string) => `${prefix}_test_${Date.now()}`,
+  };
+});
+
+vi.mock('@ownpilot/core/agent', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
     Agent: vi.fn(),
     createAgent: vi.fn(() => ({
       reset: vi.fn(() => ({ id: 'new-conversation-id' })),
@@ -78,7 +86,6 @@ vi.mock('@ownpilot/core/services', async (importOriginal) => {
     TOOL_SEARCH_TAGS: {},
     TOOL_MAX_LIMITS: {},
     applyToolLimits: vi.fn((_name: string, args: unknown) => args),
-    getDefaultPluginRegistry: vi.fn(async () => ({ getAllTools: () => [] })),
     TOOL_GROUPS: {
       core: { tools: ['get_current_time', 'calculate'] },
       memory: { tools: ['save_memory', 'search_memories'] },
@@ -86,9 +93,13 @@ vi.mock('@ownpilot/core/services', async (importOriginal) => {
     } as Record<string, { tools: string[] }>,
     getProviderConfig: vi.fn(() => null),
     unsafeToolId: vi.fn((id: string) => id),
-    generateId: (prefix: string) => `${prefix}_test_${Date.now()}`,
   };
 });
+
+vi.mock('@ownpilot/core/plugins', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getDefaultPluginRegistry: vi.fn(async () => ({ getAllTools: () => [] })),
+}));
 
 vi.mock('../../db/repositories/index.js', () => ({
   agentsRepo: {
