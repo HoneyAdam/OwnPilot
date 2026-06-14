@@ -283,7 +283,8 @@ vi.mock('@ownpilot/core/services', () => ({
   }),
 }));
 
-vi.mock('@ownpilot/core/plugins', () => ({
+vi.mock('@ownpilot/core/plugins', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   getDefaultPluginRegistry: vi.fn(async () => ({ getAllTools: () => [] })),
 }));
 

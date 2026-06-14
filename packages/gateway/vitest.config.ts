@@ -1,16 +1,12 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // Test-only: collapse @ownpilot/core/* sub-path imports onto the barrel so
-  // that `vi.mock('@ownpilot/core', …)` (used by ~180 test files) also covers
-  // sub-path imports. Source modules import sub-paths (e.g. /services, /channels)
-  // for build isolation; in tests the sub-paths are pure re-exports of the barrel,
-  // so resolving them to the barrel is behaviour-identical and lets the existing
-  // barrel mocks intercept capability accessors (getConfigCenter, getChannelService,
-  // …). Production builds and `tsc` are unaffected — they resolve sub-paths for real.
-  resolve: {
-    alias: [{ find: /^@ownpilot\/core\/[\w-]+$/, replacement: '@ownpilot/core' }],
-  },
+  // Note: Previously, an alias collapsed @ownpilot/core/* sub-path imports
+  // onto the barrel so that vi.mock('@ownpilot/core') would intercept all
+  // sub-path imports. This is no longer needed — all test files now use
+  // sub-path-specific vi.mock() calls (e.g. vi.mock('@ownpilot/core/services')).
+  // Keeping the alias would cause multiple sub-path mocks to collide on the
+  // same resolved module. See docs/ADR/vi-mock-sub-path-alignment.md.
   test: {
     globals: true,
     environment: 'node',
