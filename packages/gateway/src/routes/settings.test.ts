@@ -51,6 +51,17 @@ vi.mock('@ownpilot/core/sandbox', async (importOriginal) => {
   const original = await importOriginal<Record<string, unknown>>();
   return {
     ...original,
+    isDockerAvailable: vi.fn(async () => true),
+  };
+});
+
+// app-settings.ts imports DEFAULT_SANDBOX_SETTINGS from @ownpilot/core/workspace,
+// not from @ownpilot/core/sandbox. Mock it here so getSandboxSettings() sees
+// the test's empty allowedImages default.
+vi.mock('@ownpilot/core/workspace', async (importOriginal) => {
+  const original = await importOriginal<Record<string, unknown>>();
+  return {
+    ...original,
     DEFAULT_SANDBOX_SETTINGS: {
       enabled: false,
       basePath: '/tmp/sandbox',
@@ -65,7 +76,6 @@ vi.mock('@ownpilot/core/sandbox', async (importOriginal) => {
       nodeImage: 'node:20',
       shellImage: 'ubuntu:22.04',
     },
-    isDockerAvailable: vi.fn(async () => true),
   };
 });
 

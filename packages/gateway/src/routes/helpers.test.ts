@@ -6,6 +6,20 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import type { Context } from 'hono';
+
+// EXPOSE-001 test asserts on log.warn calls after vi.resetModules().
+// The global mock from test-setup.ts doesn't survive resetModules reliably,
+// so we declare a file-scoped mock with hoisted spy access.
+const mockWarn = vi.hoisted(() => vi.fn());
+vi.mock('../services/log.js', () => ({
+  getLog: () => ({
+    info: vi.fn(),
+    warn: mockWarn,
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
+
 import {
   getPaginationParams,
   getIntParam,
@@ -445,14 +459,13 @@ describe('Route Helpers', () => {
       try {
         // Re-import so the module-level REDACT_5XX const recomputes.
         vi.resetModules();
-        const { apiError: freshApiError, log: freshLog } = await import('./helpers.js');
+        const { apiError: freshApiError } = await import('./helpers.js');
         const c = createMockContext();
         vi.mocked(c.get).mockReturnValue('req-redact-1');
 
-        // Spy on the already-mocked log.warn (from test-setup.ts global mock),
-        // not console.warn — the mocked getLog() replaces the real one.
-        const warnSpy = freshLog.warn as ReturnType<typeof vi.fn>;
-        warnSpy.mockClear();
+        // Use the hoisted mockWarn — survives resetModules because vi.hoisted
+        // values are preserved across module resets.
+        mockWarn.mockClear();
 
         freshApiError(c, 'syntax error in pg query: SELECT * FROM ui_password_hash', 500);
 
@@ -461,9 +474,9 @@ describe('Route Helpers', () => {
         expect(response.error.message).toBe('Internal server error');
         expect(response.error.message).not.toContain('pg query');
         expect(response.error.message).not.toContain('ui_password_hash');
-        // Operator-side log retains the detail (via mocked log.warn, not console.warn).
-        expect(warnSpy).toHaveBeenCalled();
-        const logged = warnSpy.mock.calls[0]![0] as string;
+        // Operator-side log retains the detail.
+        expect(mockWarn).toHaveBeenCalled();
+        const logged = mockWarn.mock.calls[0]![0] as string;
         expect(logged).toContain('req-redact-1');
         expect(logged).toContain('pg query');
       } finally {

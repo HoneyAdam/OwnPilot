@@ -21,7 +21,7 @@ import {
   qualifyToolName,
   type ToolDefinition,
   type ToolExecutionResult as CoreToolResult,
-} from '@ownpilot/core';
+} from '@ownpilot/core/agent';
 import { executeMemoryTool } from '../memory-tools.js';
 import { executeGoalTool } from '../goal-tools.js';
 import { executeCustomDataTool } from '../custom-data-tools.js';

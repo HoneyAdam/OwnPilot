@@ -801,4 +801,4 @@ export async function initializePlugins(): Promise<void> {
 /**
  * Re-export for route-layer access to the plugin registry.
  */
-export { getDefaultPluginRegistry } from '@ownpilot/core';
+export { getDefaultPluginRegistry } from '@ownpilot/core/plugins';

@@ -22,7 +22,7 @@ import {
   TOOL_SEARCH_TAGS,
   type ToolExecutionResult as CoreToolResult,
   type ToolContext,
-} from '@ownpilot/core';
+} from '@ownpilot/core/agent';
 import { semanticSearchTools } from './semantic-search.js';
 import { createCustomToolsRepo } from '../../db/repositories/custom/tools.js';
 import { getToolSource } from '../../services/tool/source.js';

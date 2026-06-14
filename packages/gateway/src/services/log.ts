@@ -7,4 +7,4 @@
  *   log.info('Processing message', { sessionId: '...' });
  */
 
-export { getLog } from '@ownpilot/core';
+export { getLog } from '@ownpilot/core/services';
