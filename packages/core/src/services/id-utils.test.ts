@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { generateId } from './id-utils.js';
 
 describe('generateId', () => {
@@ -74,20 +74,23 @@ describe('generateId', () => {
   it('ID does NOT contain a Date.now() timestamp segment (ID-001 regression)', () => {
     // The old format was `prefix_<13-digit-ts>_<8 hex chars>`. If anyone
     // accidentally re-adds the timestamp, this test fails.
-    const before = Date.now();
     const id = generateId('reg');
-    const after = Date.now();
     // The ID must contain only the prefix and one hex segment.
     expect(id).toMatch(/^reg_[0-9a-f]+$/);
-    // The numeric range [before, after] must not appear in the ID at all.
+    // No underscore-delimited part is purely numeric (would be a ts).
     const numericSegment = id.split('_').find((p) => /^\d+$/.test(p));
     expect(numericSegment).toBeUndefined();
-    // Sanity: timestamp isn't being smuggled in as a substring of the
-    // hex segment either. 13 digits in a row cannot appear in a hex
-    // string by construction, but we assert the absence anyway.
-    expect(id).not.toMatch(/\d{13,}/);
-    void before;
-    void after;
+    // Stub Date.now so accidental re-introduction is caught at the
+    // call site rather than relying on probabilistic hex patterns.
+    const origNow = Date.now;
+    const spy = vi.fn(() => 1_700_000_000_000);
+    Date.now = spy;
+    try {
+      generateId('reg');
+    } finally {
+      Date.now = origNow;
+    }
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('default entropy is 96 bits — collision probability < 10^-12 at 10M rows', () => {
