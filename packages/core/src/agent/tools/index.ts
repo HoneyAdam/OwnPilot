@@ -4,6 +4,76 @@
  */
 
 // =============================================================================
+// RE-EXPORTS - Base tool types, classes, and namespace utilities
+// These let consumers import everything tool-related from '@ownpilot/core/tools'
+// without reaching into '@ownpilot/core/agent' for foundational types.
+// =============================================================================
+
+// Core tool types (from ../types.js)
+export type {
+  ToolDefinition,
+  ToolExecutor,
+  RegisteredTool,
+  ToolContext,
+  ToolExecutionResult,
+  ToolCall,
+  ToolResult,
+  ToolProvider,
+  ToolMiddleware,
+  ToolSource,
+  ToolConfigRequirement,
+  ExecutionPermissions,
+  ExecutionCategory,
+  PermissionMode,
+} from '../types.js';
+
+// Tool registry class + factory functions (from ../tools.js)
+export { ToolRegistry, createToolRegistry, registerCoreTools } from '../tools.js';
+
+// Tool namespace utilities (from ../tool-namespace.js)
+export {
+  qualifyToolName,
+  getBaseName,
+  getNamespace,
+  isQualifiedName,
+  sanitizeToolName,
+  desanitizeToolName,
+  UNPREFIXED_META_TOOLS,
+  type ToolNamespacePrefix,
+} from '../tool-namespace.js';
+
+// Tool configuration (from ../tool-config.js)
+export {
+  TOOL_GROUPS,
+  DEFAULT_ENABLED_GROUPS,
+  FAMILIAR_TOOLS,
+  getEnabledTools,
+  getToolGroups,
+  getGroupForTool,
+  type ToolGroupConfig,
+} from '../tool-config.js';
+
+// Tool validation (from ../tool-validation.js)
+export {
+  validateToolCall,
+  validateAgainstSchema,
+  findSimilarToolNames,
+  formatParamSchema,
+  buildExampleValue,
+  buildToolHelpText,
+  formatFullToolHelp,
+  validateRequiredParams,
+  type ToolCallValidation,
+  type ToolValidationError,
+} from '../tool-validation.js';
+
+// Default execution permissions (from ../types.js)
+export { DEFAULT_EXECUTION_PERMISSIONS } from '../types.js';
+
+// Plugin security middleware (from ../middleware/plugin-security.js)
+export { createPluginSecurityMiddleware } from '../middleware/plugin-security.js';
+
+// =============================================================================
 // EXPORTS - Module resolver (used by gateway for pnpm strict mode)
 // =============================================================================
 

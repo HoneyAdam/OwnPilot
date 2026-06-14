@@ -5,7 +5,7 @@
  * Used by the Pulse Engine (Autonomy) to reach out via Telegram and WebSocket.
  */
 
-import { type ToolDefinition } from '@ownpilot/core/agent';
+import { type ToolDefinition } from '@ownpilot/core/tools';
 import { getEventSystem } from '@ownpilot/core/events';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getChannelService } from '@ownpilot/core/channels';

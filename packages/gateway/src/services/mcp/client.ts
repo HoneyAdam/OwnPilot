@@ -12,7 +12,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { getEventSystem } from '@ownpilot/core/events';
-import type { ToolDefinition, ToolExecutionResult, ToolExecutor } from '@ownpilot/core/agent';
+import type { ToolDefinition, ToolExecutionResult, ToolExecutor } from '@ownpilot/core/tools';
 import type { IMcpClientService } from '@ownpilot/core/services';
 import { getMcpServersRepo, type McpServerRecord } from '../../db/repositories/mcp-servers.js';
 import { getSharedToolRegistry } from '../tool/executor.js';

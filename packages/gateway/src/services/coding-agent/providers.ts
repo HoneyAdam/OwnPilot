@@ -15,7 +15,7 @@ import {
   getErrorMessage,
 } from '@ownpilot/core/services';
 import { getConfigCenter } from '@ownpilot/core/services';
-import { tryImport } from '@ownpilot/core/agent';
+import { tryImport } from '@ownpilot/core/tools';
 import { type CliProviderRecord } from '../../db/repositories/cli/providers.js';
 import { validateCwd, createSanitizedEnv, spawnCliProcess } from '../binary-utils.js';
 import { getAllowedDirs } from '../app-settings.js';

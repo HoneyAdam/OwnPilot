@@ -4,7 +4,7 @@
  * AI agent tools for creating, managing, and firing triggers.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getTriggerService, getErrorMessage } from '@ownpilot/core/services';
 import { getTriggerEngine } from '../triggers/index.js';
 

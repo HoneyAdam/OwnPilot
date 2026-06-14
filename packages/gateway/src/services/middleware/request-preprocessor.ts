@@ -19,7 +19,7 @@
  */
 
 import type { MessageMiddleware, IMcpClientService } from '@ownpilot/core/services';
-import { TOOL_SEARCH_TAGS } from '@ownpilot/core/agent';
+import { TOOL_SEARCH_TAGS } from '@ownpilot/core/tools';
 import type { IExtensionService } from '@ownpilot/core/services';
 import { getExtensionService, getMcpClientService } from '@ownpilot/core/services';
 import { getSharedToolRegistry } from '../tool/executor.js';

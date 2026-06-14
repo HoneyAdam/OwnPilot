@@ -48,7 +48,7 @@ import {
 } from './chat-provider.js';
 import { isBinaryInstalled } from '../binary-utils.js';
 import { platform } from 'node:os';
-import { ToolRegistry } from '@ownpilot/core/agent';
+import { ToolRegistry } from '@ownpilot/core/tools';
 
 const IS_WIN = platform() === 'win32';
 

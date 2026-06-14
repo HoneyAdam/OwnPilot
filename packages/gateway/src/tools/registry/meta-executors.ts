@@ -12,7 +12,7 @@
  *  - executeGetToolHelp      — one-or-many tool parameter help
  */
 
-import type { ToolDefinition, ToolRegistry } from '@ownpilot/core/agent';
+import type { ToolDefinition, ToolRegistry } from '@ownpilot/core/tools';
 import {
   applyToolLimits,
   formatFullToolHelp,
@@ -22,7 +22,7 @@ import {
   TOOL_SEARCH_TAGS,
   type ToolExecutionResult as CoreToolResult,
   type ToolContext,
-} from '@ownpilot/core/agent';
+} from '@ownpilot/core/tools';
 import { semanticSearchTools } from './semantic-search.js';
 import { createCustomToolsRepo } from '../../db/repositories/custom/tools.js';
 import { getToolSource } from '../../services/tool/source.js';

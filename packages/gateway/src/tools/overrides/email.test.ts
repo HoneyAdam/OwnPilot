@@ -92,7 +92,7 @@ vi.mock('imapflow', () => ({
 
 const mockIsPathAllowedAsync = vi.hoisted(() => vi.fn().mockResolvedValue(true));
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => {
+vi.mock('@ownpilot/core/tools', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,

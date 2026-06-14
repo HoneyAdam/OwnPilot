@@ -13,13 +13,8 @@
  * instead of native function calling.
  */
 
-import type {
-  ToolDefinition,
-  ToolResult,
-  ToolCall,
-  Message,
-  ToolRegistry,
-} from '@ownpilot/core/agent';
+import type { ToolDefinition, ToolResult, ToolCall, ToolRegistry } from '@ownpilot/core/tools';
+import type { Message } from '@ownpilot/core/agent';
 import { getLog } from '../log.js';
 
 const log = getLog('ToolBridge');

@@ -12,7 +12,7 @@
 
 import { getEventSystem } from '@ownpilot/core/events';
 import { getMemoryService, getGoalService, getTriggerService } from '@ownpilot/core/services';
-import { getBaseName, type ToolCall } from '@ownpilot/core/agent';
+import { getBaseName, type ToolCall } from '@ownpilot/core/tools';
 import type { CliToolPolicy } from '@ownpilot/core/services';
 import { getResourceRegistry } from '../services/resource/registry.js';
 import { getApprovalManager, assessRisk, type ActionCategory } from '../autonomy/index.js';

@@ -4,7 +4,7 @@
  * AI agent tools for listing, toggling, and inspecting installed extensions.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getExtensionService } from '../services/extension/service.js';
 

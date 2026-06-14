@@ -7,7 +7,7 @@
  */
 
 import type { MessageMiddleware } from '@ownpilot/core/services';
-import type { ToolCall } from '@ownpilot/core/agent';
+import type { ToolCall } from '@ownpilot/core/tools';
 import { extractMemories, updateGoalProgress, evaluateTriggers } from '../../assistant/index.js';
 import { getLog } from '../log.js';
 

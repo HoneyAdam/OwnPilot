@@ -68,8 +68,8 @@ const mockExtensionService = {
   getToolDefinitions: vi.fn(() => [] as unknown[]),
 };
 
-vi.mock('@ownpilot/core/agent', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@ownpilot/core/agent');
+vi.mock('@ownpilot/core/tools', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@ownpilot/core/tools');
   return {
     ...actual,
     ToolRegistry: vi.fn(function () {
@@ -239,7 +239,7 @@ import {
   resetSharedToolRegistry,
   waitForToolSync,
 } from './executor.js';
-import { ToolRegistry, registerAllTools, registerCoreTools } from '@ownpilot/core/agent';
+import { ToolRegistry, registerAllTools, registerCoreTools } from '@ownpilot/core/tools';
 import {
   createMemoryToolProvider,
   createGoalToolProvider,

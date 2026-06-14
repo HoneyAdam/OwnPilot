@@ -5,7 +5,7 @@
  * send commands, read sensors, and control actuators.
  */
 
-import { type ToolDefinition } from '@ownpilot/core/agent';
+import { type ToolDefinition } from '@ownpilot/core/tools';
 import {
   type EdgeDeviceStatus,
   type EdgeDeviceType,

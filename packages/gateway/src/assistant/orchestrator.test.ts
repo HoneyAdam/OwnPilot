@@ -56,7 +56,7 @@ vi.mock('@ownpilot/core/events', async (importOriginal) => {
   return { ...actual, getEventSystem: vi.fn(() => ({ emit: mockEventSystemEmit })) };
 });
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => {
+vi.mock('@ownpilot/core/tools', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return { ...actual, getBaseName: vi.fn((name: string) => name.split('.').pop() ?? name) };
 });

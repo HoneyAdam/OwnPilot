@@ -13,8 +13,8 @@
  * 5. Custom tool requiresApproval (blocks in non-interactive contexts)
  */
 
-import type { ExecutionPermissions } from '@ownpilot/core/agent';
-import { getGroupForTool, getBaseName as coreGetBaseName } from '@ownpilot/core/agent';
+import type { ExecutionPermissions } from '@ownpilot/core/tools';
+import { getGroupForTool, getBaseName as coreGetBaseName } from '@ownpilot/core/tools';
 import { getLog } from '../log.js';
 import type { ToolExecContext } from '../permission/utils.js';
 import { isNonInteractiveContext, downgradePromptToBlocked } from '../permission/utils.js';

@@ -38,7 +38,7 @@ vi.mock('@ownpilot/core/services', async (importOriginal) => ({
   }),
 }));
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => ({
+vi.mock('@ownpilot/core/tools', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   tryImport: (...args: unknown[]) => mockTryImport(...args),
 }));

@@ -15,7 +15,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { IToolService, ToolServiceResult } from '@ownpilot/core/services';
-import type { ToolDefinition, ToolMiddleware, ToolSource } from '@ownpilot/core/agent';
+import type { ToolDefinition, ToolMiddleware, ToolSource } from '@ownpilot/core/tools';
 import { getSharedToolRegistry, executeTool } from './executor.js';
 import type { ToolExecContext } from '../permission/utils.js';
 

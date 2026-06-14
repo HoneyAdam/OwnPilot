@@ -4,7 +4,7 @@
  * AI agent tools for creating, managing, and executing autonomous plans.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getPlanService, getErrorMessage } from '@ownpilot/core/services';
 import type { CreateStepInput } from '../db/repositories/plans.js';
 import { getPlanExecutor } from '../plans/executor.js';

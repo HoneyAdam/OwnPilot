@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ToolProvider } from '@ownpilot/core/agent';
+import type { ToolProvider } from '@ownpilot/core/tools';
 
 // ---------------------------------------------------------------------------
 // Mocks — prevent real service/repo calls
@@ -76,7 +76,7 @@ vi.mock('../../tools/index.js', () => ({
 }));
 
 // Need to mock MEMORY_TOOLS, GOAL_TOOLS, CUSTOM_DATA_TOOLS, PERSONAL_DATA_TOOLS from core
-vi.mock('@ownpilot/core/agent', async () => {
+vi.mock('@ownpilot/core/tools', async () => {
   const actual = await vi.importActual<typeof import('@ownpilot/core')>('@ownpilot/core');
   return {
     ...actual,

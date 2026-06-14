@@ -13,7 +13,7 @@ import {
   type ToolDefinition,
   type ToolContext,
   type ToolExecutor,
-} from '@ownpilot/core/agent';
+} from '@ownpilot/core/tools';
 import type { CustomToolRecord } from '../../db/repositories/custom/tools.js';
 
 // ============================================================================

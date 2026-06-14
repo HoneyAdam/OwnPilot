@@ -16,7 +16,7 @@ const mockDynamicRegistry = vi.hoisted(() => ({
   execute: vi.fn(),
 }));
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => ({
+vi.mock('@ownpilot/core/tools', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createDynamicToolRegistry: vi.fn(() => mockDynamicRegistry),
   ALL_TOOLS: [],

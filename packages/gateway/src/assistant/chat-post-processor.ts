@@ -9,7 +9,7 @@
  * memory/goal/trigger side effects.
  */
 
-import type { ToolCall } from '@ownpilot/core/agent';
+import type { ToolCall } from '@ownpilot/core/tools';
 import { getLog } from '../services/log.js';
 import { extractMemories, updateGoalProgress, evaluateTriggers } from './index.js';
 import { getErrorMessage } from '../utils/common.js';

@@ -18,7 +18,8 @@
 
 import { generateId, getErrorMessage } from '@ownpilot/core/services';
 import { getEventSystem } from '@ownpilot/core/events';
-import type { ToolDefinition, AgentMessage } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
+import type { AgentMessage } from '@ownpilot/core/agent';
 import { getCrewsRepository } from '../db/repositories/crew/index.js';
 import { getSoulsRepository } from '../db/repositories/souls.js';
 import { getAgentMessagesRepository } from '../db/repositories/agents/messages.js';

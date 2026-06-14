@@ -23,7 +23,7 @@ import {
   type ToolContext,
   type DynamicToolDefinition,
   type ExecutionPermissions,
-} from '@ownpilot/core/agent';
+} from '@ownpilot/core/tools';
 import { createPluginId } from '@ownpilot/core/types';
 import { registerToolConfigRequirements } from '../api-service-registrar.js';
 import { registerAllGatewayProviders } from '../../tools/provider-manifest.js';

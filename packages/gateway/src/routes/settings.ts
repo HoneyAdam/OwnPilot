@@ -25,7 +25,7 @@ import {
 import { settingsRepo, localProvidersRepo } from '../db/repositories/index.js';
 import { getAvailableProviders } from '@ownpilot/core/agent';
 import { isDockerAvailable } from '@ownpilot/core/sandbox';
-import { TOOL_GROUPS, DEFAULT_ENABLED_GROUPS } from '@ownpilot/core/agent';
+import { TOOL_GROUPS, DEFAULT_ENABLED_GROUPS } from '@ownpilot/core/tools';
 import type { SandboxSettings } from '@ownpilot/core/workspace';
 import { getDataDirectoryInfo } from '../paths/index.js';
 import { getMigrationStatus } from '../paths/migration.js';

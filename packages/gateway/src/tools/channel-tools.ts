@@ -14,7 +14,7 @@
  */
 
 import type { ChannelOutgoingMessage } from '@ownpilot/core/channels';
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getChannelService, hasChannelService } from '@ownpilot/core/channels';
 import { channelMessagesRepo } from '../db/repositories/channels/messages.js';

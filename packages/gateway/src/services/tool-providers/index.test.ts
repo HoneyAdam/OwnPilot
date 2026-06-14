@@ -146,7 +146,7 @@ const mocks = vi.hoisted(() => {
 // Module mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => ({
+vi.mock('@ownpilot/core/tools', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   MEMORY_TOOLS: mocks.MEMORY_TOOLS,
   GOAL_TOOLS: mocks.GOAL_TOOLS,

@@ -11,7 +11,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import type { ToolRegistry, ToolExecutor, ToolExecutionResult } from '@ownpilot/core/agent';
+import type { ToolRegistry, ToolExecutor, ToolExecutionResult } from '@ownpilot/core/tools';
 import { getConfigCenter } from '@ownpilot/core/services';
 import { configServicesRepo } from '../../db/repositories/config-services.js';
 import { resolveDefaultProviderAndModel } from '../../services/app-settings.js';

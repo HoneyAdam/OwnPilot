@@ -9,7 +9,7 @@
  * can be executed (binary allowlist). Per-tool policies enforce allowed/prompt/blocked.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import type { CliInstallMethod } from '@ownpilot/core/services';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getCliToolService } from '../services/cli/tool-service.js';

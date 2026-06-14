@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ExecutionPermissions } from '@ownpilot/core/agent';
+import type { ExecutionPermissions } from '@ownpilot/core/tools';
 import { downgradePromptToBlocked, isNonInteractiveContext } from './utils.js';
 
 describe('permission-utils', () => {

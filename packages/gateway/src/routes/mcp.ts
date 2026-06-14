@@ -7,7 +7,7 @@
 
 import { LOCAL_OWNER_ID } from '../config/defaults.js';
 import { Hono } from 'hono';
-import { getBaseName } from '@ownpilot/core/agent';
+import { getBaseName } from '@ownpilot/core/tools';
 import { getMcpClientService } from '@ownpilot/core/services';
 import { getMcpServersRepo } from '../db/repositories/mcp-servers.js';
 import { handleMcpRequest } from '../services/mcp/server.js';

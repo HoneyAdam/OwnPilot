@@ -61,7 +61,7 @@ import {
 import { seedExamplePlans } from './db/seeds/plans-seed.js';
 import { createChannelServiceImpl } from './channels/service-impl.js';
 import { initServiceRegistry, Services, type ServiceToken } from '@ownpilot/core/services';
-import { setModuleResolver } from '@ownpilot/core/agent';
+import { setModuleResolver } from '@ownpilot/core/tools';
 import { enforceSecurityConfig } from '@ownpilot/core/security';
 import { getEventSystem } from '@ownpilot/core/events';
 import { createLogService } from './services/log-service.js';

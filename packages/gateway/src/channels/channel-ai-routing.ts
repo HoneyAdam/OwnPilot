@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { pricingByExactKey } from '@ownpilot/core/costs';
 import type { ChannelIncomingMessage, ChannelPluginAPI } from '@ownpilot/core/channels';
 import type { IMessageBus, NormalizedMessage } from '@ownpilot/core/services';
-import type { ToolCall } from '@ownpilot/core/agent';
+import type { ToolCall } from '@ownpilot/core/tools';
 import type { StreamCallbacks } from '@ownpilot/core/services';
 import type { ChannelSessionsRepository } from '../db/repositories/channels/sessions.js';
 import { truncate } from '../utils/common.js';

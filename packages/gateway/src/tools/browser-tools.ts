@@ -5,7 +5,7 @@
  * Navigate pages, interact with elements, take screenshots, extract data.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getBrowserService } from '../services/browser-service.js';
 

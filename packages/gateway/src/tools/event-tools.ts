@@ -6,7 +6,7 @@
  * wait for events, and list available event categories.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getEventSystem } from '@ownpilot/core/events';
 import { getErrorMessage } from '@ownpilot/core/services';
 import type { EventCategory } from '@ownpilot/core/events';

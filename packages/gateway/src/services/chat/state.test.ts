@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => ({
+vi.mock('@ownpilot/core/tools', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
 }));
 

@@ -7,7 +7,7 @@
  * The tool DEFINITIONS remain in core. Only the executors are swapped.
  */
 
-import type { ToolRegistry, ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolRegistry, ToolDefinition } from '@ownpilot/core/tools';
 import { executeExpenseTool } from '../expense-tools.js';
 import { getLog } from '../../services/log.js';
 

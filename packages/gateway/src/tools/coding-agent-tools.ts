@@ -10,7 +10,7 @@
  */
 
 import type { CodingAgentProvider } from '@ownpilot/core/services';
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getCodingAgentService } from '../services/coding-agent/service.js';
 import { getCodingAgentSessionManager } from '../services/coding-agent/sessions.js';

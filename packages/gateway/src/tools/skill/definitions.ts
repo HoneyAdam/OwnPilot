@@ -8,7 +8,7 @@
  * `learning-executors.ts`.
  */
 
-import type { ToolDefinition } from '@ownpilot/core/agent';
+import type { ToolDefinition } from '@ownpilot/core/tools';
 
 const searchSkillsTool: ToolDefinition = {
   name: 'skill_search',

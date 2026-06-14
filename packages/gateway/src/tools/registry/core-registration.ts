@@ -11,7 +11,7 @@
  *                            user custom tools.
  */
 
-import type { ToolRegistry } from '@ownpilot/core/agent';
+import type { ToolRegistry } from '@ownpilot/core/tools';
 import {
   DYNAMIC_TOOL_DEFINITIONS,
   MEMORY_TOOLS,
@@ -21,7 +21,7 @@ import {
   qualifyToolName,
   type ToolDefinition,
   type ToolExecutionResult as CoreToolResult,
-} from '@ownpilot/core/agent';
+} from '@ownpilot/core/tools';
 import { executeMemoryTool } from '../memory-tools.js';
 import { executeGoalTool } from '../goal-tools.js';
 import { executeCustomDataTool } from '../custom-data-tools.js';

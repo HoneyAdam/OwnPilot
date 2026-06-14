@@ -5,7 +5,7 @@
  * buildToolCatalog, generateDemoResponse, tryGetMessageBus.
  */
 
-import { getBaseName, type ToolDefinition, type ExecutionPermissions } from '@ownpilot/core/agent';
+import { getBaseName, type ToolDefinition, type ExecutionPermissions } from '@ownpilot/core/tools';
 import {
   hasDatabaseService,
   getDatabaseService,

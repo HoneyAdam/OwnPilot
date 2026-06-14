@@ -51,7 +51,7 @@ vi.mock('@ownpilot/core/services', () => ({
   Services: { Message: 'message', Database: 'database' },
 }));
 
-vi.mock('@ownpilot/core/agent', () => ({
+vi.mock('@ownpilot/core/tools', () => ({
   getBaseName: (name: string) =>
     name.includes('.') ? name.substring(name.lastIndexOf('.') + 1) : name,
 }));

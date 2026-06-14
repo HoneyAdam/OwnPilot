@@ -14,7 +14,7 @@ import {
   PERSONAL_DATA_TOOLS,
   TOOL_GROUPS,
   type ToolDefinition,
-} from '@ownpilot/core/agent';
+} from '@ownpilot/core/tools';
 import { getPluginService } from '@ownpilot/core/services';
 import { getConfigCenter } from '@ownpilot/core/services';
 import type { ToolInfo } from '../types/index.js';

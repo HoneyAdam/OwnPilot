@@ -55,7 +55,7 @@ vi.mock('../ws/server.js', () => ({
   wsGateway: { broadcast: vi.fn() },
 }));
 
-vi.mock('@ownpilot/core/agent', async (importOriginal) => {
+vi.mock('@ownpilot/core/tools', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,

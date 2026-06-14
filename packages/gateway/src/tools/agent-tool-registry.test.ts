@@ -22,7 +22,7 @@ const mockGetServiceRegistry = vi.fn().mockReturnValue({
 const mockGetPluginService = vi.fn(() => mockGetServiceRegistry().get({ name: 'plugin' }));
 const mockGetExtensionService = vi.fn(() => mockGetServiceRegistry().get({ name: 'extension' }));
 
-vi.mock('@ownpilot/core/agent', () => ({
+vi.mock('@ownpilot/core/tools', () => ({
   ToolRegistry: vi.fn(),
   registerAllTools: vi.fn(),
   getToolDefinitions: vi.fn().mockReturnValue([]),
