@@ -239,6 +239,29 @@ export const SIDEBAR_DATA_SECTIONS: Record<string, SidebarDataSectionDef> = {
           }));
       }),
   },
+  'agentic-executions': {
+    id: 'agentic-executions',
+    icon: Brain,
+    route: '/agentic',
+    group: 'ai',
+    maxItems: 5,
+    showPlus: false,
+    fetchItems: () =>
+      import('../api/endpoints/agentic').then((mod) =>
+        mod.agenticApi.list(5).then((res) =>
+          res.executions.map((e) => ({
+            id: e.id,
+            label: e.taskName,
+            route: '/agentic',
+            badge: e.status === 'running'
+              ? ({ tone: 'running', title: 'running' } as SidebarItemBadge)
+              : e.status === 'failed'
+              ? ({ tone: 'failed', title: e.error ?? 'failed' } as SidebarItemBadge)
+              : undefined,
+          }))
+        )
+      ),
+  },
   triggers: {
     id: 'triggers',
     icon: Bell,

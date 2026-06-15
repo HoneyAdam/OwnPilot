@@ -142,6 +142,8 @@ export type {
   CrewTask,
 } from './souls';
 export { clawsApi } from './claws';
+export { agenticApi } from './agentic';
+export type { AgenticExecution, AgenticStats, ExecuteTaskInput, AgenticPlan, CapabilityInfo } from './agentic';
 export type {
   ClawConfig,
   ClawSession,
