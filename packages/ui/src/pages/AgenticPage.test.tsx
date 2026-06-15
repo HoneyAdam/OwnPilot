@@ -33,6 +33,10 @@ vi.mock('../api/endpoints/providers', () => ({
   },
 }));
 
+vi.mock('../hooks/useWebSocket', () => ({
+  useGateway: () => ({ subscribe: () => () => {} }),
+}));
+
 // Mock icons (they're SVG components — just return null to keep tests fast)
 vi.mock('../components/icons', () => {
   function makeIcon(name: string) {

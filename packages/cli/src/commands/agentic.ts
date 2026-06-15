@@ -551,6 +551,10 @@ COMMANDS
   cancel       Cancel a running execution
     ownpilot agentic cancel <execution-id>
 
+  rerun        Re-run a previous execution with same or new settings
+    ownpilot agentic rerun <execution-id>
+    ownpilot agentic rerun <execution-id> --provider <id> --model <name>
+
   plan         Analyze a task and show execution plan (no execution)
     ownpilot agentic plan "Research topic X"
     ownpilot agentic plan --trigger interval "Monitor API endpoint"

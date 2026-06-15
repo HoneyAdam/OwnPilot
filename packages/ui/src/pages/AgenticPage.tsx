@@ -12,6 +12,7 @@ import {
 } from '../components/icons';
 import { agenticApi, type AgenticExecution, type AgenticStats, type ExecuteTaskInput } from '../api/endpoints/agentic';
 import { providersApi } from '../api/endpoints/providers';
+import { useGateway } from '../hooks/useWebSocket';
 
 const POLL_MS = 5_000;
 const EXECUTOR_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -290,9 +291,11 @@ function ExecutionDetailModal({ executionId, onClose }: { executionId: string; o
             <div className="text-center py-12 text-text-muted">Execution not found</div>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 <SummaryCard label="Status" value={exec.status.replace(/_/g, ' ')} />
-                <SummaryCard label="Cost" value={`$${exec.totalCostUsd.toFixed(4)}`} />
+                <SummaryCard label="Provider" value={exec.provider ?? 'default'} />
+                <SummaryCard label="Model" value={exec.model ?? 'default'} />
+                <SummaryCard label="Cost" value={`${exec.totalCostUsd.toFixed(4)}`} />
                 <SummaryCard label="Duration" value={exec.totalDurationMs >= 1000 ? `${(exec.totalDurationMs / 1000).toFixed(1)}s` : `${exec.totalDurationMs}ms`} />
                 <SummaryCard label="Steps" value={`${exec.completedSteps}/${exec.stepCount}`} />
               </div>
@@ -414,6 +417,7 @@ export function AgenticPage() {
   const [activeTab, setActiveTab] = useState<TabId>('executions');
   const [limit] = useState(20);
   const [offset, setOffset] = useState(0);
+  const { subscribe } = useGateway();
 
   const fetchData = useCallback(async () => {
     try {
@@ -427,6 +431,17 @@ export function AgenticPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Live updates via WebSocket
+  useEffect(() => {
+    const unsubs = [
+      subscribe('agentic.step.start', () => fetchData()),
+      subscribe('agentic.step.complete', () => fetchData()),
+      subscribe('agentic.step.fail', () => fetchData()),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [subscribe, fetchData]);
+
+  // Poll while any execution is still running (fallback if WS not available)
   useEffect(() => {
     if (!executions.some((e) => e.status === 'running' || e.status === 'pending')) return;
     const interval = setInterval(fetchData, POLL_MS);
