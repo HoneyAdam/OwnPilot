@@ -519,8 +519,8 @@ OPTIONS
   --trigger    Trigger type: immediate, interval, continuous
   --interval   Interval in ms (for interval trigger, default: 300000)
   --timeout    Step timeout in ms (default: 60000)
-  --provider   AI provider (e.g. anthropic, openai — uses system default if not set)
-  --model      Model name (e.g. claude-sonnet-4-20250514 — uses system default if not set)
+  --provider   AI provider (uses system default if not set)
+  --model      Model name (uses system default if not set)
   --prompt     Custom system prompt for the agent (default: generic assistant)
   --json       Output as JSON (for run/status commands)
   --output     Save execution result to file
@@ -540,7 +540,7 @@ EXAMPLES
   ownpilot agentic run --trigger interval --interval 60000 "Check API health"
 
   # Use specific provider/model
-  ownpilot agentic run --provider anthropic --model claude-sonnet-4-20250514 "Research task"
+  ownpilot agentic run --provider <provider-id> --model <model-name> "Research task"
 
   # Custom system prompt
   ownpilot agentic run --prompt "You are a senior software engineer. Write production-grade code." "Build a REST API"
