@@ -102,20 +102,29 @@ const planTaskSchema = z.object({
 // ============================================================================
 
 /**
- * Create a gateway-wired orchestrator for each request.
- * Injects the real AgenticGatewayExecutor as the step dispatch handler.
+ * Shared AgenticOrchestrator singleton — ensures execution data
+ * persists across API requests so listExecutions() and getReport()
+ * return data from previous execute() calls.
+ */
+let _sharedOrchestrator: AgenticOrchestrator | null = null;
+
+/**
+ * Create or return the shared gateway-wired orchestrator.
  */
 function createOrchestrator(): AgenticOrchestrator {
-  const handler: StepDispatchFn = async (step: ExecutionStep, signal?: AbortSignal) => {
-    const result = await getAgenticExecutor().dispatch(step, signal);
-    return {
-      success: result.success,
-      output: result.output,
-      error: result.error,
-      costUsd: result.costUsd,
+  if (!_sharedOrchestrator) {
+    const handler: StepDispatchFn = async (step: ExecutionStep, signal?: AbortSignal) => {
+      const result = await getAgenticExecutor().dispatch(step, signal);
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        costUsd: result.costUsd,
+      };
     };
-  };
-  return new AgenticOrchestrator(undefined, handler);
+    _sharedOrchestrator = new AgenticOrchestrator(undefined, handler);
+  }
+  return _sharedOrchestrator;
 }
 
 // ============================================================================

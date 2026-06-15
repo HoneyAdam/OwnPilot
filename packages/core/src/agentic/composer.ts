@@ -161,6 +161,19 @@ export class AgenticOrchestrator implements IAgenticOrchestrator {
   private readonly registry: CapabilityRegistry;
   private readonly stepHandler: StepDispatchFn | null;
 
+  /**
+   * Shared static store across orchestrator instances — enables
+   * `listExecutions()` and `getReport()` to work across API requests
+   * even when routes create fresh orchestrator instances.
+   *
+   * Execution state is written here by `execute()` on every orchestrator
+   * and read by `listExecutions()` / `getReport()` on any orchestrator.
+   * Indexed by execution id — Map<string, ExecutionState>.
+   * Writes are additive (insert/overwrite), never deleted — executions
+   * accumulate until process restart.
+   */
+  private static readonly sharedStore = new Map<string, ExecutionState>();
+
   constructor(registry?: CapabilityRegistry, stepHandler?: StepDispatchFn) {
     this.registry = registry ?? getCapabilityRegistry();
     this.router = new AgenticRouter(this.registry);
@@ -193,6 +206,7 @@ export class AgenticOrchestrator implements IAgenticOrchestrator {
     };
 
     this.executions.set(state.id, state);
+    AgenticOrchestrator.sharedStore.set(state.id, state);
 
     try {
       await this.executePlan(state);
@@ -212,10 +226,10 @@ export class AgenticOrchestrator implements IAgenticOrchestrator {
   }
 
   /**
-   * Cancel a running execution.
+   * Cancel a running execution. Checks both local and shared stores.
    */
   async cancel(executionId: string): Promise<boolean> {
-    const state = this.executions.get(executionId);
+    const state = this.executions.get(executionId) ?? AgenticOrchestrator.sharedStore.get(executionId);
     if (!state) return false;
     if (state.status !== 'running') return false;
 
@@ -226,33 +240,36 @@ export class AgenticOrchestrator implements IAgenticOrchestrator {
   }
 
   /**
-   * Get execution status.
+   * Get execution status. Checks both local and shared stores.
    */
   async getStatus(executionId: string): Promise<ExecutionStatus | null> {
-    return this.executions.get(executionId)?.status ?? null;
+    return (this.executions.get(executionId) ?? AgenticOrchestrator.sharedStore.get(executionId))?.status ?? null;
   }
 
   /**
-   * Get full execution report.
+   * Get full execution report. Checks both local and shared stores.
    */
   async getReport(executionId: string): Promise<AgenticReport | null> {
-    const state = this.executions.get(executionId);
+    const state = this.executions.get(executionId) ?? AgenticOrchestrator.sharedStore.get(executionId);
     if (!state) return null;
     return this.buildReport(state);
   }
 
   /**
-   * List recent executions.
+   * List recent executions. Merges local and shared stores (deduplicated by id).
    */
   async listExecutions(limit = 20, offset = 0): Promise<AgenticReport[]> {
-    return Array.from(this.executions.values())
+    const merged = new Map<string, ExecutionState>();
+    for (const [id, state] of AgenticOrchestrator.sharedStore) merged.set(id, state);
+    for (const [id, state] of this.executions) merged.set(id, state);
+    return Array.from(merged.values())
       .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
       .slice(offset, offset + limit)
       .map((s) => this.buildReport(s));
   }
 
   /**
-   * Get execution stats.
+   * Get execution stats. Uses merged local + shared stores.
    */
   async getStats(): Promise<{
     totalExecutions: number;
@@ -261,7 +278,10 @@ export class AgenticOrchestrator implements IAgenticOrchestrator {
     successRate: number;
     byExecutorKind: Record<string, number>;
   }> {
-    const all = Array.from(this.executions.values());
+    const merged = new Map<string, ExecutionState>();
+    for (const [id, state] of AgenticOrchestrator.sharedStore) merged.set(id, state);
+    for (const [id, state] of this.executions) merged.set(id, state);
+    const all = Array.from(merged.values());
     const active = all.filter((s) => s.status === 'running').length;
     const completed = all.filter((s) => s.status === 'completed');
     const successRate = completed.length / Math.max(all.length, 1);
