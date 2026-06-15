@@ -38,6 +38,7 @@ import { getEventSystem } from '@ownpilot/core/events';
 import {
   executeTool,
 } from '../services/tool/executor.js';
+import { getOrCreateChatAgent } from '../services/agent/service.js';
 
 const log = getLog('AgenticExecutor');
 
@@ -182,43 +183,51 @@ export class AgenticGatewayExecutor {
   }
 
   // ── Claw ──────────────────────────────────────────────────────────────
+  //
+  // For single-shot agentic tasks we use the chat agent directly (faster,
+  // no claw lifecycle overhead). The claw path is only used when an
+  // explicit clawId is provided (existing persistent claw).
 
   private async dispatchClaw(step: ExecutionStep, _signal?: AbortSignal): Promise<DispatchResult> {
     const startTime = Date.now();
     const params = step.params as Record<string, unknown>;
-
-    // Create a claw config inline for single-shot execution
-    const service = getClawService();
     const taskDesc = (params.task as string) || 'Execute agentic task';
 
-    // Check if we have an existing claw ID or need to create one
     const clawId = params.clawId as string | undefined;
-    const userId = params.userId as string || 'local';
-
-    let result;
     if (clawId) {
-      // Execute on existing claw session
-      result = await service.executeNow(clawId, userId);
-    } else {
-      // Create a single-shot claw for this execution
-      const config = await service.createClaw({
-        userId,
-        name: `agentic-${Date.now()}`,
-        mission: taskDesc,
-        mode: 'single-shot',
-        createdBy: 'claw',
-      });
+      // Execute on an existing persistent claw
+      const service = getClawService();
+      const userId = params.userId as string || 'local';
+      const result = await service.executeNow(clawId, userId);
+      return {
+        success: true,
+        output: result,
+        durationMs: Date.now() - startTime,
+        costUsd: (result as { costUsd?: number })?.costUsd,
+      };
+    }
 
-      await service.startClaw(config.id, userId);
-      // Use executeNow to run the cycle
-      result = await service.executeNow(config.id, userId);
+    // Single-shot: use the chat agent directly
+    const provider = (params.provider as string) || process.env.DEFAULT_PROVIDER || 'openai';
+    const model = (params.model as string) || process.env.DEFAULT_MODEL || 'gpt-4o-mini';
+    const agent = await getOrCreateChatAgent(provider, model);
+
+    // Build a system prompt that gives the agent access to tools
+    const result = await agent.chat(taskDesc);
+
+    if (!result.ok) {
+      return {
+        success: false,
+        output: null,
+        error: result.error.message,
+        durationMs: Date.now() - startTime,
+      };
     }
 
     return {
       success: true,
-      output: result,
+      output: { content: result.value.content },
       durationMs: Date.now() - startTime,
-      costUsd: (result as { costUsd?: number })?.costUsd,
     };
   }
 
