@@ -165,6 +165,7 @@ export class OpenAICompatibleProvider {
           headers: {
             'Content-Type': 'application/json',
             Authorization: authHeader(this.config),
+            ...this.config.headers,
           },
           signal,
         }),

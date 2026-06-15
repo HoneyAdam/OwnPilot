@@ -141,6 +141,13 @@ export interface ProviderConfig {
   features: ProviderFeatures;
   /** Custom headers to include in requests */
   headers?: Record<string, string>;
+  /**
+   * Optional coding-agent persona to present (see client-personas.ts). Its
+   * header bundle (e.g. a whitelisted `User-Agent`) is merged into requests
+   * beneath any inline `headers`. Required by endpoints that only accept
+   * recognized coding-agent clients, such as Kimi For Coding.
+   */
+  clientPersona?: string;
   /** Custom endpoint path (defaults to /chat/completions for openai-compatible) */
   endpoint?: string;
   /** Default timeout in ms */

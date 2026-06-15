@@ -786,6 +786,20 @@ describe('mergeConfigs', () => {
     expect(result.apiKeyEnv).toBe('PRESERVED_API_KEY');
   });
 
+  it('preserves custom headers from existing config', () => {
+    const result = syncWithExisting('unknown-provider', {
+      headers: { 'X-Custom': 'value' },
+    });
+    expect(result.headers).toEqual({ 'X-Custom': 'value' });
+  });
+
+  it('preserves clientPersona from existing config (Kimi coding-agent whitelist)', () => {
+    const result = syncWithExisting('unknown-provider', {
+      clientPersona: 'claude-code',
+    });
+    expect(result.clientPersona).toBe('claude-code');
+  });
+
   it('uses new values when existing config does not have protected fields', () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(JSON.stringify({ name: 'Old Name' })); // no protected fields

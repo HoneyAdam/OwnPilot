@@ -3,6 +3,7 @@
   "name": "Kimi For Coding",
   "type": "openai-compatible",
   "apiKeyEnv": "KIMI_API_KEY",
+  "clientPersona": "claude-code",
   "features": {
     "streaming": true,
     "toolUse": true,

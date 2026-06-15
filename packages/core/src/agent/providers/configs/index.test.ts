@@ -359,6 +359,34 @@ describe('loadProviderConfig', () => {
     expect(second).not.toBeNull();
     expect(second?.id).toBe('retry-provider');
   });
+
+  it('merges clientPersona headers into the loaded config', () => {
+    const config = makeProviderConfig({ id: 'persona-provider', clientPersona: 'claude-code' });
+    setupReadFileMock({ 'persona-provider': config });
+
+    const result = loadProviderConfig('persona-provider');
+    expect(result?.headers?.['User-Agent']).toContain('claude-cli');
+  });
+
+  it('lets an inline header override the persona header', () => {
+    const config = makeProviderConfig({
+      id: 'persona-override-provider',
+      clientPersona: 'claude-code',
+      headers: { 'User-Agent': 'custom-ua/9.9' },
+    });
+    setupReadFileMock({ 'persona-override-provider': config });
+
+    const result = loadProviderConfig('persona-override-provider');
+    expect(result?.headers?.['User-Agent']).toBe('custom-ua/9.9');
+  });
+
+  it('leaves headers untouched for an unknown persona', () => {
+    const config = makeProviderConfig({ id: 'bad-persona-provider', clientPersona: 'nope' });
+    setupReadFileMock({ 'bad-persona-provider': config });
+
+    const result = loadProviderConfig('bad-persona-provider');
+    expect(result?.headers).toBeUndefined();
+  });
 });
 
 // ===========================================================================

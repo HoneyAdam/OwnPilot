@@ -17,6 +17,8 @@ const PROTECTED_FIELDS: (keyof ProviderConfig)[] = [
   'type', // Provider type (google, anthropic, openai, openai-compatible)
   'baseUrl', // API endpoint URL
   'apiKeyEnv', // Environment variable name for API key
+  'headers', // Custom request headers
+  'clientPersona', // Coding-agent persona (e.g. for Kimi For Coding's whitelist)
 ];
 
 /**

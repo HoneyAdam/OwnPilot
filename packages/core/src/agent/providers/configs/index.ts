@@ -6,6 +6,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveClientPersonaHeaders } from '../client-personas.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,8 @@ export type {
   ResolvedAuth,
 } from './types.js';
 export { getAuthHeader, isAuthExpired } from './types.js';
+export { CLIENT_PERSONAS, resolveClientPersonaHeaders } from '../client-personas.js';
+export type { ClientPersonaId } from '../client-personas.js';
 
 import type {
   ModelCapability,
@@ -180,6 +183,12 @@ export function loadProviderConfig(id: string): ProviderConfig | null {
   try {
     const configPath = path.join(getProviderDataDir(), `${id}.json`);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as ProviderConfig;
+    // Merge coding-agent persona headers beneath any inline `headers` so
+    // gated endpoints (e.g. Kimi For Coding) present a whitelisted client.
+    const personaHeaders = resolveClientPersonaHeaders(config.clientPersona);
+    if (personaHeaders) {
+      config.headers = { ...personaHeaders, ...config.headers };
+    }
     configCache.set(id, config);
     return config;
   } catch {
