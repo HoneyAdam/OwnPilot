@@ -100,7 +100,7 @@ export async function agenticRun(taskDescription: string[], options: {
 
   // Add constraints if timeout specified
   if (options.timeout) {
-    body.constraints = { timeoutMs: options.timeout };
+    body.constraints = { timeoutMs: parseInt(String(options.timeout), 10) || 60000 };
   }
 
   console.log(`\n  ▶ Executing task: ${name}`);
