@@ -177,7 +177,7 @@ export async function agenticRun(taskDescription: string[], options: {
 // ─── LIST ───
 // ============================================================================
 
-export async function agenticList(options: { limit?: number; offset?: number }): Promise<void> {
+export async function agenticList(options: { limit?: number; offset?: number; json?: boolean }): Promise<void> {
   const limit = options.limit ?? 20;
   const offset = options.offset ?? 0;
 
@@ -188,6 +188,11 @@ export async function agenticList(options: { limit?: number; offset?: number }):
     };
 
     const { executions, total } = data;
+
+    if (options.json) {
+      console.log(JSON.stringify({ executions, total, limit, offset }, null, 2));
+      return;
+    }
 
     console.log(`\nAgentic Executions (${total} total, showing ${executions.length}):`);
     console.log('─'.repeat(90));

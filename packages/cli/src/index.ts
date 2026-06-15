@@ -378,6 +378,7 @@ agenticCmd
   .description('List recent executions')
   .option('-l, --limit <n>', 'Max results (default: 20)', (v) => Number(v))
   .option('-o, --offset <n>', 'Offset for pagination', (v) => Number(v))
+  .option('--json', 'Output as JSON')
   .action(agenticList);
 
 agenticCmd
