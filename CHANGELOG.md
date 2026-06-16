@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-06-16
+
+### Security
+
+- **Resolved all production dependency vulnerabilities.** Bumped 6 vulnerable dependencies via pnpm overrides: hono 4.12.21 → 4.12.25 (CORS wildcard reflection, Windows path traversal, Lambda cookie/header issues), ws → ≥8.21.0 (memory exhaustion DoS), form-data → ≥4.0.6 (CRLF injection), protobufjs → ≥8.6.0 (DoS via unbounded Any expansion), nodemailer → ≥8.0.9 (CRLF header injection), dompurify → ≥3.4.9 (multiple XSS bypasses). Also bumped @babel/core to ≥7.29.6 (arbitrary file read via sourceMappingURL) and removed a stale vite 7.3.3 override that caused 19 phantom Dependabot alerts. `pnpm audit` now reports 0 vulnerabilities.
+
+### Fixed
+
+- **Dashboard AI briefing tests** now match the 5-argument `getOrCreateChatAgent` signature (includes `conversationId` for briefing isolation).
+- **Rate limit middleware tests** now set `TRUSTED_PROXY=true` + `TRUSTED_PROXY_IPS` via `vi.hoisted()` so the rate-limit code path is exercised instead of short-circuited for local/direct connections.
+- **Workflow notification test** replaced `vi.doMock` with a top-level `vi.mock` — the dynamic import of `ws/server.js` was cached from prior tests, so `vi.doMock` never intercepted it.
+
+### Changed
+
+- **Synced 18 provider catalogs** from models.dev (new models: Kimi K2.7 Code, GLM-5.2, Gemma 4 E4B/E2B, MiniMax M3, Nemotron 3 Ultra, Grok Build 0.1; default rotations, price corrections, capability metadata, delisted models).
+
+### Styles
+
+- **Applied Prettier formatting** to 22 unformatted files across the agentic layer (core, gateway, cli, ui) and related dashboard/UI files.
+
 ## [0.7.2] - 2026-06-05
 
 ### Fixed

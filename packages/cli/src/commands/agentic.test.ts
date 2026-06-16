@@ -9,13 +9,6 @@ vi.stubGlobal('fetch', mockFetch);
 function apiOk<T>(data: T) {
   return { ok: true, status: 200, json: async () => ({ success: true, data }) };
 }
-function apiErr(status = 500) {
-  return {
-    ok: false,
-    status,
-    json: async () => ({ error: { code: 'INTERNAL_ERROR', message: 'Server error' } }),
-  };
-}
 
 import {
   agenticRun,
@@ -45,9 +38,7 @@ describe('Agentic CLI Commands', () => {
   describe('agenticRun', () => {
     it('shows usage when no description provided', async () => {
       await agenticRun([], {});
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Usage: ownpilot agentic run')
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Usage: ownpilot agentic run'));
     });
 
     it('sends POST /agentic/execute with description', async () => {
@@ -59,7 +50,13 @@ describe('Agentic CLI Commands', () => {
           totalCostUsd: 0.005,
           totalDurationMs: 150,
           steps: [
-            { index: 1, executorKind: 'claw', capabilityId: 'c1', status: 'completed', durationMs: 150 },
+            {
+              index: 1,
+              executorKind: 'claw',
+              capabilityId: 'c1',
+              status: 'completed',
+              durationMs: 150,
+            },
           ],
         })
       );
@@ -81,7 +78,11 @@ describe('Agentic CLI Commands', () => {
     it('passes priority option', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-2', status: 'completed', summary: 'Done', totalCostUsd: 0.01, totalDurationMs: 100,
+          id: 'exec-2',
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0.01,
+          totalDurationMs: 100,
           steps: [],
         })
       );
@@ -95,7 +96,11 @@ describe('Agentic CLI Commands', () => {
     it('passes interval trigger', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-3', status: 'completed', summary: 'Done', totalCostUsd: 0.01, totalDurationMs: 100,
+          id: 'exec-3',
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0.01,
+          totalDurationMs: 100,
           steps: [],
         })
       );
@@ -110,7 +115,11 @@ describe('Agentic CLI Commands', () => {
     it('passes continuous trigger', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-4', status: 'completed', summary: 'Done', totalCostUsd: 0.01, totalDurationMs: 100,
+          id: 'exec-4',
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0.01,
+          totalDurationMs: 100,
           steps: [],
         })
       );
@@ -124,7 +133,11 @@ describe('Agentic CLI Commands', () => {
     it('handles custom task name', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-5', status: 'completed', summary: 'Done', totalCostUsd: 0, totalDurationMs: 0,
+          id: 'exec-5',
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0,
+          totalDurationMs: 0,
           steps: [],
         })
       );
@@ -138,7 +151,11 @@ describe('Agentic CLI Commands', () => {
     it('passes timeout constraint', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-6', status: 'completed', summary: 'Done', totalCostUsd: 0, totalDurationMs: 0,
+          id: 'exec-6',
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0,
+          totalDurationMs: 0,
           steps: [],
         })
       );
@@ -161,8 +178,11 @@ describe('Agentic CLI Commands', () => {
     it('shows failed execution with error', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-7', status: 'failed', summary: 'Failed after 0/1 steps',
-          totalCostUsd: 0, totalDurationMs: 50,
+          id: 'exec-7',
+          status: 'failed',
+          summary: 'Failed after 0/1 steps',
+          totalCostUsd: 0,
+          totalDurationMs: 50,
           error: 'Step 1 failed: timeout',
           steps: [
             { index: 1, executorKind: 'claw', status: 'failed', error: 'timeout', durationMs: 50 },
@@ -180,9 +200,7 @@ describe('Agentic CLI Commands', () => {
 
   describe('agenticList', () => {
     it('shows "no executions" when list is empty', async () => {
-      mockFetch.mockResolvedValueOnce(
-        apiOk({ executions: [], total: 0, limit: 20, offset: 0 })
-      );
+      mockFetch.mockResolvedValueOnce(apiOk({ executions: [], total: 0, limit: 20, offset: 0 }));
 
       await agenticList({});
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('No executions yet'));
@@ -192,14 +210,34 @@ describe('Agentic CLI Commands', () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
           executions: [
-            { id: 'e1', taskName: 'Research AI', status: 'completed', summary: 'Done',
-              totalCostUsd: 0.005, totalDurationMs: 150, stepCount: 1, completedSteps: 1,
-              startedAt: '2026-06-15T10:00:00Z', completedAt: '2026-06-15T10:01:00Z' },
-            { id: 'e2', taskName: 'Fix bug', status: 'running', summary: 'In progress',
-              totalCostUsd: 0.01, totalDurationMs: 3000, stepCount: 2, completedSteps: 1,
-              startedAt: '2026-06-15T10:05:00Z', completedAt: null },
+            {
+              id: 'e1',
+              taskName: 'Research AI',
+              status: 'completed',
+              summary: 'Done',
+              totalCostUsd: 0.005,
+              totalDurationMs: 150,
+              stepCount: 1,
+              completedSteps: 1,
+              startedAt: '2026-06-15T10:00:00Z',
+              completedAt: '2026-06-15T10:01:00Z',
+            },
+            {
+              id: 'e2',
+              taskName: 'Fix bug',
+              status: 'running',
+              summary: 'In progress',
+              totalCostUsd: 0.01,
+              totalDurationMs: 3000,
+              stepCount: 2,
+              completedSteps: 1,
+              startedAt: '2026-06-15T10:05:00Z',
+              completedAt: null,
+            },
           ],
-          total: 2, limit: 20, offset: 0,
+          total: 2,
+          limit: 20,
+          offset: 0,
         })
       );
 
@@ -211,9 +249,7 @@ describe('Agentic CLI Commands', () => {
     });
 
     it('passes limit and offset params', async () => {
-      mockFetch.mockResolvedValueOnce(
-        apiOk({ executions: [], total: 0, limit: 5, offset: 10 })
-      );
+      mockFetch.mockResolvedValueOnce(apiOk({ executions: [], total: 0, limit: 5, offset: 10 }));
 
       await agenticList({ limit: 5, offset: 10 });
       const url = mockFetch.mock.calls[0][0] as string;
@@ -250,7 +286,13 @@ describe('Agentic CLI Commands', () => {
           startedAt: '2026-06-15T10:00:00Z',
           completedAt: '2026-06-15T10:01:00Z',
           steps: [
-            { index: 1, executorKind: 'claw', capabilityId: 'claw:single-shot', status: 'completed', durationMs: 150 },
+            {
+              index: 1,
+              executorKind: 'claw',
+              capabilityId: 'claw:single-shot',
+              status: 'completed',
+              durationMs: 150,
+            },
           ],
         })
       );
@@ -263,9 +305,15 @@ describe('Agentic CLI Commands', () => {
     it('outputs JSON when --json flag set', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-1', task: { name: 'JSON task' }, status: 'completed',
-          summary: 'Done', totalCostUsd: 0, totalDurationMs: 0,
-          startedAt: '2026-06-15T10:00:00Z', completedAt: null, steps: [],
+          id: 'exec-1',
+          task: { name: 'JSON task' },
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0,
+          totalDurationMs: 0,
+          startedAt: '2026-06-15T10:00:00Z',
+          completedAt: null,
+          steps: [],
         })
       );
 
@@ -273,9 +321,7 @@ describe('Agentic CLI Commands', () => {
       logSpy.mockReset();
 
       await agenticStatus('exec-1', { json: true });
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('"status": "completed"')
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"status": "completed"'));
     });
 
     it('handles gateway error', async () => {
@@ -296,9 +342,7 @@ describe('Agentic CLI Commands', () => {
     });
 
     it('sends cancel request', async () => {
-      mockFetch.mockResolvedValueOnce(
-        apiOk({ id: 'exec-1', status: 'cancelled' })
-      );
+      mockFetch.mockResolvedValueOnce(apiOk({ id: 'exec-1', status: 'cancelled' }));
 
       await agenticCancel('exec-1');
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -339,7 +383,15 @@ describe('Agentic CLI Commands', () => {
           },
           plan: {
             steps: [
-              { index: 1, executorKind: 'claw', capabilityId: 'claw:single-shot', providerId: 'ownpilot:claw', dependsOn: [], timeoutMs: 60000, retryOnFailure: true },
+              {
+                index: 1,
+                executorKind: 'claw',
+                capabilityId: 'claw:single-shot',
+                providerId: 'ownpilot:claw',
+                dependsOn: [],
+                timeoutMs: 60000,
+                retryOnFailure: true,
+              },
             ],
             estimatedCostUsd: 0.05,
             estimatedDurationMs: 60000,
@@ -363,8 +415,24 @@ describe('Agentic CLI Commands', () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
           capabilities: [
-            { id: 'claw:test', name: 'Test Claw', description: 'A test claw', executorKind: 'claw', providerId: 'ownpilot:claw', tags: ['test'], requiresApproval: false },
-            { id: 'llm:test', name: 'Test LLM', description: 'A test llm', executorKind: 'direct_llm', providerId: 'ownpilot:llm', tags: ['llm'], requiresApproval: false },
+            {
+              id: 'claw:test',
+              name: 'Test Claw',
+              description: 'A test claw',
+              executorKind: 'claw',
+              providerId: 'ownpilot:claw',
+              tags: ['test'],
+              requiresApproval: false,
+            },
+            {
+              id: 'llm:test',
+              name: 'Test LLM',
+              description: 'A test llm',
+              executorKind: 'direct_llm',
+              providerId: 'ownpilot:llm',
+              tags: ['llm'],
+              requiresApproval: false,
+            },
           ],
           total: 2,
         })
@@ -376,9 +444,7 @@ describe('Agentic CLI Commands', () => {
     });
 
     it('filters by kind', async () => {
-      mockFetch.mockResolvedValueOnce(
-        apiOk({ capabilities: [], total: 0 })
-      );
+      mockFetch.mockResolvedValueOnce(apiOk({ capabilities: [], total: 0 }));
 
       await agenticCapabilities({ kind: 'trigger' });
       const url = mockFetch.mock.calls[0][0] as string;
@@ -386,9 +452,7 @@ describe('Agentic CLI Commands', () => {
     });
 
     it('filters by provider', async () => {
-      mockFetch.mockResolvedValueOnce(
-        apiOk({ capabilities: [], total: 0 })
-      );
+      mockFetch.mockResolvedValueOnce(apiOk({ capabilities: [], total: 0 }));
 
       await agenticCapabilities({ provider: 'ownpilot:claw' });
       const url = mockFetch.mock.calls[0][0] as string;
@@ -430,16 +494,27 @@ describe('Agentic CLI Commands', () => {
       // First call: GET execution detail
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-1', task: { name: 'Research AI', description: 'Research topic', priority: 'normal' },
-          status: 'failed', provider: 'openai', model: 'gpt-4o',
-          totalCostUsd: 0.01, totalDurationMs: 100, startedAt: '', completedAt: null, steps: [],
+          id: 'exec-1',
+          task: { name: 'Research AI', description: 'Research topic', priority: 'normal' },
+          status: 'failed',
+          provider: 'openai',
+          model: 'gpt-4o',
+          totalCostUsd: 0.01,
+          totalDurationMs: 100,
+          startedAt: '',
+          completedAt: null,
+          steps: [],
         })
       );
       // Second call: POST execute
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          id: 'exec-2', status: 'completed', summary: 'Completed successfully',
-          totalCostUsd: 0.02, totalDurationMs: 200, steps: [],
+          id: 'exec-2',
+          status: 'completed',
+          summary: 'Completed successfully',
+          totalCostUsd: 0.02,
+          totalDurationMs: 200,
+          steps: [],
         })
       );
 
@@ -451,10 +526,22 @@ describe('Agentic CLI Commands', () => {
 
     it('passes override options', async () => {
       mockFetch.mockResolvedValueOnce(
-        apiOk({ id: 'exec-1', task: { name: 'Test', description: 'Desc' }, status: 'failed', steps: [] })
+        apiOk({
+          id: 'exec-1',
+          task: { name: 'Test', description: 'Desc' },
+          status: 'failed',
+          steps: [],
+        })
       );
       mockFetch.mockResolvedValueOnce(
-        apiOk({ id: 'exec-3', status: 'completed', summary: 'Done', totalCostUsd: 0, totalDurationMs: 0, steps: [] })
+        apiOk({
+          id: 'exec-3',
+          status: 'completed',
+          summary: 'Done',
+          totalCostUsd: 0,
+          totalDurationMs: 0,
+          steps: [],
+        })
       );
 
       await agenticRerun('exec-1', { provider: 'anthropic', model: 'claude-3', priority: 'high' });
@@ -469,9 +556,7 @@ describe('Agentic CLI Commands', () => {
 
   describe('agenticList --json', () => {
     it('outputs JSON instead of formatted table', async () => {
-      mockFetch.mockResolvedValueOnce(
-        apiOk({ executions: [], total: 0, limit: 20, offset: 0 })
-      );
+      mockFetch.mockResolvedValueOnce(apiOk({ executions: [], total: 0, limit: 20, offset: 0 }));
 
       await agenticList({ json: true });
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"executions"'));
@@ -484,8 +569,11 @@ describe('Agentic CLI Commands', () => {
     it('outputs JSON when --json flag set', async () => {
       mockFetch.mockResolvedValueOnce(
         apiOk({
-          totalExecutions: 10, activeExecutions: 2, totalCostUsd: 0.05,
-          successRate: 0.8, byExecutorKind: { claw: 8 },
+          totalExecutions: 10,
+          activeExecutions: 2,
+          totalCostUsd: 0.05,
+          successRate: 0.8,
+          byExecutorKind: { claw: 8 },
         })
       );
 
