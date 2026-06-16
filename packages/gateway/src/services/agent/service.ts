@@ -751,43 +751,11 @@ export function resetChatAgentContext(
 }
 
 /**
- * Get session info (context usage) for an agent's current conversation.
- *
- * Token count includes BOTH the system prompt and the message history so the
- * UI bar reflects real fill. When `actualPromptTokens` is supplied (e.g. from
- * the provider's `usage.promptTokens` after a turn) we use it as ground truth
- * instead of the char/4 estimate.
+ * Get session info — re-exported from session-info.ts for backward compat.
+ * @see {@link module:services/agent/session-info}
  */
-export function getSessionInfo(
-  agent: Agent,
-  provider: string,
-  model: string,
-  contextWindowOverride?: number,
-  actualPromptTokens?: number
-): SessionInfo {
-  const conversation = agent.getConversation();
-  const memory = agent.getMemory();
-  const stats = memory.getStats(conversation.id);
-  const maxCtx = getLLMRouter().getContextWindow(provider, model, contextWindowOverride);
-
-  const systemPromptTokens = conversation.systemPrompt
-    ? Math.ceil(conversation.systemPrompt.length / 4)
-    : 0;
-  const messageTokens = stats?.estimatedTokens ?? 0;
-  // Prefer real provider usage when available; otherwise sum estimate + system.
-  const estimated =
-    actualPromptTokens != null && actualPromptTokens > 0
-      ? actualPromptTokens
-      : systemPromptTokens + messageTokens;
-
-  return {
-    sessionId: conversation.id,
-    messageCount: stats?.messageCount ?? 0,
-    estimatedTokens: estimated,
-    maxContextTokens: maxCtx,
-    contextFillPercent: maxCtx > 0 ? Math.min(100, Math.round((estimated / maxCtx) * 100)) : 0,
-  };
-}
+export { getSessionInfo } from './session-info.js';
+import { getSessionInfo } from './session-info.js';
 
 /**
  * Clear all chat agent caches - useful for full reset
