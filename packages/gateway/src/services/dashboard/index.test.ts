@@ -1266,7 +1266,13 @@ describe('Dashboard Service', () => {
 
       expect(result.summary).toBe('AI generated');
       expect(result.priorities).toEqual(['Do X']);
-      expect(mockGetOrCreateChatAgent).toHaveBeenCalledWith('openai', 'gpt-4o');
+      expect(mockGetOrCreateChatAgent).toHaveBeenCalledWith(
+        'openai',
+        'gpt-4o',
+        undefined,
+        null,
+        'dashboard-briefing'
+      );
     });
 
     it('returns fallback when agent returns error result', async () => {
@@ -1315,7 +1321,13 @@ describe('Dashboard Service', () => {
 
       await service.generateAIBriefing(data);
 
-      expect(mockGetOrCreateChatAgent).toHaveBeenCalledWith('anthropic', 'claude-3-haiku');
+      expect(mockGetOrCreateChatAgent).toHaveBeenCalledWith(
+        'anthropic',
+        'claude-3-haiku',
+        undefined,
+        null,
+        'dashboard-briefing'
+      );
     });
 
     it('caches the generated briefing after success', async () => {
