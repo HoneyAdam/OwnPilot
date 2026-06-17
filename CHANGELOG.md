@@ -5,9 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-06-17
+
+### Refactoring
+
+- Split `claw/manager.ts` (1739→30 LOC) into `manager/` sub-directory with constants, events, singleton, and manager modules. Backward-compatible barrel re-exports all public exports.
+- Split `workflow/workflow-service.ts` (1704→1068 LOC) — extracted `workflow-dispatch.ts` with dispatchNode, executeWithRetryAndTimeout, helpers, and ApprovalPauseError.
+- Split `agent/service.ts` (1200→806 LOC) — extracted `agent-session-info.ts` and `agent-context.ts` to break circular deps.
+- Split `db/repositories/workflows/index.ts` (959→~485 LOC) — extracted `workflow-types.ts` with all domain types and row mappers.
+- **Net: −3213 LOC extracted across 9 new modules.**
+
+### Added
+
+- Added sub-path exports to `core/package.json`: `@ownpilot/core/services/claw`, `@ownpilot/core/services/coding-agent`, `@ownpilot/core/services/registry`.
+- Added ESLint `no-restricted-imports` rule flagging claw/coding-agent symbol imports from bare `@ownpilot/core/services`.
+- Added 91 tests across 10 new test files for previously untested services.
+
+### Fixed
+
+- **False positive resolved**: The flagged "4 eval() calls in production" were all `page.$eval()` (Puppeteer DOM API) — not JavaScript's `eval()`. All real eval() usage is correctly blocked by the security layer.
+
 ## [Unreleased]
 
-### Planned for v0.8.1 — Structural Refactor Release
+### Planned for v0.8.2
 
 > **Theme**: Break up oversized files, harden type safety, expand test coverage.
 > Target: no public API changes — all splits preserve barrel re-exports.
