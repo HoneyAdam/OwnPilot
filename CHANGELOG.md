@@ -27,7 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for v0.8.2
+### v0.8.2 (in progress)
+
+#### Added
+
+- Agentic cancellation propagation: `DispatchResult` now has `cancelled?: boolean` field.
+  `dispatch()` does a pre-flight abort check — returns `{ cancelled: true }` immediately
+  if the AbortSignal is already aborted before starting any work.
+  WebSocket events emit `agentic.step.fail` with `cancelled: true` on pre-flight abort.
+  `_withCancellation()` helper added for future co-operative cancellation support.
+- Added 3 cancellation tests to `agentic-executor.test.ts` (pre-flight abort, WS event, normal dispatch).
 
 > **Theme**: Break up oversized files, harden type safety, expand test coverage.
 > Target: no public API changes — all splits preserve barrel re-exports.
@@ -97,7 +106,10 @@ Each split leaves a thin re-export so all call sites work unchanged.
       failure propagation), trigger (scheduled/interval, event, condition, continuous Claw,
       one-shot fallback), tool_catalog (executeTool params, error propagation), sandbox_code,
       unknown executor kind, singleton access, event emission (start/complete/fail).
-- [ ] Add cancellation propagation through AgenticOrchestrator → step executors
+- [x] Add cancellation propagation through AgenticOrchestrator → step executors
+      (pre-flight abort check implemented; co-operative mid-execution cancellation
+      scaffolded via `_withCancellation()` helper, ready to wire up when executor
+      methods add signal checking)
 - [ ] Add cost tracking persistence to database (currently in-memory only)
 - [ ] WebSocket event delivery verification tests
 
