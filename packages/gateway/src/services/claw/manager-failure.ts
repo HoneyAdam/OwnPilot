@@ -21,8 +21,9 @@ const FAILURE_LOG_MAX_CHARS = 300;
 /** Coerce any tool result to a string for logging */
 export function stringifyToolResult(result: unknown): string {
   if (typeof result === 'string') return result;
+  if (result === undefined) return 'undefined';
   try {
-    return JSON.stringify(result);
+    return JSON.stringify(result) ?? String(result);
   } catch {
     return String(result);
   }

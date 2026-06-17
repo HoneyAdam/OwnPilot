@@ -30,11 +30,9 @@ describe('manager-failure helpers', () => {
       expect(stringifyToolResult(null)).toBe('null');
     });
 
-    it('returns undefined for undefined input (JSON.stringify quirk)', () => {
-      // JSON.stringify(undefined) returns undefined (not "undefined"),
-      // which technically violates the string return type — known edge case
-      const result = stringifyToolResult(undefined);
-      expect(result).toBeUndefined();
+    it('returns "undefined" string for undefined input', () => {
+      // After the fix: explicit undefined guard returns 'undefined'
+      expect(stringifyToolResult(undefined)).toBe('undefined');
     });
 
     it('falls back to String() for circular references', () => {
