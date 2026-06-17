@@ -266,6 +266,21 @@
       "releaseDate": "2025-03-17"
     },
     {
+      "id": "mistral-large-2411",
+      "name": "Mistral Large 2.1",
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "inputPrice": 2,
+      "outputPrice": 6,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2024-11-18"
+    },
+    {
       "id": "mistral-large-latest",
       "name": "Mistral Large (latest)",
       "contextWindow": 262144,
@@ -291,21 +306,6 @@
       "capabilities": [
         "chat",
         "vision",
-        "function_calling",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2024-11-01"
-    },
-    {
-      "id": "mistral-large-2411",
-      "name": "Mistral Large 2.1",
-      "contextWindow": 131072,
-      "maxOutput": 16384,
-      "inputPrice": 2,
-      "outputPrice": 6,
-      "capabilities": [
-        "chat",
         "function_calling",
         "streaming"
       ],

@@ -1103,8 +1103,8 @@
       "name": "ERNIE 4.5 VL 28B A3B",
       "contextWindow": 30000,
       "maxOutput": 8000,
-      "inputPrice": 1.4,
-      "outputPrice": 5.6,
+      "inputPrice": 0.14,
+      "outputPrice": 0.56,
       "capabilities": [
         "chat",
         "vision",

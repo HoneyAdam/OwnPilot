@@ -50,7 +50,7 @@
       "name": "moonshotai/Kimi-K2.6",
       "contextWindow": 262000,
       "maxOutput": 262000,
-      "inputPrice": 0.95,
+      "inputPrice": 0.77,
       "outputPrice": 4,
       "capabilities": [
         "chat",
@@ -149,8 +149,8 @@
       "name": "zai-org/GLM-5",
       "contextWindow": 205000,
       "maxOutput": 205000,
-      "inputPrice": 1,
-      "outputPrice": 3.2,
+      "inputPrice": 0.95,
+      "outputPrice": 2.55,
       "capabilities": [
         "chat",
         "function_calling",

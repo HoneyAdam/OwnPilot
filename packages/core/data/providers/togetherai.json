@@ -68,8 +68,8 @@
       "name": "Qwen3.7 Max",
       "contextWindow": 1000000,
       "maxOutput": 500000,
-      "inputPrice": 2.5,
-      "outputPrice": 7.5,
+      "inputPrice": 1.25,
+      "outputPrice": 3.75,
       "capabilities": [
         "chat",
         "function_calling",

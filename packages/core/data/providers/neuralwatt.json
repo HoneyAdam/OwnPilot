@@ -12,6 +12,40 @@
   },
   "models": [
     {
+      "id": "glm-5.2",
+      "name": "GLM 5.2",
+      "contextWindow": 1048560,
+      "maxOutput": 1048560,
+      "inputPrice": 1.45,
+      "outputPrice": 4.5,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-06-17"
+    },
+    {
+      "id": "moonshotai/Kimi-K2.7-Code",
+      "name": "Kimi K2.7 Code",
+      "contextWindow": 262144,
+      "maxOutput": 262144,
+      "inputPrice": 0.95,
+      "outputPrice": 4,
+      "capabilities": [
+        "chat",
+        "vision",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-06-12"
+    },
+    {
       "id": "kimi-k2.6-fast",
       "name": "Kimi K2.6 Fast",
       "contextWindow": 262128,
@@ -24,7 +58,7 @@
         "function_calling",
         "streaming"
       ],
-      "default": true,
+      "default": false,
       "releaseDate": "2026-04-21"
     },
     {
@@ -124,22 +158,6 @@
       "releaseDate": "2026-04-01"
     },
     {
-      "id": "MiniMaxAI/MiniMax-M2.5",
-      "name": "MiniMax M2.5",
-      "contextWindow": 196592,
-      "maxOutput": 196592,
-      "inputPrice": 0.35,
-      "outputPrice": 1.38,
-      "capabilities": [
-        "chat",
-        "function_calling",
-        "reasoning",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2026-02-12"
-    },
-    {
       "id": "qwen3.5-397b-fast",
       "name": "Qwen3.5 397B Fast",
       "contextWindow": 262128,
@@ -202,38 +220,6 @@
       ],
       "default": false,
       "releaseDate": "2026-01-27"
-    },
-    {
-      "id": "mistralai/Devstral-Small-2-24B-Instruct-2512",
-      "name": "Devstral Small 2 24B Instruct 2512",
-      "contextWindow": 262128,
-      "maxOutput": 262128,
-      "inputPrice": 0.12,
-      "outputPrice": 0.35,
-      "capabilities": [
-        "chat",
-        "vision",
-        "function_calling",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2025-12-09"
-    },
-    {
-      "id": "openai/gpt-oss-20b",
-      "name": "GPT OSS 20B",
-      "contextWindow": 16368,
-      "maxOutput": 16368,
-      "inputPrice": 0.03,
-      "outputPrice": 0.16,
-      "capabilities": [
-        "chat",
-        "function_calling",
-        "reasoning",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2025-08-05"
     }
   ],
   "baseUrl": "https://api.neuralwatt.com/v1",

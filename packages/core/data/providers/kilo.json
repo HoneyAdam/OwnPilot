@@ -200,8 +200,8 @@
     {
       "id": "poolside/laguna-xs.2:free",
       "name": "Poolside: Laguna XS.2 (free)",
-      "contextWindow": 131072,
-      "maxOutput": 8192,
+      "contextWindow": 262144,
+      "maxOutput": 32768,
       "inputPrice": 0,
       "outputPrice": 0,
       "capabilities": [
@@ -216,8 +216,8 @@
     {
       "id": "poolside/laguna-m.1:free",
       "name": "Poolside: Laguna M.1 (free)",
-      "contextWindow": 131072,
-      "maxOutput": 8192,
+      "contextWindow": 262144,
+      "maxOutput": 32768,
       "inputPrice": 0,
       "outputPrice": 0,
       "capabilities": [

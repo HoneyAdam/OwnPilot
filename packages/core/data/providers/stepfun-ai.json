@@ -32,8 +32,8 @@
       "name": "Step 3.5 Flash",
       "contextWindow": 256000,
       "maxOutput": 256000,
-      "inputPrice": 0.096,
-      "outputPrice": 0.288,
+      "inputPrice": 0.1,
+      "outputPrice": 0.3,
       "capabilities": [
         "chat",
         "function_calling",

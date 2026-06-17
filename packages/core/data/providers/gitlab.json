@@ -12,23 +12,6 @@
   },
   "models": [
     {
-      "id": "duo-chat-fable-5",
-      "name": "Agentic Chat (Claude Fable 5)",
-      "contextWindow": 1000000,
-      "maxOutput": 128000,
-      "inputPrice": 0,
-      "outputPrice": 0,
-      "capabilities": [
-        "chat",
-        "vision",
-        "function_calling",
-        "reasoning",
-        "streaming"
-      ],
-      "default": true,
-      "releaseDate": "2026-06-09"
-    },
-    {
       "id": "duo-chat-opus-4-8",
       "name": "Agentic Chat (Claude Opus 4.8)",
       "contextWindow": 1000000,
@@ -42,7 +25,7 @@
         "reasoning",
         "streaming"
       ],
-      "default": false,
+      "default": true,
       "releaseDate": "2026-05-28"
     },
     {

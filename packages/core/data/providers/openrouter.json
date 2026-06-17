@@ -12,9 +12,25 @@
   },
   "models": [
     {
+      "id": "z-ai/glm-5.2",
+      "name": "GLM-5.2",
+      "contextWindow": 1048576,
+      "maxOutput": 131072,
+      "inputPrice": 1.4,
+      "outputPrice": 4.4,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-06-13"
+    },
+    {
       "id": "openrouter/fusion",
       "name": "Fusion",
-      "contextWindow": 128000,
+      "contextWindow": 1000000,
       "maxOutput": 128000,
       "inputPrice": 0,
       "outputPrice": 0,
@@ -22,7 +38,7 @@
         "chat",
         "streaming"
       ],
-      "default": true,
+      "default": false,
       "releaseDate": "2026-06-13"
     },
     {
@@ -46,24 +62,6 @@
     {
       "id": "~anthropic/claude-fable-latest",
       "name": "Claude Fable Latest",
-      "contextWindow": 1000000,
-      "maxOutput": 128000,
-      "inputPrice": 10,
-      "outputPrice": 50,
-      "capabilities": [
-        "chat",
-        "vision",
-        "function_calling",
-        "json_mode",
-        "reasoning",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2026-06-09"
-    },
-    {
-      "id": "anthropic/claude-fable-5",
-      "name": "Claude Fable 5",
       "contextWindow": 1000000,
       "maxOutput": 128000,
       "inputPrice": 10,
@@ -626,10 +624,10 @@
     {
       "id": "deepseek/deepseek-v4-flash",
       "name": "DeepSeek V4 Flash",
-      "contextWindow": 1000000,
+      "contextWindow": 1048575,
       "maxOutput": 65536,
-      "inputPrice": 0.09,
-      "outputPrice": 0.18,
+      "inputPrice": 0.098,
+      "outputPrice": 0.196,
       "capabilities": [
         "chat",
         "function_calling",
@@ -721,6 +719,7 @@
         "vision",
         "audio",
         "function_calling",
+        "json_mode",
         "reasoning",
         "streaming"
       ],
@@ -850,8 +849,8 @@
       "name": "Hy3 preview",
       "contextWindow": 262144,
       "maxOutput": 262144,
-      "inputPrice": 0.063,
-      "outputPrice": 0.21,
+      "inputPrice": 0.066,
+      "outputPrice": 0.26,
       "capabilities": [
         "chat",
         "function_calling",
@@ -1096,8 +1095,8 @@
       "name": "Grok 4.20 Multi-Agent",
       "contextWindow": 2000000,
       "maxOutput": 2000000,
-      "inputPrice": 2,
-      "outputPrice": 6,
+      "inputPrice": 1.25,
+      "outputPrice": 2.5,
       "capabilities": [
         "chat",
         "vision",
@@ -1523,7 +1522,7 @@
       "id": "qwen/qwen3.5-35b-a3b",
       "name": "Qwen3.5 35B-A3B",
       "contextWindow": 262144,
-      "maxOutput": 262144,
+      "maxOutput": 81920,
       "inputPrice": 0.14,
       "outputPrice": 1,
       "capabilities": [
@@ -1647,10 +1646,10 @@
     {
       "id": "qwen/qwen3.5-397b-a17b",
       "name": "Qwen3.5 397B-A17B",
-      "contextWindow": 262144,
+      "contextWindow": 131072,
       "maxOutput": 65536,
-      "inputPrice": 0.39,
-      "outputPrice": 2.34,
+      "inputPrice": 0.385,
+      "outputPrice": 2.45,
       "capabilities": [
         "chat",
         "vision",
@@ -3379,6 +3378,7 @@
       "capabilities": [
         "chat",
         "function_calling",
+        "json_mode",
         "reasoning",
         "streaming"
       ],
@@ -3461,7 +3461,6 @@
       "capabilities": [
         "chat",
         "function_calling",
-        "json_mode",
         "reasoning",
         "streaming"
       ],
@@ -4535,22 +4534,6 @@
       ],
       "default": false,
       "releaseDate": "2025-01-30"
-    },
-    {
-      "id": "deepseek/deepseek-r1-distill-qwen-32b",
-      "name": "R1 Distill Qwen 32B",
-      "contextWindow": 32768,
-      "maxOutput": 32768,
-      "inputPrice": 0.29,
-      "outputPrice": 0.29,
-      "capabilities": [
-        "chat",
-        "json_mode",
-        "reasoning",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2025-01-29"
     },
     {
       "id": "perplexity/sonar",

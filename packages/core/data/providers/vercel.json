@@ -12,6 +12,40 @@
   },
   "models": [
     {
+      "id": "zai/glm-5.2",
+      "name": "GLM 5.2",
+      "contextWindow": 1000000,
+      "maxOutput": 128000,
+      "inputPrice": 1.4,
+      "outputPrice": 4.4,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-06-16"
+    },
+    {
+      "id": "moonshotai/kimi-k2.7-code-highspeed",
+      "name": "Kimi K2.7 Code High Speed",
+      "contextWindow": 262144,
+      "maxOutput": 0,
+      "inputPrice": 1.9,
+      "outputPrice": 8,
+      "capabilities": [
+        "chat",
+        "vision",
+        "function_calling",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-06-15"
+    },
+    {
       "id": "moonshotai/kimi-k2.7-code",
       "name": "Kimi K2.7 Code",
       "contextWindow": 256000,
@@ -26,7 +60,7 @@
         "reasoning",
         "streaming"
       ],
-      "default": true,
+      "default": false,
       "releaseDate": "2026-06-12"
     },
     {
@@ -691,7 +725,6 @@
         "vision",
         "function_calling",
         "json_mode",
-        "reasoning",
         "streaming"
       ],
       "default": false,
@@ -790,6 +823,7 @@
       "outputPrice": 0.65,
       "capabilities": [
         "chat",
+        "reasoning",
         "streaming"
       ],
       "default": false,
@@ -1855,6 +1889,7 @@
       "capabilities": [
         "chat",
         "vision",
+        "reasoning",
         "streaming"
       ],
       "default": false,
@@ -2841,6 +2876,44 @@
       "releaseDate": "2025-06-17"
     },
     {
+      "id": "google/gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "contextWindow": 1048576,
+      "maxOutput": 65536,
+      "inputPrice": 0.3,
+      "outputPrice": 2.5,
+      "capabilities": [
+        "chat",
+        "vision",
+        "audio",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2025-06-17"
+    },
+    {
+      "id": "google/gemini-2.5-pro",
+      "name": "Gemini 2.5 Pro",
+      "contextWindow": 1048576,
+      "maxOutput": 65536,
+      "inputPrice": 1.25,
+      "outputPrice": 10,
+      "capabilities": [
+        "chat",
+        "vision",
+        "audio",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2025-06-17"
+    },
+    {
       "id": "bytedance/seedance-v1.0-pro",
       "name": "Seedance v1.0 Pro",
       "contextWindow": 0,
@@ -3277,6 +3350,7 @@
       "capabilities": [
         "chat",
         "function_calling",
+        "reasoning",
         "streaming"
       ],
       "default": false,
@@ -3292,6 +3366,7 @@
       "capabilities": [
         "chat",
         "function_calling",
+        "reasoning",
         "streaming"
       ],
       "default": false,
@@ -3384,44 +3459,6 @@
       "outputPrice": 2.5,
       "capabilities": [
         "chat",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2025-03-20"
-    },
-    {
-      "id": "google/gemini-2.5-flash",
-      "name": "Gemini 2.5 Flash",
-      "contextWindow": 1048576,
-      "maxOutput": 65536,
-      "inputPrice": 0.3,
-      "outputPrice": 2.5,
-      "capabilities": [
-        "chat",
-        "vision",
-        "audio",
-        "function_calling",
-        "json_mode",
-        "reasoning",
-        "streaming"
-      ],
-      "default": false,
-      "releaseDate": "2025-03-20"
-    },
-    {
-      "id": "google/gemini-2.5-pro",
-      "name": "Gemini 2.5 Pro",
-      "contextWindow": 1048576,
-      "maxOutput": 65536,
-      "inputPrice": 1.25,
-      "outputPrice": 10,
-      "capabilities": [
-        "chat",
-        "vision",
-        "audio",
-        "function_calling",
-        "json_mode",
-        "reasoning",
         "streaming"
       ],
       "default": false,

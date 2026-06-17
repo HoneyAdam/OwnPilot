@@ -12,6 +12,41 @@
   },
   "models": [
     {
+      "id": "zai-org/GLM-5.2",
+      "name": "GLM-5.2",
+      "contextWindow": 131072,
+      "maxOutput": 131072,
+      "inputPrice": 1.5,
+      "outputPrice": 4.5,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-06-13"
+    },
+    {
+      "id": "moonshotai/Kimi-K2.7-Code",
+      "name": "Kimi K2.7 Code",
+      "contextWindow": 262000,
+      "maxOutput": 262000,
+      "inputPrice": 0.95,
+      "outputPrice": 4,
+      "capabilities": [
+        "chat",
+        "vision",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-06-12"
+    },
+    {
       "id": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B",
       "name": "Nemotron Ultra",
       "contextWindow": 202800,
@@ -25,7 +60,7 @@
         "reasoning",
         "streaming"
       ],
-      "default": true,
+      "default": false,
       "releaseDate": "2026-06-04"
     },
     {

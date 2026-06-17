@@ -12,6 +12,41 @@
   },
   "models": [
     {
+      "id": "zai-org-glm-5-2",
+      "name": "GLM 5.2",
+      "contextWindow": 1000000,
+      "maxOutput": 24000,
+      "inputPrice": 1.75,
+      "outputPrice": 5.5,
+      "capabilities": [
+        "chat",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": true,
+      "releaseDate": "2026-06-16"
+    },
+    {
+      "id": "kimi-k2-7-code",
+      "name": "Kimi K2.7 Code",
+      "contextWindow": 256000,
+      "maxOutput": 65536,
+      "inputPrice": 0.9,
+      "outputPrice": 4.3,
+      "capabilities": [
+        "chat",
+        "vision",
+        "function_calling",
+        "json_mode",
+        "reasoning",
+        "streaming"
+      ],
+      "default": false,
+      "releaseDate": "2026-06-13"
+    },
+    {
       "id": "minimax-m3-preview",
       "name": "MiniMax M3 Preview",
       "contextWindow": 524288,
@@ -24,7 +59,7 @@
         "reasoning",
         "streaming"
       ],
-      "default": true,
+      "default": false,
       "releaseDate": "2026-06-12"
     },
     {

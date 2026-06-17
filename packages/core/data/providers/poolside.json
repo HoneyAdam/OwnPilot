@@ -14,8 +14,8 @@
     {
       "id": "poolside/laguna-xs.2",
       "name": "Laguna XS.2",
-      "contextWindow": 131040,
-      "maxOutput": 8192,
+      "contextWindow": 262144,
+      "maxOutput": 32768,
       "inputPrice": 0,
       "outputPrice": 0,
       "capabilities": [
@@ -30,8 +30,8 @@
     {
       "id": "poolside/laguna-m.1",
       "name": "Laguna M.1",
-      "contextWindow": 131040,
-      "maxOutput": 8192,
+      "contextWindow": 262144,
+      "maxOutput": 32768,
       "inputPrice": 0,
       "outputPrice": 0,
       "capabilities": [
