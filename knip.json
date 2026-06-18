@@ -9,7 +9,8 @@
       "entry": [
         "src/mcp/cli-mcp-server.ts",
         "src/mcp/e2e-test.ts",
-        "scripts/migration-smoke-test.ts"
+        "scripts/migration-smoke-test.ts",
+        "src/agentic/index.ts"
       ]
     },
     "packages/cli": {},
