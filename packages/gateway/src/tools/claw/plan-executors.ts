@@ -18,7 +18,7 @@ import {
   CLAW_NEXT_INTENT_MAX,
   type ClawTask,
   type ClawTaskStatus,
-} from '@ownpilot/core/services';
+} from '@ownpilot/core/services/claw';
 import { getErrorMessage } from '@ownpilot/core/services';
 import { getClawContext } from '../../services/claw/context.js';
 

@@ -18,8 +18,8 @@ import type {
   ClawHistoryEntry,
   ClawToolCall,
   ClawEscalation,
-} from '@ownpilot/core/services';
-import { DEFAULT_CLAW_LIMITS } from '@ownpilot/core/services';
+} from '@ownpilot/core/services/claw';
+import { DEFAULT_CLAW_LIMITS } from '@ownpilot/core/services/claw';
 import { BaseRepository, parseJsonField, parseJsonFieldNullable } from './base.js';
 
 // ============================================================================

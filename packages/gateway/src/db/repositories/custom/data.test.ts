@@ -1021,12 +1021,4 @@ describe('CustomDataRepository', () => {
       expect(r).toBeInstanceOf(CustomDataRepository);
     });
   });
-
-  describe('getCustomDataRepository alias', () => {
-    it('should be importable and return CustomDataRepository instance', async () => {
-      const { getCustomDataRepository } = await import('./data.js');
-      const r = getCustomDataRepository();
-      expect(r).toBeInstanceOf(CustomDataRepository);
-    });
-  });
 });

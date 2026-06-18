@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { ClawHistoryEntry } from '@ownpilot/core/services';
+import type { ClawHistoryEntry } from '@ownpilot/core/services/claw';
 import { toShareGPT } from './trajectory-export.js';
 
 const config = { id: 'claw-1', name: 'Researcher', mission: 'Find competitor pricing' };

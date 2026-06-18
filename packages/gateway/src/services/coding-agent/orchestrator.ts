@@ -17,7 +17,7 @@ import type {
   OrchestrationRunStatus,
   StartOrchestrationInput,
   OrchestrationRun,
-} from '@ownpilot/core/services';
+} from '@ownpilot/core/services/coding-agent';
 import { getCodingAgentService } from './service.js';
 import { orchestrationRunsRepo } from '../../db/repositories/orchestration-runs.js';
 import { codingAgentResultsRepo } from '../../db/repositories/coding-agent/results.js';

@@ -28,8 +28,8 @@ import {
   type CreateCodingSessionInput,
   isBuiltinProvider,
   getCustomProviderName,
-  getErrorMessage,
-} from '@ownpilot/core/services';
+} from '@ownpilot/core/services/coding-agent';
+import { getErrorMessage } from '@ownpilot/core/services';
 import { tryImport } from '@ownpilot/core/tools';
 import { cliProvidersRepo, type CliProviderRecord } from '../../db/repositories/cli/providers.js';
 import {

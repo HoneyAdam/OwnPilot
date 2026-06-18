@@ -13,8 +13,9 @@ import type {
   ClawHistoryEntry,
   CreateClawInput,
   UpdateClawInput,
-} from '@ownpilot/core/services';
-import { generateId, DEFAULT_CLAW_LIMITS, MAX_CLAW_DEPTH } from '@ownpilot/core/services';
+} from '@ownpilot/core/services/claw';
+import { generateId } from '@ownpilot/core/services';
+import { DEFAULT_CLAW_LIMITS, MAX_CLAW_DEPTH } from '@ownpilot/core/services/claw';
 import { getClawManager } from './manager.js';
 import { getClawsRepository } from '../../db/repositories/claws.js';
 
@@ -371,7 +372,7 @@ export class ClawServiceImpl implements IClawService {
 // Singleton
 // ============================================================================
 
-import { setClawService as setCoreClawService } from '@ownpilot/core/services';
+import { setClawService as setCoreClawService } from '@ownpilot/core/services/claw';
 
 let _service: ClawServiceImpl | null = null;
 

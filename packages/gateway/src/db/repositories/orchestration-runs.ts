@@ -9,7 +9,7 @@ import type {
   OrchestrationRunStatus,
   OrchestrationStep,
   CodingAgentPermissions,
-} from '@ownpilot/core/services';
+} from '@ownpilot/core/services/coding-agent';
 
 // =============================================================================
 // ROW TYPE

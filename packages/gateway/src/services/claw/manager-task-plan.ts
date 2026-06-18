@@ -6,7 +6,7 @@
  * survive server restarts without a DB schema migration.
  */
 
-import type { ClawTask, ClawPlanHistoryEntry } from '@ownpilot/core/services';
+import type { ClawTask, ClawPlanHistoryEntry } from '@ownpilot/core/services/claw';
 
 // ============================================================================
 // Reserved context keys

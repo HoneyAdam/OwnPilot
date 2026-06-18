@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import type { ClawConfig } from '@ownpilot/core/services';
+import type { ClawConfig } from '@ownpilot/core/services/claw';
 import {
   distillSkillFromRun,
   buildLearnedManifest,

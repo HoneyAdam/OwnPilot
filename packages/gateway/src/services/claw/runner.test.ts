@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ClawConfig, ClawSession } from '@ownpilot/core/services';
+import type { ClawConfig, ClawSession } from '@ownpilot/core/services/claw';
 
 // ---------------------------------------------------------------------------
 // Mocks

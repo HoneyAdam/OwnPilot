@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateClawRun, aggregateFleetEval } from './run-eval.js';
-import type { ClawHistoryEntry, ClawToolCall } from '@ownpilot/core/services';
+import type { ClawHistoryEntry, ClawToolCall } from '@ownpilot/core/services/claw';
 
 function call(over: Partial<ClawToolCall> = {}): ClawToolCall {
   return { tool: 'core.noop', args: {}, result: 'ok', success: true, durationMs: 5, ...over };

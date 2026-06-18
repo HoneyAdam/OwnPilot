@@ -582,6 +582,3 @@ export class CustomDataRepository extends BaseRepository {
 export function createCustomDataRepository(): CustomDataRepository {
   return new CustomDataRepository();
 }
-
-// Alias for backwards compatibility
-export const getCustomDataRepository = createCustomDataRepository;

@@ -12,9 +12,8 @@ import {
   type CodingAgentPermissions,
   type CodingAgentSkill,
   DEFAULT_CODING_AGENT_PERMISSIONS,
-  getErrorMessage,
-} from '@ownpilot/core/services';
-import { getConfigCenter } from '@ownpilot/core/services';
+} from '@ownpilot/core/services/coding-agent';
+import { getErrorMessage, getConfigCenter } from '@ownpilot/core/services';
 import { tryImport } from '@ownpilot/core/tools';
 import { type CliProviderRecord } from '../../db/repositories/cli/providers.js';
 import { validateCwd, createSanitizedEnv, spawnCliProcess } from '../binary-utils.js';
