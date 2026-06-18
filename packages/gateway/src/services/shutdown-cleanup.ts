@@ -213,8 +213,16 @@ const RESETTERS: ServiceEntry[] = [
   {
     label: 'Claw manager',
     getResetter: async () => {
-      const { resetClawManager } = await import('./claw/manager.js');
-      return resetClawManager;
+      const { getClawManager, resetClawManager } = await import('./claw/manager.js');
+      // Await stop() so in-flight cycles abort and every session is persisted
+      // in its current state BEFORE the DB pool closes (step 9 in
+      // gracefulShutdown) — resetClawManager alone fires stop() and forgets,
+      // racing the persist against pool teardown. The follow-up reset nulls
+      // the singleton (stop() is idempotent once running=false).
+      return async () => {
+        await getClawManager().stop();
+        resetClawManager();
+      };
     },
   },
   {

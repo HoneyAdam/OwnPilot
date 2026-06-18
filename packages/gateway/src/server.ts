@@ -655,6 +655,21 @@ async function main() {
     log.warn('Autonomy Engine failed to start', { error: String(error) });
   }
 
+  // Start Claw Manager: resume interrupted claws (running/waiting/starting from
+  // before a restart) and launch autoStart claws. Fire-and-forget so resuming N
+  // autonomous agents doesn't block HTTP readiness; per-claw failures are logged
+  // inside start(). Paired with getClawService().stop() in gracefulShutdown,
+  // which persists each session in its current state for resume-on-next-boot.
+  try {
+    const { getClawService } = await import('./services/claw/service.js');
+    void getClawService()
+      .start()
+      .catch((error) => log.warn('Claw Manager start failed', { error: String(error) }));
+    log.info('Claw Manager starting (resume + autoStart)...');
+  } catch (error) {
+    log.warn('Claw Manager failed to start', { error: String(error) });
+  }
+
   // Start always-on personal-memory retention (daily decay + cleanup). Pure
   // hygiene — no LLM, no conversation extraction — so it runs by default,
   // unlike the opt-in memory_extract / memory_consolidate triggers.
