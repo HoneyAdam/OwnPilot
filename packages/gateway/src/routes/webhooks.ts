@@ -191,10 +191,14 @@ webhookRoutes.post('/slack/events', async (c) => {
     // happened to round-trip to the same string. Read the raw text first,
     // verify, THEN parse.
     const rawBody = await c.req.text();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let body: any;
+    interface SlackWebhookBody {
+      type?: string;
+      challenge?: string;
+      event?: { type?: string; subtype?: string };
+    }
+    let body: SlackWebhookBody;
     try {
-      body = JSON.parse(rawBody);
+      body = JSON.parse(rawBody) as unknown as SlackWebhookBody;
     } catch {
       return apiError(c, { code: ERROR_CODES.ACCESS_DENIED, message: 'Invalid JSON body' }, 400);
     }
@@ -265,7 +269,24 @@ webhookRoutes.post('/slack/events', async (c) => {
 
     // Process event
     if (body.event && body.event.type === 'message' && !body.event.subtype) {
-      await handler.callback(body.event);
+      await handler.callback(
+        body.event as {
+          type: string;
+          subtype?: string;
+          user?: string;
+          text?: string;
+          ts: string;
+          channel: string;
+          thread_ts?: string;
+          files?: Array<{
+            id: string;
+            name: string;
+            mimetype: string;
+            url_private: string;
+            size: number;
+          }>;
+        }
+      );
     }
 
     return c.text('OK', 200);

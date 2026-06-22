@@ -745,21 +745,24 @@ export class WhatsAppChannelAPI implements ChannelPluginAPI {
           const raw = await sock.groupFetchAllParticipating();
           const groups = Object.values(raw);
 
-          const summaries: WhatsAppGroupSummary[] = groups.map((g) => ({
-            id: g.id,
-            subject: g.subject ?? '',
-            description: g.desc ?? null,
-            participantCount: g.participants?.length ?? 0,
-            createdAt: g.creation ?? null,
-            owner: g.owner ? this.normalizeJid(g.owner) : null,
-            isAnnounceGroup: g.announce ?? false,
-            isLocked: g.restrict ?? false,
-            isCommunity: (g as unknown as Record<string, unknown>).isCommunity === true,
-            isCommunityAnnounce:
-              (g as unknown as Record<string, unknown>).isCommunityAnnounce === true,
-            linkedParent:
-              ((g as unknown as Record<string, unknown>).linkedParent as string) ?? null,
-          }));
+          const summaries: WhatsAppGroupSummary[] = groups.map((g) => {
+            // Trust boundary: Baileys group metadata type omits optional community fields
+            // (isCommunity, isCommunityAnnounce, linkedParent) that are present at runtime.
+            const ext = g as unknown as Record<string, unknown>;
+            return {
+              id: g.id,
+              subject: g.subject ?? '',
+              description: g.desc ?? null,
+              participantCount: g.participants?.length ?? 0,
+              createdAt: g.creation ?? null,
+              owner: g.owner ? this.normalizeJid(g.owner) : null,
+              isAnnounceGroup: g.announce ?? false,
+              isLocked: g.restrict ?? false,
+              isCommunity: ext.isCommunity === true,
+              isCommunityAnnounce: ext.isCommunityAnnounce === true,
+              linkedParent: (ext.linkedParent as string) ?? null,
+            };
+          });
 
           // Only update cache if socket is still the same (guards against stale write after disconnect)
           if (this.sock === sock) {
@@ -852,6 +855,9 @@ export class WhatsAppChannelAPI implements ChannelPluginAPI {
 
     const g = await sock.groupMetadata(groupJid);
 
+    // Trust boundary: Baileys group metadata type omits optional community fields
+    // (isCommunity, isCommunityAnnounce, linkedParent) that are present at runtime.
+    const ext = g as unknown as Record<string, unknown>;
     return {
       id: g.id,
       subject: g.subject ?? '',
@@ -861,9 +867,9 @@ export class WhatsAppChannelAPI implements ChannelPluginAPI {
       owner: g.owner ? this.normalizeJid(g.owner) : null,
       isAnnounceGroup: g.announce ?? false,
       isLocked: g.restrict ?? false,
-      isCommunity: (g as unknown as Record<string, unknown>).isCommunity === true,
-      isCommunityAnnounce: (g as unknown as Record<string, unknown>).isCommunityAnnounce === true,
-      linkedParent: ((g as unknown as Record<string, unknown>).linkedParent as string) ?? null,
+      isCommunity: ext.isCommunity === true,
+      isCommunityAnnounce: ext.isCommunityAnnounce === true,
+      linkedParent: (ext.linkedParent as string) ?? null,
       participants: (g.participants ?? []).map((p) => ({
         jid: this.normalizeJid(p.id),
         phone: this.phoneFromJid(p.id),
