@@ -33,20 +33,28 @@ export async function* readSseData(body: ReadableStream<Uint8Array>): AsyncGener
   try {
     const decoder = new TextDecoder();
     let buffer = '';
+    let offset = 0;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (!data) continue;
-        yield data;
+      // Process complete lines via offset tracking
+      for (let newlineIdx; (newlineIdx = buffer.indexOf('\n', offset)) !== -1; ) {
+        const line = buffer.slice(offset, newlineIdx);
+        offset = newlineIdx + 1;
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6).trim();
+          if (data) yield data;
+        }
+      }
+
+      // Discard already-processed prefix to keep the buffer bounded
+      if (offset > 0) {
+        buffer = buffer.slice(offset);
+        offset = 0;
       }
     }
 
