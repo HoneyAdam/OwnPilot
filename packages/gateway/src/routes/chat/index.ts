@@ -40,6 +40,7 @@ import { onMcpToolEvents } from '../../mcp/mcp-events.js';
 import { getLLMRouter } from '@ownpilot/core/services';
 import { ChatRepository } from '../../db/repositories/index.js';
 import { modelConfigsRepo } from '../../db/repositories/model-configs.js';
+import { validateBody, chatMessageSchema } from '../../middleware/validation.js';
 import type { NormalizedMessage, MessageProcessingResult } from '@ownpilot/core/services';
 import { DEFAULT_EXECUTION_PERMISSIONS, type ExecutionPermissions } from '@ownpilot/core/tools';
 import { getOrCreateSessionWorkspace } from '../../workspace/file-workspace.js';
@@ -221,7 +222,6 @@ chatRoutes.post('/', async (c) => {
   }
 
   const rawBody = await parseJsonBody(c);
-  const { validateBody, chatMessageSchema } = await import('../../middleware/validation.js');
   const body = validateBody(chatMessageSchema, rawBody) as ChatRequest & {
     provider?: string;
     model?: string;
