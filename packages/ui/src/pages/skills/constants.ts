@@ -7,6 +7,3 @@ export const FORMAT_LABELS: Record<string, string> = {
   agentskills: 'SKILL.md',
   ownpilot: 'Extension',
 };
-
-// Re-export from extensions constants for convenience
-export { STATUS_COLORS, CATEGORY_COLORS, EXTENSION_CATEGORIES } from '../extensions/constants';
