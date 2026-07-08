@@ -7,11 +7,7 @@
     },
     "packages/core": {},
     "packages/gateway": {
-      "entry": [
-        "src/mcp/cli-mcp-server.ts",
-        "src/mcp/e2e-test.ts",
-        "scripts/migration-smoke-test.ts"
-      ]
+      "entry": ["src/mcp/cli-mcp-server.ts", "src/mcp/e2e-test.ts"]
     },
     "packages/cli": {},
     "packages/ui": {
