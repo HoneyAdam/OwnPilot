@@ -201,15 +201,3 @@ export async function resetServiceRegistry(): Promise<void> {
   }
   _registry = null;
 }
-
-/**
- * Synchronous reset for test cleanup — clears the registry synchronously without
- * awaiting dispose on services. Use in test `afterEach` blocks for fast teardown.
- * In production, prefer `resetServiceRegistry()` (async).
- */
-export function resetServiceRegistrySync(): void {
-  if (_registry) {
-    _registry.reset();
-  }
-  _registry = null;
-}
