@@ -31,15 +31,17 @@ Full monorepo analysis: 4 packages (`core`, `gateway`, `cli`, `ui`) + `website`,
 
 ### ✅ Fixed (7/10)
 
-| #   | Finding                                               | Severity | Fix                                                                                                                               | Commit     |
-| --- | ----------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 1   | `core/src/services/index.ts` duplicate `export *`     | 🔴       | Removed 2 redundant `export *` (claw-types, coding-agent-service); added missing `DEFAULT_CLAW_AUTONOMY_POLICY` to explicit block | `1e4fc931` |
-| 2   | Knip config broken — empty `{}` for 3 workspaces      | 🟠       | Added entry files for all 6 workspaces (core, gateway, cli, ui, website, root)                                                    | `ae76f15e` |
-| 3   | 5 orphaned scripts in repo root                       | 🟡       | Deleted `_cleanup.mjs`, `_cleanup2.mjs`, `_img.cjs`, `_readhealth.mjs`, `packages/gateway/scripts/fetch_crypto.py`                | `1e4fc931` |
-| 4   | `turbo.json` test depends on `["build"]`              | 🟡       | Changed to `["^build"]` so tests don't wait for self-build                                                                        | `56299bc6` |
-| 5   | `SetupWizard.tsx` — 270 lines, completely unused      | 🟡       | Deleted file (replaced by `SetupWizardPlaceholder` in ChatStarterPrompts)                                                         | `8b4077aa` |
-| 6   | `clearPersonalStoreCache` — dead export, never called | 🟡       | Removed function entirely                                                                                                         | `8b4077aa` |
-| 7   | `migration:smoke` script not in `package.json`        | 🔵       | Added `"migration:smoke": "tsx scripts/migration-smoke-test.ts"`                                                                  | `53a83fba` |
+| #   | Finding                                                  | Severity | Fix                                                                                                                               | Commit     |
+| --- | -------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | `core/src/services/index.ts` duplicate `export *`        | 🔴       | Removed 2 redundant `export *` (claw-types, coding-agent-service); added missing `DEFAULT_CLAW_AUTONOMY_POLICY` to explicit block | `1e4fc931` |
+| 2   | Knip config broken — empty `{}` for 3 workspaces         | 🟠       | Added entry files for all 6 workspaces (core, gateway, cli, ui, website, root)                                                    | `ae76f15e` |
+| 3   | 5 orphaned scripts in repo root                          | 🟡       | Deleted `_cleanup.mjs`, `_cleanup2.mjs`, `_img.cjs`, `_readhealth.mjs`, `packages/gateway/scripts/fetch_crypto.py`                | `1e4fc931` |
+| 4   | `turbo.json` test depends on `["build"]`                 | 🟡       | Changed to `["^build"]` so tests don't wait for self-build                                                                        | `56299bc6` |
+| 5   | `SetupWizard.tsx` — 270 lines, completely unused         | 🟡       | Deleted file (replaced by `SetupWizardPlaceholder` in ChatStarterPrompts)                                                         | `8b4077aa` |
+| 6   | `clearPersonalStoreCache` — dead export, never called    | 🟡       | Removed function entirely                                                                                                         | `8b4077aa` |
+| 7   | `migration:smoke` script not in `package.json`           | 🔵       | Added `"migration:smoke": "tsx scripts/migration-smoke-test.ts"`                                                                  | `53a83fba` |
+| 8   | `resetServiceRegistrySync` — dead export (tests mock it) | 🟡       | Removed function entirely                                                                                                         | `c232283a` |
+| 9   | `skills/constants.ts` dead re-exports                    | 🔵       | Removed `STATUS_COLORS`/`CATEGORY_COLORS`/`EXTENSION_CATEGORIES` re-exports (consumers import from `extensions/constants`)        | `ed4196ef` |
 
 PR: https://github.com/ownpilot/OwnPilot/pull/111
 
